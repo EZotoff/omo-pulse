@@ -66,15 +66,15 @@ Create a multi-project web dashboard that displays 10+ OpenCode projects on a si
 - Dark/light theme support
 
 ### Definition of Done
-- [ ] `bun run dev` starts the dashboard on a configured port
-- [ ] Dashboard displays data for 2+ registered projects simultaneously
-- [ ] Each project shows as a collapsible strip with sparkline activity
-- [ ] Per-session time-series shows individual sessions within each project
-- [ ] Plan/boulder progress displayed per project
-- [ ] Strips collapse to thin ~40px bars showing key indicators
-- [ ] Scales to 10+ projects in scrollable view
-- [ ] `bun test` passes all tests
-- [ ] `bun run build` produces production build
+- [x] `bun run dev` starts the dashboard on a configured port
+- [x] Dashboard displays data for 2+ registered projects simultaneously
+- [x] Each project shows as a collapsible strip with sparkline activity
+- [x] Per-session time-series shows individual sessions within each project
+- [x] Plan/boulder progress displayed per project
+- [x] Strips collapse to thin ~40px bars showing key indicators
+- [x] Scales to 10+ projects in scrollable view
+- [x] `bun test` passes all tests
+- [x] `bun run build` produces production build
 
 ### Must Have
 - Multi-project simultaneous view (not a dropdown switcher)
@@ -195,7 +195,7 @@ Max Concurrent: 6 (Wave 2)
 
 ## TODOs
 
-- [ ] 1. Project scaffolding + build config
+- [x] 1. Project scaffolding + build config
 
   **What to do**:
   - Initialize `package.json` with `bun init` (name: `ez-omo-dash`, type: `module`)
@@ -247,12 +247,12 @@ Max Concurrent: 6 (Wave 2)
   - `start.ts/dev.ts`: Understand how Hono serves both API and static Vite build in production vs dev
 
   **Acceptance Criteria**:
-  - [ ] `bun install` completes without errors
-  - [ ] `bun run dev:api` starts Hono server on configured port
-  - [ ] `bun run dev:ui` starts Vite dev server
-  - [ ] `bun run build` produces `dist/` directory with bundled assets
-  - [ ] `bun test` runs vitest (0 tests, no errors)
-  - [ ] TypeScript compiles cleanly: `bunx tsc --noEmit` exits 0
+  - [x] `bun install` completes without errors
+  - [x] `bun run dev:api` starts Hono server on configured port
+  - [x] `bun run dev:ui` starts Vite dev server
+  - [x] `bun run build` produces `dist/` directory with bundled assets
+  - [x] `bun test` runs vitest (0 tests, no errors)
+  - [x] TypeScript compiles cleanly: `bunx tsc --noEmit` exits 0
 
   **QA Scenarios:**
 
@@ -288,7 +288,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 2. Core types and data models
+- [x] 2. Core types and data models
 
   **What to do**:
   - Create `src/types.ts` with all shared TypeScript types for the dashboard
@@ -372,9 +372,9 @@ Max Concurrent: 6 (Wave 2)
   - `dashboard.ts` DashboardPayload: Shows the full single-project payload shape we're wrapping in multi-project
 
   **Acceptance Criteria**:
-  - [ ] `src/types.ts` exists and exports all types listed above
-  - [ ] `bunx tsc --noEmit` passes with zero errors
-  - [ ] Types are self-contained (no imports from external packages except standard lib)
+  - [x] `src/types.ts` exists and exports all types listed above
+  - [x] `bunx tsc --noEmit` passes with zero errors
+  - [x] Types are self-contained (no imports from external packages except standard lib)
 
   **QA Scenarios:**
 
@@ -406,7 +406,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 3. Ingestion layer — adapt from existing dashboard
+- [x] 3. Ingestion layer — adapt from existing dashboard
 
   **What to do**:
   - Create `src/ingest/` directory with adapted ingestion modules
@@ -476,10 +476,10 @@ Max Concurrent: 6 (Wave 2)
   - Stripping writes ensures we NEVER corrupt OpenCode's data
 
   **Acceptance Criteria**:
-  - [ ] `src/ingest/` directory exists with all listed files
-  - [ ] `bunx tsc --noEmit` passes with zero errors
-  - [ ] No write/mutation functions in any ingestion file (grep for `writeFile`, `mkdirSync.*recursive`, `renameSync` in our copies — should be zero except path assertions)
-  - [ ] All SQLite opens use `{ readonly: true }`
+  - [x] `src/ingest/` directory exists with all listed files
+  - [x] `bunx tsc --noEmit` passes with zero errors
+  - [x] No write/mutation functions in any ingestion file (grep for `writeFile`, `mkdirSync.*recursive`, `renameSync` in our copies — should be zero except path assertions)
+  - [x] All SQLite opens use `{ readonly: true }`
 
   **QA Scenarios:**
 
@@ -536,7 +536,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 4. CSS design tokens + base styles
+- [x] 4. CSS design tokens + base styles
 
   **What to do**:
   - Create `src/styles/tokens.css` with CSS custom properties for the dashboard design system:
@@ -590,11 +590,11 @@ Max Concurrent: 6 (Wave 2)
   - The collapsed strip height of 40px is a key UX constraint — enough for sparkline + status indicators but dense enough for 10+ projects
 
   **Acceptance Criteria**:
-  - [ ] `src/styles/tokens.css` exists with all listed custom properties
-  - [ ] `src/styles/base.css` exists with global resets
-  - [ ] `src/styles/index.css` imports both
-  - [ ] Dark and light theme tokens defined
-  - [ ] `bun run build` succeeds (CSS processed by Vite)
+  - [x] `src/styles/tokens.css` exists with all listed custom properties
+  - [x] `src/styles/base.css` exists with global resets
+  - [x] `src/styles/index.css` imports both
+  - [x] Dark and light theme tokens defined
+  - [x] `bun run build` succeeds (CSS processed by Vite)
 
   **QA Scenarios:**
 
@@ -629,7 +629,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 5. Multi-project aggregation service
+- [x] 5. Multi-project aggregation service
 
   **What to do**:
   - Create `src/server/multi-project.ts` — the core multi-project data orchestrator
@@ -683,11 +683,11 @@ Max Concurrent: 6 (Wave 2)
   - `dashboard.ts:createDashboardStore`: The dirty-flag + poll-interval caching pattern prevents redundant SQLite queries
 
   **Acceptance Criteria**:
-  - [ ] `src/server/multi-project.ts` exports `createMultiProjectService`
-  - [ ] `bunx tsc --noEmit` passes with zero errors
-  - [ ] Service returns `DashboardMultiProjectPayload` with correct shape
-  - [ ] Handles 0 sources gracefully (empty projects array)
-  - [ ] Per-source errors don't crash the entire response
+  - [x] `src/server/multi-project.ts` exports `createMultiProjectService`
+  - [x] `bunx tsc --noEmit` passes with zero errors
+  - [x] Service returns `DashboardMultiProjectPayload` with correct shape
+  - [x] Handles 0 sources gracefully (empty projects array)
+  - [x] Per-source errors don't crash the entire response
 
   **QA Scenarios:**
 
@@ -732,7 +732,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 6. Per-session time-series engine
+- [x] 6. Per-session time-series engine
 
   **What to do**:
   - Create `src/ingest/per-session-timeseries.ts` — NEW module not in the reference dashboard
@@ -787,11 +787,11 @@ Max Concurrent: 6 (Wave 2)
   - `readMainSessionMetas`: Shows the directory-based filtering pattern for getting sessions belonging to a project
 
   **Acceptance Criteria**:
-  - [ ] `src/ingest/per-session-timeseries.ts` exists and exports `derivePerSessionTimeSeries`
-  - [ ] `bunx tsc --noEmit` passes
-  - [ ] Returns `SessionTimeSeriesPayload` shape with windowMs, bucketMs, buckets, sessions array
-  - [ ] Each session in the output has sessionId, sessionLabel, isBackground, and values array
-  - [ ] Values array length equals buckets count
+  - [x] `src/ingest/per-session-timeseries.ts` exists and exports `derivePerSessionTimeSeries`
+  - [x] `bunx tsc --noEmit` passes
+  - [x] Returns `SessionTimeSeriesPayload` shape with windowMs, bucketMs, buckets, sessions array
+  - [x] Each session in the output has sessionId, sessionLabel, isBackground, and values array
+  - [x] Values array length equals buckets count
 
   **QA Scenarios:**
 
@@ -842,7 +842,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 7. Hono API routes
+- [x] 7. Hono API routes
 
   **What to do**:
   - Create `src/server/api.ts` — Hono router with all dashboard API endpoints
@@ -896,10 +896,10 @@ Max Concurrent: 6 (Wave 2)
   - Session validation: Security pattern to prevent path traversal in session IDs
 
   **Acceptance Criteria**:
-  - [ ] `src/server/api.ts` exports `createApi` function
-  - [ ] `bunx tsc --noEmit` passes
-  - [ ] All 5 endpoints respond with correct status codes and shapes
-  - [ ] Error handler returns 500 with `{ ok: false }` on unexpected errors
+  - [x] `src/server/api.ts` exports `createApi` function
+  - [x] `bunx tsc --noEmit` passes
+  - [x] All 5 endpoints respond with correct status codes and shapes
+  - [x] Error handler returns 500 with `{ ok: false }` on unexpected errors
 
   **QA Scenarios:**
 
@@ -951,7 +951,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 8. Project strip UI component
+- [x] 8. Project strip UI component
 
   **What to do**:
   - Create `src/ui/components/ProjectStrip.tsx` — The core UI component for displaying one project in the dashboard
@@ -1016,12 +1016,12 @@ Max Concurrent: 6 (Wave 2)
   - Design tokens: The strip MUST use token variables for all colors, sizes, transitions
 
   **Acceptance Criteria**:
-  - [ ] `src/ui/components/ProjectStrip.tsx` exists and exports `ProjectStrip`
-  - [ ] `src/ui/components/ProjectStrip.css` exists with styles using CSS custom properties
-  - [ ] `bunx tsc --noEmit` passes
-  - [ ] Component renders placeholder slots for Sparkline (Task 9) and PlanProgress (Task 10) children
-  - [ ] Collapsed height is ~40px per design spec
-  - [ ] `data-expanded` attribute toggles correctly
+  - [x] `src/ui/components/ProjectStrip.tsx` exists and exports `ProjectStrip`
+  - [x] `src/ui/components/ProjectStrip.css` exists with styles using CSS custom properties
+  - [x] `bunx tsc --noEmit` passes
+  - [x] Component renders placeholder slots for Sparkline (Task 9) and PlanProgress (Task 10) children
+  - [x] Collapsed height is ~40px per design spec
+  - [x] `data-expanded` attribute toggles correctly
 
   **QA Scenarios:**
 
@@ -1063,7 +1063,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 9. Sparkline + activity bar component
+- [x] 9. Sparkline + activity bar component
 
   **What to do**:
   - Create `src/ui/components/Sparkline.tsx` — A pure SVG sparkline component for visualizing time-series activity
@@ -1133,12 +1133,12 @@ Max Concurrent: 6 (Wave 2)
   - Series tones: CSS class pattern (`timeSeriesBar--teal`) applies colors without inline styles
 
   **Acceptance Criteria**:
-  - [ ] `src/ui/components/Sparkline.tsx` exports `Sparkline` component
-  - [ ] `src/ui/components/Sparkline.css` exists with styles using CSS custom properties
-  - [ ] `bunx tsc --noEmit` passes
-  - [ ] Mini mode renders compact sparkline with single-color bars
-  - [ ] Full mode renders stacked multi-series bars with color differentiation
-  - [ ] Component is pure: no useState, no useEffect, no fetch calls
+  - [x] `src/ui/components/Sparkline.tsx` exports `Sparkline` component
+  - [x] `src/ui/components/Sparkline.css` exists with styles using CSS custom properties
+  - [x] `bunx tsc --noEmit` passes
+  - [x] Mini mode renders compact sparkline with single-color bars
+  - [x] Full mode renders stacked multi-series bars with color differentiation
+  - [x] Component is pure: no useState, no useEffect, no fetch calls
 
   **QA Scenarios:**
 
@@ -1178,7 +1178,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 10. Plan progress indicator component
+- [x] 10. Plan progress indicator component
 
   **What to do**:
   - Create `src/ui/components/PlanProgress.tsx` — Displays plan/boulder progress for a project
@@ -1246,12 +1246,12 @@ Max Concurrent: 6 (Wave 2)
   - `statusTone()`: Central color-mapping function to replicate
 
   **Acceptance Criteria**:
-  - [ ] `src/ui/components/PlanProgress.tsx` exports `PlanProgress` component
-  - [ ] `src/ui/components/PlanProgress.css` exists with styles
-  - [ ] `bunx tsc --noEmit` passes
-  - [ ] Compact mode shows fraction text with correct color
-  - [ ] Full mode shows progress bar + step checklist
-  - [ ] "—" displayed when no plan exists (total === 0)
+  - [x] `src/ui/components/PlanProgress.tsx` exports `PlanProgress` component
+  - [x] `src/ui/components/PlanProgress.css` exists with styles
+  - [x] `bunx tsc --noEmit` passes
+  - [x] Compact mode shows fraction text with correct color
+  - [x] Full mode shows progress bar + step checklist
+  - [x] "—" displayed when no plan exists (total === 0)
 
   **QA Scenarios:**
 
@@ -1301,7 +1301,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 11. Dashboard layout + multi-project grid
+- [x] 11. Dashboard layout + multi-project grid
 
   **What to do**:
   - Create `src/ui/App.tsx` — Main dashboard application component
@@ -1363,13 +1363,13 @@ Max Concurrent: 6 (Wave 2)
   - We're replacing the single-project `grid2` layout with a vertical stack of project strips
 
   **Acceptance Criteria**:
-  - [ ] `src/ui/App.tsx` exports `App` component
-  - [ ] `src/ui/App.css` exists with layout styles
-  - [ ] `src/ui/components/DashboardHeader.tsx` exists
-  - [ ] `bunx tsc --noEmit` passes
-  - [ ] App renders a list of ProjectStrip components from data
-  - [ ] Theme toggle switches `data-theme` attribute
-  - [ ] Projects sorted by activity status (active first)
+  - [x] `src/ui/App.tsx` exports `App` component
+  - [x] `src/ui/App.css` exists with layout styles
+  - [x] `src/ui/components/DashboardHeader.tsx` exists
+  - [x] `bunx tsc --noEmit` passes
+  - [x] App renders a list of ProjectStrip components from data
+  - [x] Theme toggle switches `data-theme` attribute
+  - [x] Projects sorted by activity status (active first)
 
   **QA Scenarios:**
 
@@ -1410,7 +1410,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 12. Expand/collapse + detail view
+- [x] 12. Expand/collapse + detail view
 
   **What to do**:
   - Create `src/ui/hooks/useExpandState.ts` — Custom hook managing which project strips are expanded
@@ -1470,13 +1470,13 @@ Max Concurrent: 6 (Wave 2)
   - localStorage: Persistence pattern so expanded state survives page refresh
 
   **Acceptance Criteria**:
-  - [ ] `src/ui/hooks/useExpandState.ts` exports `useExpandState` hook
-  - [ ] `bunx tsc --noEmit` passes
-  - [ ] Clicking a strip toggles expanded state
-  - [ ] Expanded strip shows full sparkline, plan checklist, background tasks, session details
-  - [ ] "Expand All" / "Collapse All" buttons work in header
-  - [ ] Expanded state persists across page refresh (localStorage)
-  - [ ] CSS transition animates smoothly (max-height transition)
+  - [x] `src/ui/hooks/useExpandState.ts` exports `useExpandState` hook
+  - [x] `bunx tsc --noEmit` passes
+  - [x] Clicking a strip toggles expanded state
+  - [x] Expanded strip shows full sparkline, plan checklist, background tasks, session details
+  - [x] "Expand All" / "Collapse All" buttons work in header
+  - [x] Expanded state persists across page refresh (localStorage)
+  - [x] CSS transition animates smoothly (max-height transition)
 
   **QA Scenarios:**
 
@@ -1535,7 +1535,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 13. Data polling + state management
+- [x] 13. Data polling + state management
 
   **What to do**:
   - Create `src/ui/hooks/useDashboardData.ts` — Custom hook handling API polling and state
@@ -1596,12 +1596,12 @@ Max Concurrent: 6 (Wave 2)
   - Delay switching: Slower polling when disconnected prevents hammering a dead server
 
   **Acceptance Criteria**:
-  - [ ] `src/ui/hooks/useDashboardData.ts` exports `useDashboardData` hook
-  - [ ] `bunx tsc --noEmit` passes
-  - [ ] Dashboard auto-refreshes data every ~2.2 seconds
-  - [ ] Connection indicator shows green when connected
-  - [ ] On API failure: shows last-known data + disconnected indicator
-  - [ ] AbortController cleans up on unmount
+  - [x] `src/ui/hooks/useDashboardData.ts` exports `useDashboardData` hook
+  - [x] `bunx tsc --noEmit` passes
+  - [x] Dashboard auto-refreshes data every ~2.2 seconds
+  - [x] Connection indicator shows green when connected
+  - [x] On API failure: shows last-known data + disconnected indicator
+  - [x] AbortController cleans up on unmount
 
   **QA Scenarios:**
 
@@ -1643,7 +1643,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 14. Responsive scaling (2-5 → 10+ projects)
+- [x] 14. Responsive scaling (2-5 → 10+ projects)
 
   **What to do**:
   - Create `src/ui/hooks/useDensityMode.ts` — Hook that detects project count and viewport height to determine density mode
@@ -1703,13 +1703,13 @@ Max Concurrent: 6 (Wave 2)
   - Reference layout: Container scroll context determines where `overflow-y` goes
 
   **Acceptance Criteria**:
-  - [ ] `src/ui/hooks/useDensityMode.ts` exports `useDensityMode` hook
-  - [ ] `bunx tsc --noEmit` passes
-  - [ ] Dashboard with 3 projects uses comfortable density (48px strips)
-  - [ ] Dashboard with 8 projects uses dense density (40px strips)
-  - [ ] Dashboard with 12+ projects uses ultra-dense density (36px strips)
-  - [ ] Project list scrolls when exceeding viewport height
-  - [ ] Scroll position preserved across data refresh
+  - [x] `src/ui/hooks/useDensityMode.ts` exports `useDensityMode` hook
+  - [x] `bunx tsc --noEmit` passes
+  - [x] Dashboard with 3 projects uses comfortable density (48px strips)
+  - [x] Dashboard with 8 projects uses dense density (40px strips)
+  - [x] Dashboard with 12+ projects uses ultra-dense density (36px strips)
+  - [x] Project list scrolls when exceeding viewport height
+  - [x] Scroll position preserved across data refresh
 
   **QA Scenarios:**
 
@@ -1753,7 +1753,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 15. Unit + integration tests
+- [x] 15. Unit + integration tests
 
   **What to do**:
   - Create test files using vitest (configured in Task 1):
@@ -1809,12 +1809,12 @@ Max Concurrent: 6 (Wave 2)
   - `app.request()`: Hono provides in-memory request testing without HTTP server — fast and reliable
 
   **Acceptance Criteria**:
-  - [ ] All test files exist in `src/__tests__/`
-  - [ ] `bun test` passes with 0 failures
-  - [ ] At least 15 test cases covering: aggregation, timeseries, API routes, hooks
-  - [ ] Multi-project service tested with 0, 1, and N sources
-  - [ ] API error responses tested (invalid IDs)
-  - [ ] Hook lifecycle tested (mount, unmount, state changes)
+  - [x] All test files exist in `src/__tests__/`
+  - [x] `bun test` passes with 0 failures
+  - [x] At least 15 test cases covering: aggregation, timeseries, API routes, hooks
+  - [x] Multi-project service tested with 0, 1, and N sources
+  - [x] API error responses tested (invalid IDs)
+  - [x] Hook lifecycle tested (mount, unmount, state changes)
 
   **QA Scenarios:**
 
@@ -1850,7 +1850,7 @@ Max Concurrent: 6 (Wave 2)
 
 ---
 
-- [ ] 16. Playwright QA + final polish
+- [x] 16. Playwright QA + final polish
 
   **What to do**:
   - Create `tests/e2e/dashboard.spec.ts` — Playwright end-to-end test suite
@@ -1915,13 +1915,13 @@ Max Concurrent: 6 (Wave 2)
   - Component selectors: Need exact CSS class names to write stable Playwright selectors
 
   **Acceptance Criteria**:
-  - [ ] `playwright.config.ts` exists with Chromium config
-  - [ ] `tests/e2e/dashboard.spec.ts` exists with 8+ test cases
-  - [ ] `bunx playwright test` passes all tests
-  - [ ] `bun run build` succeeds cleanly
-  - [ ] Production build serves correctly via Hono
-  - [ ] No `console.log` in production source files
-  - [ ] `bunx tsc --noEmit` passes with zero warnings
+  - [x] `playwright.config.ts` exists with Chromium config
+  - [x] `tests/e2e/dashboard.spec.ts` exists with 8+ test cases
+  - [x] `bunx playwright test` passes all tests
+  - [x] `bun run build` succeeds cleanly
+  - [x] Production build serves correctly via Hono
+  - [x] No `console.log` in production source files
+  - [x] `bunx tsc --noEmit` passes with zero warnings
 
   **QA Scenarios:**
 
@@ -1971,19 +1971,19 @@ Max Concurrent: 6 (Wave 2)
 
 > 4 review agents run in PARALLEL. ALL must APPROVE. Rejection → fix → re-run.
 
-- [ ] F1. **Plan Compliance Audit** — `oracle`
+- [x] F1. **Plan Compliance Audit** — `oracle`
   Read the plan end-to-end. For each "Must Have": verify implementation exists (read file, curl endpoint, run command). For each "Must NOT Have": search codebase for forbidden patterns — reject with file:line if found. Check evidence files exist in `.sisyphus/evidence/`. Compare deliverables against plan.
   Output: `Must Have [N/N] | Must NOT Have [N/N] | Tasks [N/N] | VERDICT: APPROVE/REJECT`
 
-- [ ] F2. **Code Quality Review** — `unspecified-high`
+- [x] F2. **Code Quality Review** — `unspecified-high`
   Run `tsc --noEmit` + linter + `bun test`. Review all changed files for: `as any`/`@ts-ignore`, empty catches, console.log in prod, commented-out code, unused imports. Check AI slop: excessive comments, over-abstraction, generic names (data/result/item/temp).
   Output: `Build [PASS/FAIL] | Lint [PASS/FAIL] | Tests [N pass/N fail] | Files [N clean/N issues] | VERDICT`
 
-- [ ] F3. **Real Manual QA** — `unspecified-high` (+ `playwright` skill)
+- [x] F3. **Real Manual QA** — `unspecified-high` (+ `playwright` skill)
   Start from clean state. Execute EVERY QA scenario from EVERY task — follow exact steps, capture evidence. Test cross-task integration (features working together, not isolation). Test edge cases: empty state, invalid input, rapid actions. Save to `.sisyphus/evidence/final-qa/`.
   Output: `Scenarios [N/N pass] | Integration [N/N] | Edge Cases [N tested] | VERDICT`
 
-- [ ] F4. **Scope Fidelity Check** — `deep`
+- [x] F4. **Scope Fidelity Check** — `deep`
   For each task: read "What to do", read actual diff (git log/diff). Verify 1:1 — everything in spec was built (no missing), nothing beyond spec was built (no creep). Check "Must NOT do" compliance. Detect cross-task contamination: Task N touching Task M's files. Flag unaccounted changes.
   Output: `Tasks [N/N compliant] | Contamination [CLEAN/N issues] | Unaccounted [CLEAN/N files] | VERDICT`
 
@@ -2020,17 +2020,17 @@ curl localhost:PORT/api/projects | jq 'length'  # Expected: >= 2
 ```
 
 ### Final Checklist
-- [ ] All "Must Have" present and working
-- [ ] All "Must NOT Have" absent from codebase
-- [ ] All tests pass (`bun test`)
-- [ ] Build succeeds (`bun run build`)
-- [ ] Dashboard renders 2+ projects simultaneously
-- [ ] Strips collapse/expand smoothly
-- [ ] Per-session time-series visible when expanded
-- [ ] Plan progress displayed per project
-- [ ] Works in both dark and light themes
-- [ ] E2E tests pass (`bunx playwright test`)
-- [ ] Density scaling works (2-5 comfortable, 6-10 dense, 10+ ultra-dense)
-- [ ] Data auto-refreshes without page reload
-- [ ] No `console.log` in production source files
-- [ ] No `as any` or `@ts-ignore` in source files
+- [x] All "Must Have" present and working
+- [x] All "Must NOT Have" absent from codebase
+- [x] All tests pass (`bun test`)
+- [x] Build succeeds (`bun run build`)
+- [x] Dashboard renders 2+ projects simultaneously
+- [x] Strips collapse/expand smoothly
+- [x] Per-session time-series visible when expanded
+- [x] Plan progress displayed per project
+- [x] Works in both dark and light themes
+- [x] E2E tests pass (`bunx playwright test`)
+- [x] Density scaling works (2-5 comfortable, 6-10 dense, 10+ ultra-dense)
+- [x] Data auto-refreshes without page reload
+- [x] No `console.log` in production source files
+- [x] No `as any` or `@ts-ignore` in source files

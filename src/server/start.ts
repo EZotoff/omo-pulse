@@ -2,6 +2,8 @@
 import { Hono } from "hono";
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { createApi } from "./api";
+import { selectStorageBackend, getLegacyStorageRootForBackend } from "../ingest/storage-backend";
 
 const here = dirname(new URL(import.meta.url).pathname);
 const pkg = JSON.parse(readFileSync(resolve(here, "../../package.json"), "utf8"));
@@ -12,12 +14,14 @@ const app = new Hono();
 const port = parseInt(process.env.EZ_DASH_API_PORT || "51244", 10);
 const distRoot = join(import.meta.dir, "../../dist");
 
-app.get("/api/health", (c) => {
-  return c.json({ ok: true, version: APP_VERSION });
-});
 
-// API routes mounted here — Task 7
+// Initialize storage backend and create API router
+const storageBackend = selectStorageBackend();
+const storageRoot = getLegacyStorageRootForBackend(storageBackend);
+const apiRouter = createApi({ storageRoot, storageBackend, version: APP_VERSION });
 
+// Mount the API router BEFORE the SPA fallback middleware
+app.route("/api", apiRouter);
 // SPA fallback middleware
 app.use("*", async (c, next) => {
   const path = c.req.path;

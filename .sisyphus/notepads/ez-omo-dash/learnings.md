@@ -244,3 +244,25 @@
   - Hono resolves `../` in URL paths before matching routes — `/tool-calls/../etc/passwd` becomes `/etc/passwd` (404 not 400). Use chars that fail the regex but don't contain `/` (e.g., `ses!@#$%`)
   - Pre-existing tsc error in `src/ui/App.tsx` (children prop on ProjectStrip) — not caused by test files
   - vitest reads config from `vite.config.ts` automatically, no separate vitest.config.ts needed
+
+## Playwright E2E Configuration (Task 17)
+- **File Modified**: `playwright.config.ts` — added `webServer` block to auto-start Vite dev server
+- **webServer Config**:
+  - `command: "bun run dev:ui"` — starts Vite dev server (React app only)
+  - `port: 5173` — standard Vite dev server port
+  - `reuseExistingServer: !process.env.CI` — reuses existing server in dev, restarts fresh in CI
+  - `timeout: 30_000` — gives Vite 30s to fully start before test runner begins
+- **No Backend Server Needed**: E2E tests mock API responses via `page.route("**/api/projects", ...)` — Hono API server not required
+- **Test Results**: All 9 E2E tests PASS (100%) with config fix:
+  - ✓ loads and shows project strips (387ms)
+  - ✓ strip expand/collapse toggles (301ms)
+  - ✓ sparkline SVG renders correctly (146ms)
+  - ✓ plan progress shows correct content (148ms)
+  - ✓ theme toggle switches dark/light (165ms)
+  - ✓ data auto-refreshes with updated timestamp (3.6s)
+  - ✓ scrolling works with many projects (175ms)
+  - ✓ density mode applied based on project count (228ms)
+  - ✓ expand all and collapse all buttons work (201ms)
+- **Key Insight**: Playwright `webServer` is the standard pattern for integration tests that need a local dev server. The config was completely missing from Task 16, causing all tests to fail with `ERR_CONNECTION_REFUSED`.
+- **Gotcha**: For subsequent E2E runs, if Vite doesn't fully stop, `reuseExistingServer` allows reuse. In CI environments, set `CI=1` env var to force fresh server startup.
+- **Verification**: ✓ All 9 tests pass, ✓ no LSP diagnostics on config file, ✓ ready for CI integration

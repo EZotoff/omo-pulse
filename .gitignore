@@ -3,3 +3,5 @@ dist/
 .sisyphus/evidence/
 test-results/
 playwright-report/
+.playwright-cli/
+qa-*.png

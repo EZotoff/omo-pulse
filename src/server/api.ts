@@ -1,6 +1,6 @@
 import { Hono } from "hono"
 import * as path from "node:path"
-import { listSources, getDefaultSourceId, getSourceById } from "../ingest/sources-registry"
+import { listSources, getDefaultSourceId } from "../ingest/sources-registry"
 import { getStorageRoots, getMessageDir } from "../ingest/session"
 import { assertAllowedPath } from "../ingest/paths"
 import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../ingest/tool-calls"

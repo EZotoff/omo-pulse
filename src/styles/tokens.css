@@ -1,0 +1,88 @@
+/* Design tokens — Control Room dark theme (default) */
+:root {
+  /* Backgrounds */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a2e;
+
+  /* Text */
+  --text-primary: #e8e8ed;
+  --text-secondary: #a0a0b0;
+  --text-muted: #666680;
+
+  /* Accents */
+  --accent-primary: #00d4aa;
+  --accent-danger: #ff6b6b;
+  --accent-success: #4ecdc4;
+  --accent-warning: #ffa502;
+
+  /* Borders */
+  --border-primary: #2a2a3e;
+  --border-secondary: #1e1e30;
+
+  /* Typography */
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-xs: 0.65rem;
+  --font-sm: 0.75rem;
+  --font-md: 0.875rem;
+  --font-lg: 1rem;
+  --font-xl: 1.25rem;
+
+  /* Spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* Strip dimensions */
+  --strip-collapsed: 40px;
+  --strip-expanded: auto;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+
+  /* Status colors */
+  --status-busy: #00d4aa;
+  --status-idle: #666680;
+  --status-thinking: #ffa502;
+  --status-tool: #4ecdc4;
+  --status-unknown: #444460;
+
+  color-scheme: dark;
+}
+
+/* Light theme overrides */
+[data-theme="light"] {
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e9ecef;
+
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a4a60;
+  --text-muted: #8888a0;
+
+  --accent-primary: #0f9b7a;
+  --accent-danger: #d44040;
+  --accent-success: #2a9d8f;
+  --accent-warning: #d48a00;
+
+  --border-primary: #d8d8e8;
+  --border-secondary: #e8e8f0;
+
+  --status-busy: #0f9b7a;
+  --status-idle: #8888a0;
+  --status-thinking: #d48a00;
+  --status-tool: #2a9d8f;
+  --status-unknown: #b0b0c0;
+
+  color-scheme: light;
+}

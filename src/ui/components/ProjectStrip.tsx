@@ -1,3 +1,4 @@
+import type React from "react"
 import type { ProjectSnapshot } from "../../types"
 import "./ProjectStrip.css"
 
@@ -30,11 +31,17 @@ export type ProjectStripProps = {
   project: ProjectSnapshot
   expanded: boolean
   onToggleExpand: () => void
+  children?: {
+    miniSparkline: React.ReactNode
+    fullSparkline: React.ReactNode
+    compactPlan: React.ReactNode
+    fullPlan: React.ReactNode
+  }
 }
 
 /* ── Component ── */
 
-export function ProjectStrip({ project, expanded, onToggleExpand }: ProjectStripProps) {
+export function ProjectStrip({ project, expanded, onToggleExpand, children }: ProjectStripProps) {
   const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs } = project
 
   return (
@@ -43,9 +50,9 @@ export function ProjectStrip({ project, expanded, onToggleExpand }: ProjectStrip
       <div className="strip-header" onClick={onToggleExpand} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggleExpand() } }}>
         <span className="strip-status-dot" data-status={mainSession.status} />
         <span className="strip-label truncate">{project.label}</span>
-        <div className="sparkline-slot sparkline-slot--mini" />
+        <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>
         <span className="strip-agent-badge">{mainSession.agent}</span>
-        <div className="plan-slot plan-slot--compact" />
+        <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>
         <span className="strip-updated">{formatRelativeTime(lastUpdatedMs)}</span>
         <span className="strip-chevron" aria-hidden="true">{expanded ? "▾" : "▸"}</span>
       </div>
@@ -56,13 +63,13 @@ export function ProjectStrip({ project, expanded, onToggleExpand }: ProjectStrip
           {/* Sparkline — full width */}
           <div className="strip-section">
             <span className="strip-section-label">Activity</span>
-            <div className="sparkline-slot sparkline-slot--full" />
+            <div className="sparkline-slot sparkline-slot--full">{children?.fullSparkline}</div>
           </div>
 
           {/* Plan progress — full width */}
           <div className="strip-section">
             <span className="strip-section-label">Plan — {planProgress.name || "unnamed"}</span>
-            <div className="plan-slot plan-slot--full" />
+            <div className="plan-slot plan-slot--full">{children?.fullPlan}</div>
           </div>
 
           {/* Main session detail */}

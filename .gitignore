@@ -1,3 +1,5 @@
 node_modules/
 dist/
 .sisyphus/evidence/
+test-results/
+playwright-report/

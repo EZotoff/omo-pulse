@@ -1,0 +1,54 @@
+/* Sparkline — SVG time-series micro-visualization */
+
+/* ── Container ── */
+.sparkline {
+  display: block;
+  overflow: hidden;
+}
+
+.sparkline--mini {
+  width: 48px;
+  height: 20px;
+  border-radius: 2px;
+}
+
+.sparkline--full {
+  width: 100%;
+  height: 80px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Bar segments ── */
+.sparkline-bar {
+  transition: opacity var(--transition-fast);
+}
+
+/* Tone colors — mapped from design tokens */
+.sparkline-bar--teal {
+  fill: var(--status-busy);
+}
+
+.sparkline-bar--red {
+  fill: var(--accent-danger);
+}
+
+.sparkline-bar--green {
+  fill: var(--accent-success);
+}
+
+.sparkline-bar--muted {
+  fill: var(--text-muted);
+}
+
+.sparkline-bar--sand {
+  fill: var(--accent-warning);
+}
+
+/* ── Hover interaction (CSS-only) ── */
+.sparkline:hover .sparkline-bar {
+  opacity: 0.7;
+}
+
+.sparkline .sparkline-bar:hover {
+  opacity: 1;
+}

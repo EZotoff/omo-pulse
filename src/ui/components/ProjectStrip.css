@@ -1,0 +1,246 @@
+/* ProjectStrip — industrial control-room strip for a single project */
+
+/* ── Container ── */
+.project-strip {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: border-color var(--transition-fast);
+}
+
+.project-strip:hover {
+  border-color: var(--border-primary);
+}
+
+/* ── Collapsed header bar ── */
+.strip-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  height: var(--strip-collapsed);
+  padding: 0 var(--sp-3);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast);
+}
+
+.strip-header:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Status indicator dot */
+.strip-status-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.strip-status-dot[data-status="busy"]         { color: var(--status-busy); background: var(--status-busy); }
+.strip-status-dot[data-status="idle"]          { color: var(--status-idle); background: var(--status-idle); }
+.strip-status-dot[data-status="thinking"]      { color: var(--status-thinking); background: var(--status-thinking); }
+.strip-status-dot[data-status="running_tool"]  { color: var(--status-tool); background: var(--status-tool); }
+.strip-status-dot[data-status="unknown"]       { color: var(--status-unknown); background: var(--status-unknown); }
+
+/* Project label */
+.strip-label {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  max-width: 14ch;
+  flex-shrink: 0;
+}
+
+/* Mini sparkline slot */
+.sparkline-slot--mini {
+  width: 48px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: var(--bg-tertiary);
+}
+
+/* Agent badge */
+.strip-agent-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--sp-2);
+  height: 18px;
+  border-radius: 9px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Plan progress compact slot */
+.plan-slot--compact {
+  flex: 1 1 60px;
+  min-width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-tertiary);
+}
+
+/* Last updated */
+.strip-updated {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 4ch;
+  text-align: right;
+}
+
+/* Expand/collapse chevron */
+.strip-chevron {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+  transition: color var(--transition-fast);
+}
+
+.strip-header:hover .strip-chevron {
+  color: var(--text-secondary);
+}
+
+/* ── Expanded body ── */
+.strip-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-normal);
+}
+
+.project-strip[data-expanded="true"] .strip-body {
+  max-height: 600px;
+}
+
+.strip-body-inner {
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  border-top: 1px solid var(--border-secondary);
+}
+
+/* ── Detail sections ── */
+.strip-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.strip-section-label {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Full sparkline slot */
+.sparkline-slot--full {
+  width: 100%;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+}
+
+/* Full plan slot */
+.plan-slot--full {
+  width: 100%;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+}
+
+/* ── Background tasks table ── */
+.strip-bg-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--border-secondary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.strip-bg-task-row {
+  display: grid;
+  grid-template-columns: 6ch 1fr 1fr 1fr;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--bg-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  align-items: center;
+}
+
+.strip-bg-task-status {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.strip-bg-task-empty {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  font-style: italic;
+  padding: var(--sp-1) var(--sp-2);
+}
+
+/* ── Token usage ── */
+.strip-tokens {
+  display: flex;
+  gap: var(--sp-4);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+}
+
+.strip-token-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.strip-token-label {
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.strip-token-value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ── Main session detail row ── */
+.strip-session-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+}
+
+.strip-session-field {
+  display: flex;
+  gap: var(--sp-1);
+}
+
+.strip-session-field-label {
+  color: var(--text-muted);
+}
+
+.strip-session-field-value {
+  color: var(--text-primary);
+}

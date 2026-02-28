@@ -80,11 +80,10 @@
 
 /* Plan progress compact slot */
 .plan-slot--compact {
-  flex: 1 1 60px;
-  min-width: 40px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--bg-tertiary);
+  flex: 0 0 auto;
+  min-width: 30px;
+  display: inline-flex;
+  align-items: center;
 }
 
 /* Last updated */
@@ -243,4 +242,55 @@
 
 .strip-session-field-value {
   color: var(--text-primary);
+}
+
+/* ── Density overrides ── */
+
+/* Dense mode: 40px strips, tighter padding, smaller font */
+[data-density="dense"] .strip-header {
+  height: 40px;
+  min-height: 40px;
+  padding: 0 var(--sp-2);
+  gap: var(--sp-2);
+  font-size: var(--font-xs);
+}
+[data-density="dense"] .strip-label {
+  font-size: var(--font-xs);
+}
+[data-density="dense"] .sparkline-slot--mini {
+  width: 40px;
+}
+[data-density="dense"] .strip-agent-badge {
+  height: 16px;
+  font-size: 0.6rem;
+}
+
+/* Ultra-dense mode: 36px strips, minimal padding, abbreviated */
+[data-density="ultra-dense"] .strip-header {
+  height: 36px;
+  min-height: 36px;
+  padding: 0 var(--sp-1);
+  gap: var(--sp-1);
+  font-size: 0.6rem;
+}
+[data-density="ultra-dense"] .strip-label {
+  font-size: 0.6rem;
+  max-width: 10ch;
+}
+[data-density="ultra-dense"] .sparkline-slot--mini {
+  width: 32px;
+  height: 16px;
+}
+[data-density="ultra-dense"] .strip-agent-badge {
+  height: 14px;
+  padding: 0 var(--sp-1);
+  font-size: 0.55rem;
+}
+[data-density="ultra-dense"] .strip-updated {
+  font-size: 0.55rem;
+  min-width: 3ch;
+}
+[data-density="ultra-dense"] .strip-chevron {
+  font-size: var(--font-xs);
+  width: 10px;
 }

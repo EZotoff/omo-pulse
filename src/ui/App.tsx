@@ -6,6 +6,7 @@ import { Sparkline } from "./components/Sparkline"
 import { PlanProgress } from "./components/PlanProgress"
 import "./App.css"
 import { useExpandState } from "./hooks/useExpandState"
+import { useDensityMode } from "./hooks/useDensityMode"
 
 /* ── Helpers ── */
 
@@ -43,7 +44,6 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
     expandAll(data.projects.map((p) => p.sourceId))
   }, [data, expandAll])
 
-
   /* Sort projects: active first */
   const sortedProjects = useMemo(() => {
     if (!data) return []
@@ -51,9 +51,10 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
   }, [data])
 
   const projectCount = sortedProjects.length
+  const density = useDensityMode(projectCount)
 
   return (
-    <div className="page">
+    <div className="page" data-density={density}>
       <DashboardHeader
         connected={connected}
         lastUpdatedMs={lastUpdatedMs}

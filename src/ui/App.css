@@ -1,0 +1,163 @@
+/* App — main dashboard layout */
+
+/* ── Page container ── */
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--bg-primary);
+}
+
+.container {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--sp-4) var(--sp-4) var(--sp-8);
+  flex: 1 1 auto;
+}
+
+/* ── Header ── */
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.dashboard-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.dashboard-header__title {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.dashboard-header__count {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}
+
+.dashboard-header__right {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.dashboard-header__actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+/* Header buttons */
+.header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  line-height: 1;
+}
+
+.header-btn:hover {
+  background: var(--border-primary);
+  color: var(--text-primary);
+}
+
+/* Connection indicator */
+.dashboard-header__connection {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dashboard-header__connection[data-connected="true"] {
+  background: var(--status-busy);
+  box-shadow: 0 0 6px var(--status-busy);
+}
+
+.dashboard-header__connection[data-connected="false"] {
+  background: var(--accent-danger);
+  box-shadow: 0 0 6px var(--accent-danger);
+}
+
+/* Last updated text */
+.dashboard-header__updated {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── Project stack ── */
+.project-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  overflow-y: auto;
+  max-height: calc(100vh - 96px); /* viewport minus header (~44px) + container padding (52px) */
+  scrollbar-gutter: stable;
+}
+
+/* ── Empty state ── */
+.dashboard-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-8) var(--sp-4);
+  color: var(--text-muted);
+  font-size: var(--font-md);
+  text-align: center;
+}
+
+.dashboard-empty__icon {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+/* ── Loading state ── */
+.dashboard-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-8);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+}
+
+/* ── Density overrides ── */
+
+/* Comfortable — default, no overrides needed beyond base */
+[data-density="comfortable"] .project-stack {
+  gap: var(--sp-2);
+}
+
+/* Dense */
+[data-density="dense"] .project-stack {
+  gap: var(--sp-1);
+}
+
+/* Ultra-dense */
+[data-density="ultra-dense"] .project-stack {
+  gap: 2px;
+}

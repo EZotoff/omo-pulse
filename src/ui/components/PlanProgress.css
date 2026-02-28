@@ -1,0 +1,127 @@
+/* PlanProgress — compact fraction + full progress bar with step checklist */
+
+/* ── Shared ── */
+.plan-progress {
+  font-family: var(--font-mono);
+}
+
+/* ── Compact mode ── */
+.plan-progress--compact {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.plan-progress--compact[data-tone="complete"]  { color: var(--status-busy); }
+.plan-progress--compact[data-tone="progress"]  { color: var(--status-thinking); }
+.plan-progress--compact[data-tone="idle"]       { color: var(--status-idle); }
+
+/* ── Full mode ── */
+.plan-progress--full {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+/* Header row: plan name + status pill */
+.plan-progress__header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.plan-progress__name {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Status pill badge */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-2);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pill--complete {
+  background: color-mix(in srgb, var(--status-busy) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-busy) 28%, transparent);
+  color: var(--status-busy);
+}
+
+.pill--progress {
+  background: color-mix(in srgb, var(--status-thinking) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-thinking) 28%, transparent);
+  color: var(--status-thinking);
+}
+
+.pill--idle {
+  background: color-mix(in srgb, var(--status-idle) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-idle) 28%, transparent);
+  color: var(--status-idle);
+}
+
+/* Progress bar track + fill */
+.progress-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width var(--transition-normal);
+}
+
+.progress-fill[data-tone="complete"]  { background: var(--status-busy); }
+.progress-fill[data-tone="progress"]  { background: var(--status-thinking); }
+.progress-fill[data-tone="idle"]       { background: var(--status-idle); }
+
+/* Step checklist */
+.plan-progress__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.plan-progress__step {
+  color: var(--text-secondary);
+}
+
+.plan-progress__step--checked {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--border-primary);
+}
+
+.plan-progress__truncation {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: var(--font-xs);
+  padding-top: var(--sp-1);
+}
+
+/* Empty state */
+.plan-progress__empty {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  font-style: italic;
+}

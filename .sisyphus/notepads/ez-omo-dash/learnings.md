@@ -151,3 +151,96 @@
 - **Performance Note**: Queries ALL sessions from DB (needed for directory matching), but only fetches messages/parts within the 5min window — keeps data volume bounded
 - **Gotcha**: `withReadonlyDb` is NOT exported from `storage-backend.ts`, requiring local reimplementation
 - **Verification**: ✓ `bunx tsc --noEmit` — zero errors, ✓ LSP diagnostics clean
+
+## PlanProgress Component (Task 9)
+- **Files Created**: `src/ui/components/PlanProgress.tsx` (99 lines), `src/ui/components/PlanProgress.css` (128 lines)
+- **Architecture**: Pure presentational component — zero state, zero effects, zero data fetching
+- **Two Modes**:
+  - **Compact**: `<span>` with `{completed}/{total}` fraction, em dash `—` when total===0, `data-tone` attribute for color
+  - **Full**: progress bar + plan name header + status pill badge + step checklist
+- **Helpers** (internal, not exported):
+  - `statusTone(status: PlanStatus)` → 'complete' | 'progress' | 'idle' for CSS class mapping
+  - `clampPercent(n)` → clamped [0,100] for progress bar width
+  - `basename(path)` → strips directory path for display name
+- **Color Mapping**: green (--status-busy) = complete, amber (--status-thinking) = in progress, gray (--status-idle) = not started
+- **Pill Badge Pattern**: `.pill .pill--{tone}` with color-mix() for translucent background/border (adapted from reference)
+- **Step Checklist**: Max 10 steps visible, `+ N more` truncation, [✓]/[\u00A0] prefix with `.mono` utility class
+- **CSS Design**: Uses `data-tone` attributes for color mapping (same pattern as ProjectStrip's `data-status`), no hardcoded colors
+- **Exported**: `PlanProgress` component + `PlanProgressProps` type
+- **Verification**: ✓ `bunx tsc --noEmit` zero errors, ✓ `bun run build` passes, ✓ LSP diagnostics clean, ✓ committed as `feat(ui): plan progress indicator with compact and full modes`
+
+## Sparkline Component (Task 7)
+- **Files Created**: `src/ui/components/Sparkline.tsx` (352 lines), `src/ui/components/Sparkline.css` (55 lines)
+- **Architecture**: Pure presentational SVG component — no state, no effects, no data fetching
+- **Two Modes**:
+  - `mini`: 48×20px, last 30 buckets, single summed teal bar per bucket, for collapsed strip header
+  - `full`: 100% width × 80px, all 150 buckets, stacked multi-series bars, for expanded detail view
+- **SVG Pattern** (from reference `App.tsx:157-276`):
+  - `viewBox="0 0 ${buckets} ${height}"` with `preserveAspectRatio="none"`
+  - Each bucket = one `<rect>`, barW=0.85, barInset=(1-barW)/2
+  - Bar height proportional to value, normalized to max in window
+  - `aria-hidden="true"` on all SVGs
+- **Stacked Segments**: Local `computeStackedSegments()` adapted from `timeseries-stacked.ts`
+  - Bottom→top order: sisyphus(teal), prometheus(red), atlas(green), other(sand)
+  - Handles overflow clamping, 1px minimum for visible agents, fair excess distribution
+- **Series Tone Mapping**: sisyphus=teal, prometheus=red, atlas=green, background=muted (from ref App.tsx:405-410)
+- **CSS Strategy**: CSS vars from tokens (`--status-busy`, `--accent-danger`, `--accent-success`, `--accent-warning`), hover opacity transition
+- **Props**: `{ mode, timeSeries, sessionTimeSeries?, width?, height?, className? }`
+- **Verification**: ✓ `bunx tsc --noEmit` zero errors, ✓ LSP diagnostics clean, ✓ Committed as `feat(ui): sparkline component with mini and full modes`
+
+## useExpandState Hook (Task 12)
+- **File Created**: `src/ui/hooks/useExpandState.ts` (66 lines)
+- **Architecture**: Custom hook extracting expand/collapse state from App.tsx with localStorage persistence
+- **API**: `useExpandState()` → `{ expandedIds: Set<string>, toggle(id), expandAll(ids[]), collapseAll() }`
+- **localStorage Key**: `ez-dash-expanded` — persists as JSON array of source IDs
+- **Initialization**: `useState` lazy initializer reads from localStorage; `useEffect` persists on changes
+- **Error Handling**: try/catch around both read and write to handle unavailable localStorage
+- **Key Decision**: `expandAll` accepts `string[]` parameter rather than accessing data directly — keeps hook data-agnostic
+- **App.tsx Integration**: `handleExpandAll` wrapper in App bridges hook's `expandAll(ids[])` with `data.projects.map(p => p.sourceId)`
+- **Imports Cleaned**: Removed `useState` from App.tsx imports (no longer used directly); kept `useMemo`, `useCallback`
+- **Verification**: ✓ `bunx tsc --noEmit` zero errors, ✓ LSP diagnostics clean on both files
+
+## Data Polling Hook (Task 12)
+- **File Created**: `src/ui/hooks/useDashboardData.ts` (66 lines)
+- **File Modified**: `src/main.tsx` — added `DashboardRoot` wrapper component
+- **Pattern**: Recursive `setTimeout` (not `setInterval`) to prevent request pile-up
+- **Poll Delays**: 2200ms when connected, 3600ms when disconnected
+- **Refs Used**: `timerRef` (timeout ID), `abortRef` (AbortController), `connectedRef` (avoids stale closure in setTimeout callback)
+- **Error Recovery**: On fetch error, keeps last-known data (stale), sets `connected=false`, sets `errorHint` with error message
+- **AbortController**: New controller created per tick, aborted on unmount cleanup
+- **API Shape**: `GET /api/projects` returns `DashboardMultiProjectPayload` directly (no `{ ok, ... }` wrapper)
+- **DashboardRoot Pattern**: Wrapper component in `main.tsx` calls the hook and passes props to `<App>`
+- **Verification**: ✓ `bunx tsc --noEmit` zero errors, ✓ LSP diagnostics clean, ✓ committed as `feat(data): polling hook with error recovery`
+
+## Density Mode (Task 13)
+- **File Created**: `src/ui/hooks/useDensityMode.ts` (19 lines)
+- **Files Modified**: `src/ui/App.tsx`, `src/ui/App.css`, `src/ui/components/ProjectStrip.css`
+- **Architecture**: Pure function wrapped in `useMemo` — returns `'comfortable' | 'dense' | 'ultra-dense'` based on project count
+- **Thresholds**: ≤5 comfortable, ≤10 dense, 10+ ultra-dense
+- **Integration**: `data-density` attribute on `.page` div, CSS descendant selectors for overrides
+- **CSS Overrides**:
+  - App.css: `.project-stack` gap varies per density (8px → 4px → 2px)
+  - App.css: `.project-stack` gets `overflow-y: auto`, `max-height: calc(100vh - 96px)`, `scrollbar-gutter: stable`
+  - ProjectStrip.css: Dense = 40px strips, `--sp-2` padding, `--font-xs`
+  - ProjectStrip.css: Ultra-dense = 36px strips, `--sp-1` padding, `0.6rem` font, 10ch label width
+- **Scroll Preservation**: React preserves scroll on stable DOM elements — `key={project.sourceId}` ensures stability
+- **Class Names Used**: `.strip-header`, `.strip-label`, `.sparkline-slot--mini`, `.strip-agent-badge`, `.strip-updated`, `.strip-chevron`
+- **DashboardHeader**: Already has project count badge — NOT modified
+- **Verification**: ✓ `bunx tsc --noEmit` zero errors, ✓ LSP diagnostics clean, ✓ committed as `feat(ui): density-responsive scaling for 2-5 to 10+ projects`
+
+## Vitest Testing (Task 15)
+- **Files Created**: 4 test files in `src/__tests__/`:
+  - `hooks.test.ts` (11 tests) — density mode thresholds + expand state Set logic
+  - `api.test.ts` (7 tests) — Hono API routes via `app.request()`
+  - `multi-project.test.ts` (4 tests) — multi-project service transformation
+  - `per-session-timeseries.test.ts` (4 tests) — bucket calculations + error handling
+- **Total**: 26 test cases, all passing in ~600ms
+- **Mocking Patterns**:
+  - `bun:sqlite` must be mocked as `vi.mock("bun:sqlite", ...)` — needed in any test file that transitively imports modules using `bun:sqlite` (storage-backend.ts, per-session-timeseries.ts, sqlite-derive.ts)
+  - `vi.hoisted()` required when mock factory references variables declared at module top level — `vi.mock` is hoisted above variable declarations, causing "Cannot access before initialization" errors
+  - Hono API testing uses `app.request(path)` pattern — returns standard `Response` objects
+  - `vi.mock("../server/multi-project", ...)` uses the path relative to the test file, not the importing file
+- **Gotchas**:
+  - Hono resolves `../` in URL paths before matching routes — `/tool-calls/../etc/passwd` becomes `/etc/passwd` (404 not 400). Use chars that fail the regex but don't contain `/` (e.g., `ses!@#$%`)
+  - Pre-existing tsc error in `src/ui/App.tsx` (children prop on ProjectStrip) — not caused by test files
+  - vitest reads config from `vite.config.ts` automatically, no separate vitest.config.ts needed

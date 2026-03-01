@@ -30,6 +30,10 @@ export type SettingsPanelProps = {
   projects: Array<{ sourceId: string; label: string; mainSession: { status: string } }>
   visibility: Record<string, boolean>
   onToggleVisibility: (sourceId: string) => void
+  collapsedHeight: number
+  onCollapsedHeightChange: (height: number) => void
+  gridGap: number
+  onGridGapChange: (gap: number) => void
 }
 
 /* ── Display toggle metadata ── */
@@ -74,6 +78,10 @@ export function SettingsPanel({
   projects,
   visibility,
   onToggleVisibility,
+  collapsedHeight,
+  onCollapsedHeightChange,
+  gridGap,
+  onGridGapChange,
 }: SettingsPanelProps) {
   const [theme, setThemeState] = useState<"dark" | "light">(getTheme)
 
@@ -200,6 +208,38 @@ export function SettingsPanel({
               />
             </div>
           ))}
+
+          {/* Collapsed Pane Height */}
+          <div className="settings-slider-row">
+            <span className="settings-slider-label">Collapsed Height</span>
+            <input
+              className="settings-slider"
+              type="range"
+              min={80}
+              max={300}
+              step={1}
+              value={collapsedHeight}
+              onChange={(e) => onCollapsedHeightChange(Number(e.target.value))}
+              aria-label="Collapsed pane height"
+            />
+            <span className="settings-slider-value">{collapsedHeight}px</span>
+          </div>
+
+          {/* Grid Gap */}
+          <div className="settings-slider-row">
+            <span className="settings-slider-label">Column Gap</span>
+            <input
+              className="settings-slider"
+              type="range"
+              min={4}
+              max={24}
+              step={1}
+              value={gridGap}
+              onChange={(e) => onGridGapChange(Number(e.target.value))}
+              aria-label="Grid gap between columns"
+            />
+            <span className="settings-slider-value">{gridGap}px</span>
+          </div>
         </div>
         {/* Sound Notifications */}
         <div className={`settings-section${!soundConfig.enabled ? " settings-section--disabled" : ""}`}>

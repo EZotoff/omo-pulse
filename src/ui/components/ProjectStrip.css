@@ -18,7 +18,7 @@
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  height: var(--strip-collapsed);
+  height: var(--collapsed-pane-height, 40px);
   padding: 0 var(--sp-3);
   cursor: pointer;
   user-select: none;

@@ -391,6 +391,11 @@ export function getMainSessionViewSqlite(opts: {
     status = nowMs - lastUpdated <= 15_000 ? "busy" : "idle"
   }
 
+  // Question detection: user sent a message with no subsequent assistant response
+  if ((status === "busy" || status === "idle") && recent?.role === "user") {
+    status = "question"
+  }
+
   return {
     ok: true,
     value: {

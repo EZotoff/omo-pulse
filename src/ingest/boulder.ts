@@ -14,6 +14,8 @@ export type PlanProgress = {
   completed: number
   isComplete: boolean
   missing: boolean
+  planStale: boolean
+  planComplete: boolean
 }
 
 export type PlanStep = {
@@ -37,7 +39,7 @@ export function readBoulderState(projectRoot: string): BoulderState | null {
   }
 }
 
-export function getPlanProgressFromMarkdown(content: string): Omit<PlanProgress, "missing"> {
+export function getPlanProgressFromMarkdown(content: string): Omit<PlanProgress, "missing" | "planStale" | "planComplete"> {
   const uncheckedMatches = content.match(/^[-*]\s*\[\s*\]/gm) || []
   const checkedMatches = content.match(/^[-*]\s*\[[xX]\]/gm) || []
 
@@ -47,7 +49,7 @@ export function getPlanProgressFromMarkdown(content: string): Omit<PlanProgress,
   return {
     total,
     completed,
-    isComplete: total === 0 || completed === total,
+    isComplete: total > 0 && completed === total,
   }
 }
 
@@ -67,7 +69,11 @@ export function getPlanStepsFromMarkdown(content: string): PlanStep[] {
   return steps
 }
 
-export function readPlanProgress(projectRoot: string, planPath: string): PlanProgress {
+/** Threshold for considering a plan stale (30 minutes) */
+const PLAN_STALE_THRESHOLD_MS = 30 * 60 * 1000
+
+export function readPlanProgress(projectRoot: string, planPath: string, nowMs?: number): PlanProgress {
+  const fallback: PlanProgress = { total: 0, completed: 0, isComplete: false, missing: true, planStale: false, planComplete: false }
   let planReal: string
   try {
     planReal = assertAllowedPath({
@@ -75,19 +81,34 @@ export function readPlanProgress(projectRoot: string, planPath: string): PlanPro
       allowedRoots: [projectRoot],
     })
   } catch {
-    return { total: 0, completed: 0, isComplete: false, missing: true }
+    return fallback
   }
 
   if (!fs.existsSync(planReal)) {
-    return { total: 0, completed: 0, isComplete: false, missing: true }
+    return fallback
   }
 
   try {
     const content = fs.readFileSync(planReal, "utf8")
     const progress = getPlanProgressFromMarkdown(content)
-    return { ...progress, missing: false }
+
+    // planComplete: true only when there are tasks AND all are checked
+    const planComplete = progress.total > 0 && progress.completed === progress.total
+
+    // Determine plan file staleness via mtime
+    const now = nowMs ?? Date.now()
+    let planStale = false
+    try {
+      const stat = fs.statSync(planReal)
+      const mtimeMs = stat.mtimeMs
+      planStale = !planComplete && (now - mtimeMs > PLAN_STALE_THRESHOLD_MS)
+    } catch {
+      // If stat fails, default to not stale
+    }
+
+    return { ...progress, missing: false, planStale, planComplete }
   } catch {
-    return { total: 0, completed: 0, isComplete: false, missing: true }
+    return fallback
   }
 }
 

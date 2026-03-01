@@ -323,3 +323,81 @@
   opacity: 0.35;
   pointer-events: none;
 }
+
+/* Slider rows for layout controls */
+.settings-slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+  min-height: 28px;
+}
+
+.settings-slider-row + .settings-slider-row {
+  border-top: 1px solid var(--border-secondary);
+}
+
+.settings-slider-label {
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  user-select: none;
+  flex-shrink: 0;
+  min-width: 85px;
+}
+
+.settings-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-primary);
+  outline: none;
+  cursor: pointer;
+}
+
+.settings-slider:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.settings-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  border: none;
+  cursor: pointer;
+  transition: box-shadow var(--transition-fast);
+}
+
+.settings-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 6px var(--accent-primary);
+}
+
+.settings-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  border: none;
+  cursor: pointer;
+}
+
+.settings-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-primary);
+}
+
+.settings-slider-value {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  min-width: 35px;
+  text-align: right;
+  flex-shrink: 0;
+}

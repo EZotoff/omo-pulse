@@ -36,7 +36,7 @@ export type MainSessionView = {
   currentModel: string | null
   lastUpdated: number | null
   sessionLabel: string
-  status: "busy" | "idle" | "unknown" | "running_tool" | "thinking"
+  status: "busy" | "idle" | "unknown" | "running_tool" | "thinking" | "question"
 }
 
 export type OpenCodeStorageRoots = {
@@ -313,6 +313,11 @@ export function getMainSessionView(opts: {
   } else if (typeof lastUpdated === "number") {
     // Use freshness window fallback exactly as today ONLY when no active tool is found
     status = nowMs - lastUpdated <= 15_000 ? "busy" : "idle"
+  }
+
+  // Question detection: user sent a message with no subsequent assistant response
+  if ((status === "busy" || status === "idle") && recent?.role === "user") {
+    status = "question"
   }
 
   return {

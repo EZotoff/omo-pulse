@@ -50,6 +50,8 @@ function makeDashboardPayload(overrides: Partial<DashboardPayload> = {}): Dashbo
       path: "/plan.md",
       statusPill: "in progress",
       steps: [],
+      planStale: false,
+      planComplete: false,
     },
     backgroundTasks: [],
     mainSessionTasks: [],

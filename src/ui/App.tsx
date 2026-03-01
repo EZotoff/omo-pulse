@@ -40,8 +40,9 @@ const STATUS_PRIORITY: Record<SessionStatus, number> = {
   running_tool: 1,
   thinking: 2,
   idle: 3,
-  unknown: 5,
   question: 4,
+  plan_complete: 4,
+  unknown: 5,
 }
 
 function compareProjects(a: ProjectSnapshot, b: ProjectSnapshot): number {
@@ -91,6 +92,27 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
   const handleZoomReset = useCallback(() => {
     setZoom(1)
   }, [])
+
+  /* ── Collapsed pane height & grid gap ── */
+  const [collapsedHeight, setCollapsedHeight] = useState<number>(() => {
+    const saved = localStorage.getItem('dashboard-collapsed-height')
+    return saved ? parseInt(saved, 10) : 40
+  })
+
+  const [gridGap, setGridGap] = useState<number>(() => {
+    const saved = localStorage.getItem('dashboard-grid-gap')
+    return saved ? parseInt(saved, 10) : 10
+  })
+
+  useEffect(() => {
+    localStorage.setItem('dashboard-collapsed-height', String(collapsedHeight))
+    document.documentElement.style.setProperty('--collapsed-pane-height', `${collapsedHeight}px`)
+  }, [collapsedHeight])
+
+  useEffect(() => {
+    localStorage.setItem('dashboard-grid-gap', String(gridGap))
+    document.documentElement.style.setProperty('--grid-gap', `${gridGap}px`)
+  }, [gridGap])
 
   /* ── Column widths ── */
   const [columnWidths, setColumnWidths] = useState<Record<string, number[]>>(() => {
@@ -252,22 +274,21 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
 
   return (
     <div className="page" data-density={density}>
-      <DashboardHeader
-        connected={connected}
-        lastUpdatedMs={lastUpdatedMs}
-        projectCount={projectCount}
-        onExpandAll={handleExpandAll}
-        onCollapseAll={collapseAll}
-        columns={columns}
-        onSetColumns={setColumns}
-        onSettingsOpen={() => setSettingsOpen(true)}
-        zoom={zoom}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onZoomReset={handleZoomReset}
-      />
-
       <div className="container">
+        <DashboardHeader
+          connected={connected}
+          lastUpdatedMs={lastUpdatedMs}
+          projectCount={projectCount}
+          onExpandAll={handleExpandAll}
+          onCollapseAll={collapseAll}
+          columns={columns}
+          onSetColumns={setColumns}
+          onSettingsOpen={() => setSettingsOpen(true)}
+          zoom={zoom}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onZoomReset={handleZoomReset}
+        />
         {data === null ? (
           <div className="dashboard-loading">Loading…</div>
         ) : projectCount === 0 && data.projects.length === 0 ? (
@@ -343,6 +364,10 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
         projects={data?.projects ?? []}
         visibility={visibility}
         onToggleVisibility={toggleVisibility}
+        collapsedHeight={collapsedHeight}
+        onCollapsedHeightChange={setCollapsedHeight}
+        gridGap={gridGap}
+        onGridGapChange={setGridGap}
       />
     </div>
   )

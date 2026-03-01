@@ -126,7 +126,7 @@
 .project-stack {
   display: grid;
   grid-template-columns: repeat(var(--grid-cols, 1), 1fr);
-  gap: var(--sp-2);
+  gap: var(--grid-gap, 10px);
   overflow-y: auto;
   max-height: calc(100vh - 96px); /* viewport minus header (~44px) + container padding (52px) */
   scrollbar-gutter: stable;

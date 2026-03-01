@@ -47,6 +47,8 @@ export type DashboardPayload = {
     path: string
     statusPill: string
     steps: PlanStep[]
+    planStale: boolean
+    planComplete: boolean
   }
   backgroundTasks: Array<{
     id: string
@@ -109,6 +111,8 @@ function mainStatusPill(status: string): string {
   if (status === "thinking") return "thinking"
   if (status === "busy") return "busy"
   if (status === "idle") return "idle"
+  if (status === "question") return "question"
+  if (status === "plan_complete") return "plan complete"
   return "unknown"
 }
 
@@ -153,7 +157,7 @@ function buildDashboardPayloadFiles(opts: {
   const boulder = readBoulderState(opts.projectRoot)
   const planName = boulder?.plan_name ?? "(no active plan)"
   const planPath = boulder?.active_plan ?? ""
-  const plan = boulder ? readPlanProgress(opts.projectRoot, boulder.active_plan) : { total: 0, completed: 0, isComplete: false, missing: true }
+  const plan = boulder ? readPlanProgress(opts.projectRoot, boulder.active_plan, nowMs) : { total: 0, completed: 0, isComplete: false, missing: true, planStale: false, planComplete: false }
   const planSteps = boulder ? readPlanSteps(opts.projectRoot, boulder.active_plan) : { missing: true, steps: [] as PlanStep[] }
 
   const sessionId = pickActiveSessionId({
@@ -236,7 +240,9 @@ function buildDashboardPayloadFiles(opts: {
       lastUpdatedLabel: formatIso(main.lastUpdated),
       session: main.sessionLabel,
       sessionId: sessionId ?? null,
-      statusPill: mainStatusPill(main.status),
+      statusPill: plan.planComplete && main.status === "idle"
+        ? mainStatusPill("plan_complete")
+        : mainStatusPill(main.status),
     },
     planProgress: {
       name: planName,
@@ -245,6 +251,8 @@ function buildDashboardPayloadFiles(opts: {
       path: planPath,
       statusPill: planStatusPill(plan),
       steps: planSteps.missing ? [] : planSteps.steps,
+      planStale: plan.planStale,
+      planComplete: plan.planComplete,
     },
     backgroundTasks: tasks.map((t) => ({
       id: t.id,
@@ -305,7 +313,7 @@ export function buildDashboardPayload(opts: {
   const boulder = readBoulderState(opts.projectRoot)
   const planName = boulder?.plan_name ?? "(no active plan)"
   const planPath = boulder?.active_plan ?? ""
-  const plan = boulder ? readPlanProgress(opts.projectRoot, boulder.active_plan) : { total: 0, completed: 0, isComplete: false, missing: true }
+  const plan = boulder ? readPlanProgress(opts.projectRoot, boulder.active_plan, nowMs) : { total: 0, completed: 0, isComplete: false, missing: true, planStale: false, planComplete: false }
   const planSteps = boulder ? readPlanSteps(opts.projectRoot, boulder.active_plan) : { missing: true, steps: [] as PlanStep[] }
 
   const active = pickActiveSessionIdSqlite({
@@ -442,7 +450,9 @@ export function buildDashboardPayload(opts: {
       lastUpdatedLabel: formatIso(main.lastUpdated),
       session: main.sessionLabel,
       sessionId: sessionId ?? null,
-      statusPill: mainStatusPill(main.status),
+      statusPill: plan.planComplete && main.status === "idle"
+        ? mainStatusPill("plan_complete")
+        : mainStatusPill(main.status),
     },
     planProgress: {
       name: planName,
@@ -451,6 +461,8 @@ export function buildDashboardPayload(opts: {
       path: planPath,
       statusPill: planStatusPill(plan),
       steps: planSteps.missing ? [] : planSteps.steps,
+      planStale: plan.planStale,
+      planComplete: plan.planComplete,
     },
     backgroundTasks: tasksResult.value.map((t) => ({
       id: t.id,

@@ -13,7 +13,7 @@ export type SourceRegistryEntry = {
 }
 
 /** Session status from MainSessionView */
-export type SessionStatus = "busy" | "idle" | "thinking" | "running_tool" | "question" | "unknown"
+export type SessionStatus = "busy" | "idle" | "thinking" | "running_tool" | "question" | "plan_complete" | "unknown"
 
 /** Plan status based on progress */
 export type PlanStatus = "not started" | "in progress" | "complete"
@@ -99,6 +99,8 @@ export type ProjectSnapshot = {
     path: string
     status: PlanStatus
     steps: PlanStep[]
+    planStale: boolean
+    planComplete: boolean
   }
   timeSeries: TimeSeriesPayload
   backgroundTasks: BackgroundTaskSummary[]

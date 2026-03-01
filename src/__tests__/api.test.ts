@@ -90,6 +90,8 @@ function makeProjectSnapshot(overrides: Partial<ProjectSnapshot> = {}): ProjectS
       path: "/plan.md",
       status: "in progress",
       steps: [],
+      planStale: false,
+      planComplete: false,
     },
     timeSeries: {
       windowMs: 300000,

@@ -21,6 +21,8 @@ function mapStatusPillToSessionStatus(pill: string): SessionStatus {
   if (pill === "thinking") return "thinking"
   if (pill === "busy") return "busy"
   if (pill === "idle") return "idle"
+  if (pill === "question") return "question"
+  if (pill === "plan complete") return "plan_complete"
   return "unknown"
 }
 
@@ -91,6 +93,8 @@ function transformPayloadToSnapshot(
       path: payload.planProgress.path,
       status: mapPlanStatusPill(payload.planProgress.statusPill),
       steps: payload.planProgress.steps,
+      planStale: payload.planProgress.planStale,
+      planComplete: payload.planProgress.planComplete,
     },
     timeSeries: payload.timeSeries,
     backgroundTasks: mapBackgroundTasks(payload),

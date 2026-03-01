@@ -70,6 +70,8 @@ function makeMockProject(id: string, label: string, status: "busy" | "idle" = "b
         { checked: false, text: "Code review" },
         { checked: false, text: "Release" },
       ],
+      planStale: false,
+      planComplete: false,
     },
     timeSeries: makeMockTimeSeries(),
     sessionTimeSeries: makeMockSessionTimeSeries(),

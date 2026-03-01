@@ -63,7 +63,7 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, chi
         {stripConfig?.showMiniSparkline !== false && <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>}
         {stripConfig?.showAgentBadge !== false && <span className="strip-agent-badge">{mainSession.agent}</span>}
         {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
-        {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{formatRelativeTime(lastUpdatedMs)}</span>}
+        {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{mainSession.lastUpdated ? formatRelativeTime(new Date(mainSession.lastUpdated).getTime()) : "—"}</span>}
         <span className="strip-chevron" aria-hidden="true">{expanded ? "▾" : "▸"}</span>
       </div>
 
@@ -109,6 +109,12 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, chi
                 <span className="strip-session-field-value">{mainSession.sessionLabel || "—"}</span>
               </span>
             </div>
+          </div>
+
+          {/* Last polled */}
+          <div className="strip-section">
+            <span className="strip-section-label">Last Polled</span>
+            <span className="strip-session-field-value">{formatRelativeTime(lastUpdatedMs)}</span>
           </div>
 
           {/* Background tasks */}

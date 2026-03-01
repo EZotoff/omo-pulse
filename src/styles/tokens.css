@@ -59,6 +59,8 @@
   --status-thinking: #ffa502;
   --status-tool: #4ecdc4;
   --status-unknown: #444460;
+  --status-danger: #ff6b6b;
+  --pulse-speed: 2s;
 
   color-scheme: dark;
 }
@@ -86,6 +88,7 @@
   --status-thinking: #d48a00;
   --status-tool: #2a9d8f;
   --status-unknown: #b0b0c0;
+  --status-danger: #d44040;
 
   color-scheme: light;
 }

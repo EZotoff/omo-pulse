@@ -125,7 +125,7 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, chi
     : {}
 
   return (
-    <div className="project-strip" data-expanded={expanded} data-stale={isStale}>
+    <div className="project-strip" data-expanded={expanded} data-stale={isStale} data-status={mainSession.status}>
       {/* Collapsed header — always visible */}
       <div className="strip-header" onClick={onToggleExpand} role="button" tabIndex={0} aria-expanded={expanded} aria-label={`${project.label} — ${mainSession.status}`} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggleExpand() } }}>
         {stripConfig?.showStatusDot !== false && <span className="strip-status-dot" data-status={mainSession.status} data-stale={isStale} aria-hidden="true" />}

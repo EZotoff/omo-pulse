@@ -131,6 +131,7 @@
   max-height: calc(100vh - 96px); /* viewport minus header (~44px) + container padding (52px) */
   scrollbar-gutter: stable;
   align-items: start;
+  position: relative;
 }
 
 .project-stack > * {

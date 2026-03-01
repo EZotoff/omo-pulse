@@ -1,0 +1,21 @@
+/* ColumnResizeHandle — vertical drag handle between grid columns */
+
+.column-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  z-index: 6;
+  background: transparent;
+  transition: background var(--transition-fast);
+  transform: translateX(-50%);
+}
+
+.column-resize-handle:hover {
+  background: var(--border-primary);
+}
+
+.column-resize-handle--dragging {
+  background: var(--accent-primary);
+}

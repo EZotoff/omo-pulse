@@ -7,6 +7,7 @@ import { PlanProgress } from "./components/PlanProgress"
 import { SessionSwimlane } from "./components/SessionSwimlane"
 import { SettingsPanel } from "./components/SettingsPanel"
 import { AddProjectForm } from "./components/AddProjectForm"
+import { ColumnResizeHandle } from "./components/ColumnResizeHandle"
 import { useStripConfig } from "./hooks/useStripConfig"
 
 import "./App.css"
@@ -90,6 +91,64 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
   const handleZoomReset = useCallback(() => {
     setZoom(1)
   }, [])
+
+  /* ── Column widths ── */
+  const [columnWidths, setColumnWidths] = useState<Record<string, number[]>>(() => {
+    try {
+      const raw = localStorage.getItem('dashboard-column-widths')
+      if (!raw) return {}
+      const parsed: unknown = JSON.parse(raw)
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        return parsed as Record<string, number[]>
+      }
+      return {}
+    } catch {
+      return {}
+    }
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('dashboard-column-widths', JSON.stringify(columnWidths))
+    } catch {
+      /* localStorage may be unavailable */
+    }
+  }, [columnWidths])
+
+  const currentWidths = useMemo(() => {
+    return columnWidths[String(columns)] ?? Array(columns).fill(1)
+  }, [columnWidths, columns])
+
+  const handleColumnResize = useCallback(
+    (columnIndex: number, deltaFraction: number) => {
+      setColumnWidths((prev) => {
+        const key = String(columns)
+        const widths = [...(prev[key] ?? Array(columns).fill(1))]
+        const totalFr = widths.reduce((a, b) => a + b, 0)
+        const delta = deltaFraction * totalFr
+
+        const minFr = 200 / (window.innerWidth / columns)
+
+        let left = widths[columnIndex] + delta
+        let right = widths[columnIndex + 1] - delta
+
+        if (left < minFr) {
+          right -= minFr - left
+          left = minFr
+        }
+        if (right < minFr) {
+          left -= minFr - right
+          right = minFr
+        }
+
+        widths[columnIndex] = Math.round(left * 100) / 100
+        widths[columnIndex + 1] = Math.round(right * 100) / 100
+
+        return { ...prev, [key]: widths }
+      })
+    },
+    [columns],
+  )
   const handleCloseSettings = useCallback(() => setSettingsOpen(false), [])
   const prevDataRef = useRef<DashboardMultiProjectPayload | null>(null)
   const firstLoadRef = useRef(true)
@@ -234,7 +293,7 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
             >
               <div
                 className="project-stack"
-                style={{ "--grid-cols": columns } as React.CSSProperties}
+                style={{ gridTemplateColumns: currentWidths.map((w: number) => `${w}fr`).join(' ') }}
               >
                 {displayProjects.map((project) => {
                   const expanded = expandedIds.has(project.sourceId)
@@ -246,6 +305,19 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
                       expanded={expanded}
                       onToggleExpand={() => toggle(project.sourceId)}
                       stripConfig={stripConfig}
+                    />
+                  )
+                })}
+                {columns > 1 && currentWidths.slice(0, -1).map((_: number, i: number) => {
+                  const totalFr = currentWidths.reduce((a: number, b: number) => a + b, 0)
+                  const precedingFr = currentWidths.slice(0, i + 1).reduce((a: number, b: number) => a + b, 0)
+                  const leftPercent = (precedingFr / totalFr) * 100
+                  return (
+                    <ColumnResizeHandle
+                      key={`resize-${i}`}
+                      columnIndex={i}
+                      onResize={(delta) => handleColumnResize(i, delta)}
+                      style={{ left: `${leftPercent}%` }}
                     />
                   )
                 })}

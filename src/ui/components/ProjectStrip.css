@@ -123,8 +123,24 @@
   transition: max-height var(--transition-normal);
 }
 
-.project-strip[data-expanded="true"] .strip-body {
-  max-height: 900px;
+/* When constrained (max-height set), allow vertical scroll */
+.strip-body--constrained {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-primary) transparent;
+}
+.strip-body--constrained::-webkit-scrollbar {
+  width: 4px;
+}
+.strip-body--constrained::-webkit-scrollbar-track {
+  background: transparent;
+}
+.strip-body--constrained::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 2px;
+}
+.strip-body--constrained::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .strip-body-inner {
@@ -316,4 +332,38 @@
 .strip-status-dot[data-stale="true"] {
   color: var(--text-muted);
   box-shadow: none;
+}
+
+/* ── Resize handle ── */
+.resize-handle {
+  height: 4px;
+  cursor: row-resize;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+.resize-handle:hover {
+  background: var(--border-primary);
+}
+
+/* ── Release / constrain button ── */
+.release-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.release-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
 }

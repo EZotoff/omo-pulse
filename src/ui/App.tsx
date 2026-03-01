@@ -67,6 +67,29 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
   const { config: stripConfig, toggle: toggleStripConfig } = useStripConfig()
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  /* ── Zoom ── */
+  const [zoom, setZoom] = useState<number>(() => {
+    const saved = localStorage.getItem('dashboard-zoom')
+    return saved ? parseFloat(saved) : 1
+  })
+
+  useEffect(() => {
+    localStorage.setItem('dashboard-zoom', String(zoom))
+    document.documentElement.style.setProperty('--zoom', String(zoom))
+  }, [zoom])
+
+  const handleZoomIn = useCallback(() => {
+    setZoom((z) => Math.min(2.0, Math.round((z + 0.1) * 10) / 10))
+  }, [])
+
+  const handleZoomOut = useCallback(() => {
+    setZoom((z) => Math.max(0.5, Math.round((z - 0.1) * 10) / 10))
+  }, [])
+
+  const handleZoomReset = useCallback(() => {
+    setZoom(1)
+  }, [])
   const handleCloseSettings = useCallback(() => setSettingsOpen(false), [])
   const prevDataRef = useRef<DashboardMultiProjectPayload | null>(null)
   const firstLoadRef = useRef(true)
@@ -179,6 +202,10 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
         columns={columns}
         onSetColumns={setColumns}
         onSettingsOpen={() => setSettingsOpen(true)}
+        zoom={zoom}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
       />
 
       <div className="container">

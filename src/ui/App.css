@@ -10,10 +10,12 @@
 
 .container {
   max-width: 1400px;
-  width: 100%;
+  width: calc(100% / var(--zoom));
   margin: 0 auto;
   padding: var(--sp-4) var(--sp-4) var(--sp-8);
   flex: 1 1 auto;
+  transform: scale(var(--zoom));
+  transform-origin: top center;
 }
 
 /* ── Header ── */
@@ -109,6 +111,15 @@
   font-size: var(--font-xs);
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+/* Zoom label */
+.dashboard-header__zoom-label {
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  min-width: 3ch;
+  text-align: center;
+  user-select: none;
 }
 
 /* ── Project stack ── */

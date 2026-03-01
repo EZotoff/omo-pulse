@@ -50,6 +50,9 @@
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
 
+  /* Zoom */
+  --zoom: 1;
+
   /* Status colors */
   --status-busy: #00d4aa;
   --status-idle: #666680;

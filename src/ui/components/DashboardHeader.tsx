@@ -11,6 +11,10 @@ export type DashboardHeaderProps = {
   columns?: number
   onSetColumns?: (n: number) => void
   onSettingsOpen?: () => void
+  zoom?: number
+  onZoomIn?: () => void
+  onZoomOut?: () => void
+  onZoomReset?: () => void
 }
 
 /* ── Helpers ── */
@@ -50,6 +54,10 @@ export function DashboardHeader({
   columns,
   onSetColumns,
   onSettingsOpen,
+  zoom,
+  onZoomIn,
+  onZoomOut,
+  onZoomReset,
 }: DashboardHeaderProps) {
   const [theme, setThemeState] = useState<"dark" | "light">(getTheme)
 
@@ -92,6 +100,24 @@ export function DashboardHeader({
               {n}col
             </button>
           ))}
+          {onZoomOut && (
+            <button className="header-btn" onClick={onZoomOut} type="button" title="Zoom out" aria-label="Zoom out" disabled={zoom !== undefined && zoom <= 0.5}>
+              −
+            </button>
+          )}
+          {zoom !== undefined && (
+            <span className="dashboard-header__zoom-label mono">{Math.round(zoom * 100)}%</span>
+          )}
+          {onZoomIn && (
+            <button className="header-btn" onClick={onZoomIn} type="button" title="Zoom in" aria-label="Zoom in" disabled={zoom !== undefined && zoom >= 2.0}>
+              +
+            </button>
+          )}
+          {onZoomReset && (
+            <button className="header-btn" onClick={onZoomReset} type="button" title="Reset zoom" aria-label="Reset zoom">
+              ⟳
+            </button>
+          )}
         </div>
 
         <span className="dashboard-header__updated mono" aria-live="polite" aria-atomic="true">

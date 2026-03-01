@@ -19,12 +19,15 @@ export type SettingsPanelProps = {
 
 /* ── Display toggle metadata ── */
 
-const DISPLAY_TOGGLES: { key: keyof StripConfigState; label: string }[] = [
+const COLLAPSED_TOGGLES: { key: keyof StripConfigState; label: string }[] = [
+  { key: "showStatusDot", label: "Status Dot" },
   { key: "showMiniSparkline", label: "Mini Sparkline" },
   { key: "showPlanProgress", label: "Plan Progress" },
   { key: "showAgentBadge", label: "Agent Badge" },
   { key: "showLastUpdated", label: "Last Updated" },
-  { key: "showStatusDot", label: "Status Dot" },
+]
+
+const EXPANDED_TOGGLES: { key: keyof StripConfigState; label: string }[] = [
   { key: "showTokenUsage", label: "Token Usage" },
   { key: "showBackgroundTasks", label: "Background Tasks" },
   { key: "showGitWorktrees", label: "Git Worktrees" },
@@ -144,7 +147,23 @@ export function SettingsPanel({
         {/* Display Options */}
         <div className="settings-section">
           <h3 className="settings-section__title">Display Options</h3>
-          {DISPLAY_TOGGLES.map(({ key, label }) => (
+          <h4 className="settings-section__subtitle">Collapsed View</h4>
+          {COLLAPSED_TOGGLES.map(({ key, label }) => (
+            <div className="settings-toggle-row" key={key}>
+              <span className="settings-toggle-label">{label}</span>
+              <button
+                className="settings-switch"
+                data-checked={stripConfig[key]}
+                onClick={() => onToggleStrip(key)}
+                type="button"
+                role="switch"
+                aria-checked={stripConfig[key]}
+                aria-label={label}
+              />
+            </div>
+          ))}
+          <h4 className="settings-section__subtitle">Expanded View</h4>
+          {EXPANDED_TOGGLES.map(({ key, label }) => (
             <div className="settings-toggle-row" key={key}>
               <span className="settings-toggle-label">{label}</span>
               <button
@@ -159,7 +178,6 @@ export function SettingsPanel({
             </div>
           ))}
         </div>
-
         {/* Sound Notifications */}
         <div className={`settings-section${!soundConfig.enabled ? " settings-section--disabled" : ""}`}>
           <h3 className="settings-section__title">Sound Notifications</h3>

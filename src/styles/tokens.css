@@ -61,6 +61,13 @@
   --status-unknown: #444460;
   --status-danger: #ff6b6b;
   --pulse-speed: 2s;
+  --status-busy-new: #00d4aa;
+  --status-idle-glow: #3a3a5a;
+  --status-idle-glow-border: rgba(58, 58, 90, 0.6);
+  --status-question: #ffa502;
+  --status-question-border: rgba(255, 165, 2, 0.7);
+  --status-plan-complete: #20b2aa;
+  --status-plan-complete-glow: rgba(32, 178, 170, 0.5);
 
   color-scheme: dark;
 }
@@ -89,6 +96,13 @@
   --status-tool: #2a9d8f;
   --status-unknown: #b0b0c0;
   --status-danger: #d44040;
+  --status-busy-new: #0f9b7a;
+  --status-idle-glow: #c9c9d9;
+  --status-idle-glow-border: rgba(201, 201, 217, 0.6);
+  --status-question: #d48a00;
+  --status-question-border: rgba(212, 138, 0, 0.7);
+  --status-plan-complete: #1a9d8f;
+  --status-plan-complete-glow: rgba(26, 157, 143, 0.3);
 
   color-scheme: light;
 }

@@ -117,6 +117,7 @@
   grid-template-columns: repeat(var(--grid-cols, 1), 1fr);
   gap: var(--sp-2);
   overflow-y: auto;
+  overflow-x: hidden;
   max-height: calc(100vh - 96px); /* viewport minus header (~44px) + container padding (52px) */
   scrollbar-gutter: stable;
   align-items: start;

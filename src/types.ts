@@ -113,3 +113,30 @@ export type DashboardMultiProjectPayload = {
   serverNowMs: number
   pollIntervalMs: number
 }
+
+/** Configuration state for strip visibility options */
+export type StripConfigState = {
+  showMiniSparkline: boolean
+  showPlanProgress: boolean
+  showAgentBadge: boolean
+  showLastUpdated: boolean
+  showStatusDot: boolean
+  showTokenUsage: boolean
+  showBackgroundTasks: boolean
+  showGitWorktrees: boolean
+}
+
+/** Sound notification configuration */
+export type SoundConfig = {
+  enabled: boolean
+  volume: number
+  onSessionIdle: boolean
+  onPlanComplete: boolean
+  onSessionError: boolean
+}
+
+/** Project ordering and layout state */
+export type ProjectOrderState = {
+  orderedIds: string[]
+  columns: number
+}

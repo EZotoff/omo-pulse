@@ -3,6 +3,7 @@ import type {
   TimeSeriesSeries,
   SessionTimeSeriesPayload,
 } from "../../types"
+import { memo } from "react"
 import "./Sparkline.css"
 
 /* ── Types ── */
@@ -191,7 +192,7 @@ function computeScaleMax(
 
 /* ── Component ── */
 
-export function Sparkline({
+function SparklineInner({
   mode,
   timeSeries,
   width,
@@ -209,6 +210,8 @@ export function Sparkline({
 
   return renderFull(buckets, lookup, barW, barInset, width, height, className)
 }
+
+export const Sparkline = memo(SparklineInner)
 
 /* ── Mini mode ── */
 
@@ -259,18 +262,51 @@ function renderMini(
       preserveAspectRatio="none"
       aria-hidden="true"
     >
+      <defs>
+        <linearGradient id="sparkline-grad-teal" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0%" stopColor="rgba(0,212,170,0.4)" />
+          <stop offset="100%" stopColor="rgba(0,212,170,0.3)" />
+        </linearGradient>
+        <linearGradient id="sparkline-grad-red" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0%" stopColor="rgba(255,107,107,0.4)" />
+          <stop offset="100%" stopColor="rgba(255,107,107,0.3)" />
+        </linearGradient>
+        <linearGradient id="sparkline-grad-green" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0%" stopColor="rgba(78,205,196,0.4)" />
+          <stop offset="100%" stopColor="rgba(78,205,196,0.3)" />
+        </linearGradient>
+        <linearGradient id="sparkline-grad-sand" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0%" stopColor="rgba(255,165,2,0.4)" />
+          <stop offset="100%" stopColor="rgba(255,165,2,0.3)" />
+        </linearGradient>
+        <linearGradient id="sparkline-grad-muted" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0%" stopColor="rgba(102,102,128,0.3)" />
+          <stop offset="100%" stopColor="rgba(102,102,128,0.2)" />
+        </linearGradient>
+      </defs>
       {sums.map((val, i) => {
         const barH = (val / scaleMax) * chartH
         if (barH <= 0) return null
         return (
-          <rect
-            key={i}
-            className="sparkline-bar sparkline-bar--teal"
-            x={i + barInset}
-            y={padTop + chartH - barH}
-            width={barW}
-            height={barH}
-          />
+          <g key={i}>
+            <rect
+              className="sparkline-bar sparkline-bar--teal"
+              fill="url(#sparkline-grad-teal)"
+              x={i + barInset}
+              y={padTop + chartH - barH}
+              width={barW}
+              height={barH}
+              rx={1}
+            />
+            <rect
+              className="sparkline-glow sparkline-glow--teal"
+              x={i + barInset}
+              y={padTop + chartH - barH}
+              width={barW}
+              height={1}
+              rx={1}
+            />
+          </g>
         )
       })}
     </svg>
@@ -317,6 +353,28 @@ function renderFull(
       preserveAspectRatio="none"
       aria-hidden="true"
     >
+      <defs>
+        <linearGradient id="sparkline-grad-teal" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0%" stopColor="rgba(0,212,170,0.4)" />
+          <stop offset="100%" stopColor="rgba(0,212,170,0.3)" />
+        </linearGradient>
+        <linearGradient id="sparkline-grad-red" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0%" stopColor="rgba(255,107,107,0.4)" />
+          <stop offset="100%" stopColor="rgba(255,107,107,0.3)" />
+        </linearGradient>
+        <linearGradient id="sparkline-grad-green" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0%" stopColor="rgba(78,205,196,0.4)" />
+          <stop offset="100%" stopColor="rgba(78,205,196,0.3)" />
+        </linearGradient>
+        <linearGradient id="sparkline-grad-sand" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0%" stopColor="rgba(255,165,2,0.4)" />
+          <stop offset="100%" stopColor="rgba(255,165,2,0.3)" />
+        </linearGradient>
+        <linearGradient id="sparkline-grad-muted" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0%" stopColor="rgba(102,102,128,0.3)" />
+          <stop offset="100%" stopColor="rgba(102,102,128,0.2)" />
+        </linearGradient>
+      </defs>
       {Array.from({ length: totalBuckets }, (_, i) => {
         const sis = toSafe(sisV[i])
         const pro = toSafe(proV[i])
@@ -336,14 +394,25 @@ function renderFull(
         if (segments.length === 0) return null
 
         return segments.map((seg) => (
-          <rect
-            key={`${i}-${seg.tone}`}
-            className={`sparkline-bar sparkline-bar--${seg.tone}`}
-            x={i + barInset}
-            y={padTop + seg.y}
-            width={barW}
-            height={seg.height}
-          />
+          <g key={`${i}-${seg.tone}`}>
+            <rect
+              className={`sparkline-bar sparkline-bar--${seg.tone}`}
+              fill={`url(#sparkline-grad-${seg.tone})`}
+              x={i + barInset}
+              y={padTop + seg.y}
+              width={barW}
+              height={seg.height}
+              rx={1}
+            />
+            <rect
+              className={`sparkline-glow sparkline-glow--${seg.tone}`}
+              x={i + barInset}
+              y={padTop + seg.y}
+              width={barW}
+              height={1}
+              rx={1}
+            />
+          </g>
         ))
       })}
     </svg>

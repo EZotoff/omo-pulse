@@ -23,25 +23,30 @@
   transition: opacity var(--transition-fast);
 }
 
-/* Tone colors — mapped from design tokens */
+/* Tone colors — gradient fills + glow vars */
 .sparkline-bar--teal {
-  fill: var(--status-busy);
+  fill: url(#sparkline-grad-teal);
+  --glow-color: rgba(0, 212, 170, 0.6);
 }
 
 .sparkline-bar--red {
-  fill: var(--accent-danger);
+  fill: url(#sparkline-grad-red);
+  --glow-color: rgba(255, 107, 107, 0.6);
 }
 
 .sparkline-bar--green {
-  fill: var(--accent-success);
-}
-
-.sparkline-bar--muted {
-  fill: var(--text-muted);
+  fill: url(#sparkline-grad-green);
+  --glow-color: rgba(78, 205, 196, 0.6);
 }
 
 .sparkline-bar--sand {
-  fill: var(--accent-warning);
+  fill: url(#sparkline-grad-sand);
+  --glow-color: rgba(255, 165, 2, 0.6);
+}
+
+.sparkline-bar--muted {
+  fill: url(#sparkline-grad-muted);
+  --glow-color: rgba(102, 102, 128, 0.4);
 }
 
 /* ── Hover interaction (CSS-only) ── */
@@ -51,4 +56,34 @@
 
 .sparkline .sparkline-bar:hover {
   opacity: 1;
+}
+
+/* ── Glow lines at top of bars ── */
+.sparkline-glow {
+  pointer-events: none;
+}
+
+.sparkline-glow--teal {
+  fill: #00d4aa;
+  filter: drop-shadow(0 0 4px rgba(0, 212, 170, 0.6));
+}
+
+.sparkline-glow--red {
+  fill: #ff6b6b;
+  filter: drop-shadow(0 0 4px rgba(255, 107, 107, 0.6));
+}
+
+.sparkline-glow--green {
+  fill: #4ecdc4;
+  filter: drop-shadow(0 0 4px rgba(78, 205, 196, 0.6));
+}
+
+.sparkline-glow--sand {
+  fill: #ffa502;
+  filter: drop-shadow(0 0 4px rgba(255, 165, 2, 0.6));
+}
+
+.sparkline-glow--muted {
+  fill: #666680;
+  filter: drop-shadow(0 0 4px rgba(102, 102, 128, 0.4));
 }

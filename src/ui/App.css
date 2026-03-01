@@ -115,6 +115,7 @@
   max-height: calc(100vh - 96px); /* viewport minus header (~44px) + container padding (52px) */
   scrollbar-gutter: stable;
   align-items: start;
+}
 
 /* Drag handle cursor */
 .project-strip {
@@ -123,6 +124,17 @@
 
 .project-strip:active {
   cursor: grabbing;
+}
+
+/* DnD visual feedback — @dnd-kit applies inline transform/transition */
+.project-stack > [style*="transform"] {
+  z-index: 5;
+  opacity: 0.92;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.project-stack > [style*="transform"] .project-strip {
+  border-color: var(--accent-primary);
 }
 
 /* Active header button (column selector) */
@@ -135,7 +147,6 @@
 .header-btn--active:hover {
   background: var(--accent-primary);
   color: var(--bg-primary);
-}
 }
 
 /* ── Empty state ── */

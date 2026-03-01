@@ -154,3 +154,14 @@
 ### CSS
 - `.project-stack` got `position: relative` added for absolute handle positioning
 - Handle: 4px wide, z-index 6 (above DnD transform z-index 5), transparent bg, border-primary on hover, accent-primary when dragging
+
+## isStale Bug Fix (ProjectStrip.tsx)
+
+Fixed two critical bugs in the `isStale` computation (lines 53-59):
+
+1. **Bug 1 - Null handling**: Changed `return false` to `return true` when `mainSession?.lastUpdated` is falsy. Null/undefined/empty lastUpdated should be treated as stale, not fresh.
+
+2. **Bug 2 - Active state exemption**: Added active-state check before time delta comparison. Sessions with status `'busy'`, `'thinking'`, or `'running_tool'` are never stale, regardless of elapsed time. This prevents dimming/marking sessions as stale while they're actively processing.
+
+**Pattern**: Active sessions (doing work) should never appear stale, even if they haven't updated recently. Idle sessions with no lastUpdated should be treated as stale immediately.
+

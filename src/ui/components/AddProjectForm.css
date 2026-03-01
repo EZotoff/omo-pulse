@@ -1,0 +1,87 @@
+/* AddProjectForm — inline form for registering new project sources */
+
+.add-project-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-2);
+}
+
+.add-project-input {
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+  line-height: 1;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.add-project-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary);
+}
+
+.add-project-input--path {
+  font-family: var(--font-mono);
+  min-width: 220px;
+  flex: 1 1 220px;
+}
+
+.add-project-input--label {
+  min-width: 120px;
+  flex: 0 1 160px;
+}
+
+.add-project-input--error {
+  border-color: var(--accent-danger);
+}
+
+.add-project-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--accent-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.add-project-submit:hover:not(:disabled) {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+.add-project-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-project-status {
+  width: 100%;
+  font-size: var(--font-xs);
+  font-family: var(--font-mono);
+  line-height: 1;
+  transition: opacity 300ms ease;
+}
+
+.add-project-status--success {
+  color: var(--accent-success);
+}
+
+.add-project-status--error {
+  color: var(--accent-danger);
+}
+
+.add-project-status--fade {
+  opacity: 0;
+}

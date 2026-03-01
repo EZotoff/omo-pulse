@@ -1,0 +1,93 @@
+/* SessionSwimlane — per-session horizontal time bar rows */
+
+/* ── Container ── */
+.session-swimlane {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+/* ── Row ── */
+.swimlane-row {
+  display: flex;
+  align-items: center;
+  height: 16px;
+  gap: var(--sp-1);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.swimlane-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.swimlane-row--pinned {
+  background: rgba(0, 212, 170, 0.04);
+}
+
+.swimlane-row--pinned:hover {
+  background: rgba(0, 212, 170, 0.07);
+}
+
+/* ── Pin button ── */
+.swimlane-pin {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 8px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+
+.swimlane-row:hover .swimlane-pin,
+.swimlane-row--pinned .swimlane-pin {
+  opacity: 1;
+}
+
+.swimlane-row--pinned .swimlane-pin {
+  color: var(--accent-primary);
+}
+
+/* ── Label ── */
+.swimlane-label {
+  flex-shrink: 0;
+  width: 80px;
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 16px;
+  user-select: none;
+}
+
+/* ── SVG bars area ── */
+.swimlane-bars {
+  flex: 1;
+  height: 14px;
+  display: block;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+/* ── Empty state ── */
+.swimlane-empty {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  text-align: center;
+  padding: var(--sp-2) 0;
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-sm);
+}

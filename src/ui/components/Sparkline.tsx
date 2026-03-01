@@ -226,19 +226,19 @@ function renderMini(
 ) {
   const w = widthProp ?? 48
   const h = heightProp ?? 20
-  const windowSize = 30
+  const windowSize = Math.min(totalBuckets, 300) /* Render all buckets (max 300) */
   const padTop = 1
   const padBottom = 1
   const chartH = h - padTop - padBottom
 
-  /* Sum all agent series per bucket, take last 30 */
+  /* Sum all agent series per bucket */
   const sisV = lookup.get("agent:sisyphus")?.values ?? []
   const proV = lookup.get("agent:prometheus")?.values ?? []
   const atlV = lookup.get("agent:atlas")?.values ?? []
   const bgV = lookup.get("background-total")?.values ?? []
 
-  const startIdx = Math.max(0, totalBuckets - windowSize)
-  const count = Math.min(windowSize, totalBuckets)
+  const startIdx = 0 /* Always start from beginning */
+  const count = windowSize
 
   /* Compute summed values + max, and track dominant agent tone */
   const sums: number[] = []

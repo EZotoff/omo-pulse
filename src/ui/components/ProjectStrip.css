@@ -69,7 +69,8 @@
 
 /* Mini sparkline slot */
 .sparkline-slot--mini {
-  width: 48px;
+  flex: 1;
+  min-width: 0;
   height: 20px;
   flex-shrink: 0;
   border-radius: 2px;
@@ -295,7 +296,7 @@
   font-size: var(--font-xs);
 }
 [data-density="dense"] .sparkline-slot--mini {
-  width: 40px;
+  /* flex: 1 fills available space */
 }
 [data-density="dense"] .strip-agent-badge {
   height: 16px;
@@ -315,7 +316,7 @@
   max-width: 10ch;
 }
 [data-density="ultra-dense"] .sparkline-slot--mini {
-  width: 32px;
+  /* flex: 1 fills available space */
   height: 16px;
 }
 [data-density="ultra-dense"] .strip-agent-badge {
@@ -419,13 +420,25 @@
 
 /* ── Resize handle ── */
 .resize-handle {
-  height: 4px;
+  height: 14px;
   cursor: row-resize;
   background: transparent;
   flex-shrink: 0;
   transition: background var(--transition-fast);
+  position: relative;
+  display: flex;
+  align-items: center;
 }
-.resize-handle:hover {
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 3px;
+  background: transparent;
+  border-radius: 1px;
+  transition: background var(--transition-fast);
+}
+.resize-handle:hover::after {
   background: var(--border-primary);
 }
 

@@ -8,6 +8,8 @@ export type DashboardHeaderProps = {
   projectCount: number
   onExpandAll: () => void
   onCollapseAll: () => void
+  columns?: number
+  onSetColumns?: (n: number) => void
 }
 
 /* ── Helpers ── */
@@ -44,6 +46,8 @@ export function DashboardHeader({
   projectCount,
   onExpandAll,
   onCollapseAll,
+  columns,
+  onSetColumns,
 }: DashboardHeaderProps) {
   const [theme, setThemeState] = useState<"dark" | "light">(getTheme)
 
@@ -75,9 +79,20 @@ export function DashboardHeader({
           <button className="header-btn" onClick={onCollapseAll} type="button">
             Collapse All
           </button>
+          {onSetColumns && ([1, 2, 3] as const).map((n) => (
+            <button
+              key={n}
+              className={`header-btn${columns === n ? " header-btn--active" : ""}`}
+              onClick={() => onSetColumns(n)}
+              type="button"
+              title={`${n} column${n > 1 ? "s" : ""}`}
+            >
+              {n}col
+            </button>
+          ))}
         </div>
 
-        <span className="dashboard-header__updated mono">
+        <span className="dashboard-header__updated mono" aria-live="polite" aria-atomic="true">
           {formatUpdateTime(lastUpdatedMs)}
         </span>
 
@@ -85,6 +100,8 @@ export function DashboardHeader({
           className="dashboard-header__connection"
           data-connected={connected}
           title={connected ? "Connected" : "Disconnected"}
+          role="status"
+          aria-label={connected ? "Connected" : "Disconnected"}
         />
 
         <button
@@ -92,6 +109,7 @@ export function DashboardHeader({
           onClick={toggleTheme}
           type="button"
           title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
         >
           {theme === "dark" ? "☀" : "☾"}
         </button>

@@ -108,12 +108,34 @@
 
 /* ── Project stack ── */
 .project-stack {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(var(--grid-cols, 1), 1fr);
   gap: var(--sp-2);
   overflow-y: auto;
   max-height: calc(100vh - 96px); /* viewport minus header (~44px) + container padding (52px) */
   scrollbar-gutter: stable;
+  align-items: start;
+
+/* Drag handle cursor */
+.project-strip {
+  cursor: grab;
+}
+
+.project-strip:active {
+  cursor: grabbing;
+}
+
+/* Active header button (column selector) */
+.header-btn--active {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border-color: var(--accent-primary);
+}
+
+.header-btn--active:hover {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
 }
 
 /* ── Empty state ── */

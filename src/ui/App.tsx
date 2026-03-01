@@ -10,6 +10,22 @@ import "./App.css"
 import { useExpandState } from "./hooks/useExpandState"
 import { useDensityMode } from "./hooks/useDensityMode"
 import { useSoundNotifications } from "./hooks/useSoundNotifications"
+import { useProjectOrder } from "./hooks/useProjectOrder"
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core"
+import type { DragEndEvent } from "@dnd-kit/core"
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import type React from "react"
 
 /* ── Helpers ── */
 
@@ -42,6 +58,7 @@ export type AppProps = {
 export function App({ data, connected, lastUpdatedMs }: AppProps) {
   const { expandedIds, toggle, expandAll, collapseAll } = useExpandState()
   const { playSessionIdle, playPlanComplete, playSessionError } = useSoundNotifications()
+  const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const prevDataRef = useRef<DashboardMultiProjectPayload | null>(null)
   const firstLoadRef = useRef(true)
 
@@ -99,8 +116,44 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
     return [...data.projects].sort(compareProjects)
   }, [data])
 
-  const projectCount = sortedProjects.length
+  /* Sync orderedIds when project list changes */
+  useEffect(() => {
+    if (sortedProjects.length > 0) {
+      syncIds(sortedProjects.map((p) => p.sourceId))
+    }
+  }, [sortedProjects, syncIds])
+
+  /* Display projects in DnD order when available, else status sort */
+  const displayProjects = useMemo(() => {
+    if (orderedIds.length === 0) return sortedProjects
+    const map = new Map(sortedProjects.map((p) => [p.sourceId, p]))
+    return orderedIds
+      .map((id) => map.get(id))
+      .filter((p): p is ProjectSnapshot => p !== undefined)
+  }, [sortedProjects, orderedIds])
+
+  const projectCount = displayProjects.length
   const density = useDensityMode(projectCount)
+
+  /* DnD sensors — 8px activation distance to avoid conflicts with click-to-expand */
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+
+      const oldIndex = orderedIds.indexOf(String(active.id))
+      const newIndex = orderedIds.indexOf(String(over.id))
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        reorder(oldIndex, newIndex)
+      }
+    },
+    [orderedIds, reorder]
+  )
 
   return (
     <div className="page" data-density={density}>
@@ -110,6 +163,8 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
         projectCount={projectCount}
         onExpandAll={handleExpandAll}
         onCollapseAll={collapseAll}
+        columns={columns}
+        onSetColumns={setColumns}
       />
 
       <div className="container">
@@ -121,21 +176,64 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
             <span>No registered projects found</span>
           </div>
         ) : (
-          <div className="project-stack">
-            {sortedProjects.map((project) => {
-              const expanded = expandedIds.has(project.sourceId)
-              return (
-                <ProjectStripWithChildren
-                  key={project.sourceId}
-                  project={project}
-                  expanded={expanded}
-                  onToggleExpand={() => toggle(project.sourceId)}
-                />
-              )
-            })}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={orderedIds}
+              strategy={verticalListSortingStrategy}
+            >
+              <div
+                className="project-stack"
+                style={{ "--grid-cols": columns } as React.CSSProperties}
+              >
+                {displayProjects.map((project) => {
+                  const expanded = expandedIds.has(project.sourceId)
+                  return (
+                    <SortableProjectStrip
+                      key={project.sourceId}
+                      id={project.sourceId}
+                      project={project}
+                      expanded={expanded}
+                      onToggleExpand={() => toggle(project.sourceId)}
+                    />
+                  )
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
+    </div>
+  )
+}
+
+/* ── Sortable wrapper ── */
+
+type SortableProjectStripProps = {
+  id: string
+  project: ProjectSnapshot
+  expanded: boolean
+  onToggleExpand: () => void
+}
+
+function SortableProjectStrip({ id, project, expanded, onToggleExpand }: SortableProjectStripProps) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <ProjectStripWithChildren
+        project={project}
+        expanded={expanded}
+        onToggleExpand={onToggleExpand}
+      />
     </div>
   )
 }

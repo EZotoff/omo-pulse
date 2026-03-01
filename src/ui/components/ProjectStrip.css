@@ -40,17 +40,85 @@
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 6px currentColor;
+  position: relative;
+  border: 1px solid transparent;
+  box-sizing: border-box;
 }
 
-.strip-status-dot[data-status="busy"]         { color: var(--status-busy); background: var(--status-busy); }
-.strip-status-dot[data-status="idle"]          { color: var(--status-idle); background: var(--status-idle); }
-.strip-status-dot[data-status="thinking"]      { color: var(--status-thinking); background: var(--status-thinking); }
-.strip-status-dot[data-status="running_tool"]  { color: var(--status-tool); background: var(--status-tool); }
-.strip-status-dot[data-status="unknown"]       { color: var(--status-unknown); background: var(--status-unknown); }
+/* ── Per-status dot colors ── */
 
-.strip-status-dot[data-status="error"]        { color: var(--status-danger); background: var(--status-danger); }
-.strip-status-dot[data-status="question"]      { color: var(--status-danger); background: var(--status-danger); }
+/* busy / running_tool — cyan, no animation, expected default */
+.strip-status-dot[data-status="busy"],
+.strip-status-dot[data-status="running_tool"] {
+  color: var(--status-busy-new);
+  background: var(--status-busy-new);
+  border-color: rgba(0, 212, 170, 0.3);
+  box-shadow: none;
+}
+
+/* thinking — cyan, no animation, working baseline */
+.strip-status-dot[data-status="thinking"] {
+  color: var(--status-busy-new);
+  background: var(--status-busy-new);
+  border-color: rgba(0, 212, 170, 0.3);
+  box-shadow: none;
+}
+
+/* idle — dark slate, soft glow pulse (needs attention) */
+.strip-status-dot[data-status="idle"] {
+  color: var(--status-idle-glow);
+  background: var(--status-idle-glow);
+  border-color: var(--status-idle-glow-border);
+  box-shadow: 0 0 4px var(--status-idle-glow);
+}
+
+/* question — amber, dashed border, PROMINENT */
+.strip-status-dot[data-status="question"] {
+  color: var(--status-question);
+  background: var(--status-question);
+  border-style: dashed;
+  border-width: 2px;
+  border-color: var(--status-question-border);
+  box-shadow: 0 0 6px var(--status-question);
+}
+
+/* question — literal "?" character via ::after */
+.strip-status-dot[data-status="question"]::after {
+  content: "?";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8px;
+  font-weight: bold;
+  color: #fff;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* error — red, pulse + red glow, PROMINENT */
+.strip-status-dot[data-status="error"] {
+  color: var(--status-danger);
+  background: var(--status-danger);
+  border-color: var(--status-danger);
+  box-shadow: 0 0 8px var(--status-danger);
+}
+
+/* plan_complete — teal, celebration glow */
+.strip-status-dot[data-status="plan_complete"] {
+  color: var(--status-plan-complete);
+  background: var(--status-plan-complete);
+  border-color: var(--status-plan-complete);
+  box-shadow: 0 0 8px var(--status-plan-complete-glow);
+}
+
+/* unknown — neutral, no animation */
+.strip-status-dot[data-status="unknown"] {
+  color: var(--status-unknown);
+  background: var(--status-unknown);
+  border-color: transparent;
+  box-shadow: none;
+}
 
 /* Expanded dot size */
 .project-strip[data-expanded="true"] .strip-status-dot {
@@ -282,6 +350,66 @@
   color: var(--text-primary);
 }
 
+
+/* ── Keyframes ── */
+
+@keyframes status-glow {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px currentColor; }
+  50% { opacity: 0.6; box-shadow: 0 0 8px currentColor; }
+}
+
+@keyframes status-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+@keyframes status-dash-rotate {
+  0% { border-color: var(--status-question); }
+  50% { border-color: var(--status-question-border); }
+  100% { border-color: var(--status-question); }
+}
+
+
+/* ── Dot animations — expanded strips ONLY ── */
+
+/* idle — soft breathing glow */
+.project-strip[data-expanded="true"] .strip-status-dot[data-status="idle"] {
+  animation: status-glow 3s ease-in-out infinite;
+}
+
+/* error — scale pulse + red glow */
+.project-strip[data-expanded="true"] .strip-status-dot[data-status="error"] {
+  animation: status-pulse 1s ease-in-out infinite;
+  box-shadow: 0 0 10px var(--status-danger);
+}
+
+/* question — dashed border color rotation */
+.project-strip[data-expanded="true"] .strip-status-dot[data-status="question"] {
+  animation: status-dash-rotate 2s ease-in-out infinite;
+}
+
+/* question — strip-level pulse for extra prominence */
+.project-strip[data-expanded="true"][data-status="question"] {
+  animation: status-pulse 1.5s ease-in-out infinite;
+}
+
+/* plan_complete — celebration glow */
+.project-strip[data-expanded="true"] .strip-status-dot[data-status="plan_complete"] {
+  animation: status-glow 2s ease-in-out infinite;
+  box-shadow: 0 0 12px var(--status-plan-complete-glow);
+}
+
+
+/* ── Collapsed strips: NO animations, static only ── */
+
+.project-strip[data-expanded="false"] .strip-status-dot {
+  animation: none !important;
+}
+.project-strip[data-expanded="false"] {
+  animation: none !important;
+}
+
+
 /* ── Density overrides ── */
 
 /* Dense mode: 40px strips, tighter padding, smaller font */
@@ -335,82 +463,64 @@
 }
 
 /* ── Status border colors (via data-status on .project-strip root) ── */
+
 .project-strip[data-status="busy"],
 .project-strip[data-status="running_tool"] {
-  border-color: var(--status-busy);
+  border-color: var(--status-busy-new);
 }
 .project-strip[data-status="thinking"] {
-  border-color: var(--status-thinking);
+  border-color: var(--status-busy-new);
 }
 .project-strip[data-status="idle"] {
-  border-color: var(--status-idle);
+  border-color: var(--status-idle-glow-border);
 }
-.project-strip[data-status="error"],
 .project-strip[data-status="question"] {
-  border-color: var(--status-danger, #ff6b6b);
+  border-color: var(--status-question);
+}
+.project-strip[data-status="error"] {
+  border-color: var(--status-danger);
+}
+.project-strip[data-status="plan_complete"] {
+  border-color: var(--status-plan-complete);
 }
 .project-strip[data-status="unknown"] {
   border-color: var(--status-unknown);
 }
 
-/* ── Stale state overrides (MUST come after status border rules) ── */
+
+/* ── Error / question strip glow (expanded only) ── */
+
+.project-strip[data-expanded="true"][data-status="error"] {
+  box-shadow: 0 0 8px rgba(255, 107, 107, 0.3);
+}
+.project-strip[data-expanded="true"][data-status="question"] {
+  box-shadow: 0 0 8px rgba(255, 165, 2, 0.2);
+}
+.project-strip[data-expanded="true"][data-status="plan_complete"] {
+  box-shadow: 0 0 8px var(--status-plan-complete-glow);
+}
+
+
+/* ── Stale state overrides (MUST come after status rules) ── */
+
 .project-strip[data-stale="true"] {
   opacity: 0.6;
   border-color: var(--border-primary, #2a2a3e) !important;
+  animation: none !important;
 }
 .project-strip[data-stale="true"] .strip-status-dot {
   opacity: 0.4;
+  animation: none !important;
 }
 .strip-status-dot[data-stale="true"] {
   color: var(--text-muted);
   box-shadow: none;
-}
-
-/* ── Pulse keyframes ── */
-@keyframes status-pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-/* ── Expanded strip border pulse (collapsed = static border only) ── */
-.project-strip[data-expanded="true"][data-status="busy"],
-.project-strip[data-expanded="true"][data-status="running_tool"] {
-  animation: status-pulse 2s ease-in-out infinite;
-}
-.project-strip[data-expanded="true"][data-status="thinking"] {
-  animation: status-pulse 3s ease-in-out infinite;
-}
-.project-strip[data-expanded="true"][data-status="error"],
-.project-strip[data-expanded="true"][data-status="question"] {
-  animation: status-pulse 1s ease-in-out infinite;
-}
-
-/* ── Status dot pulse (always, even collapsed) ── */
-.strip-status-dot[data-status="busy"],
-.strip-status-dot[data-status="running_tool"] {
-  animation: status-pulse 2s ease-in-out infinite;
-}
-.strip-status-dot[data-status="thinking"] {
-  animation: status-pulse 3s ease-in-out infinite;
-}
-.strip-status-dot[data-status="error"],
-.strip-status-dot[data-status="question"] {
-  animation: status-pulse 1s ease-in-out infinite;
-}
-
-/* ── Error / question glow (expanded only) ── */
-.project-strip[data-expanded="true"][data-status="error"],
-.project-strip[data-expanded="true"][data-status="question"] {
-  box-shadow: 0 0 8px rgba(255, 107, 107, 0.3);
-}
-
-/* ── Stale strips must NOT pulse ── */
-.project-strip[data-stale="true"],
-.project-strip[data-stale="true"] .strip-status-dot {
   animation: none !important;
 }
 
+
 /* ── Accessibility — reduced motion ── */
+
 @media (prefers-reduced-motion: reduce) {
   .project-strip,
   .strip-status-dot {

@@ -10,6 +10,7 @@ export type DashboardHeaderProps = {
   onCollapseAll: () => void
   columns?: number
   onSetColumns?: (n: number) => void
+  onSettingsOpen?: () => void
 }
 
 /* ── Helpers ── */
@@ -48,6 +49,7 @@ export function DashboardHeader({
   onCollapseAll,
   columns,
   onSetColumns,
+  onSettingsOpen,
 }: DashboardHeaderProps) {
   const [theme, setThemeState] = useState<"dark" | "light">(getTheme)
 
@@ -103,6 +105,12 @@ export function DashboardHeader({
           role="status"
           aria-label={connected ? "Connected" : "Disconnected"}
         />
+
+        {onSettingsOpen && (
+          <button className="header-btn" onClick={onSettingsOpen} type="button" title="Settings" aria-label="Open settings">
+            ⚙
+          </button>
+        )}
 
         <button
           className="theme-toggle header-btn"

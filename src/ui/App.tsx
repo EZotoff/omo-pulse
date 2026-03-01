@@ -1,10 +1,13 @@
-import { useMemo, useCallback, useRef, useEffect } from "react"
-import type { DashboardMultiProjectPayload, ProjectSnapshot, SessionStatus } from "../types"
+import { useMemo, useCallback, useRef, useEffect, useState } from "react"
+import type { DashboardMultiProjectPayload, ProjectSnapshot, SessionStatus, StripConfigState } from "../types"
 import { DashboardHeader } from "./components/DashboardHeader"
 import { ProjectStrip } from "./components/ProjectStrip"
 import { Sparkline } from "./components/Sparkline"
 import { PlanProgress } from "./components/PlanProgress"
 import { SessionSwimlane } from "./components/SessionSwimlane"
+import { SettingsPanel } from "./components/SettingsPanel"
+import { AddProjectForm } from "./components/AddProjectForm"
+import { useStripConfig } from "./hooks/useStripConfig"
 
 import "./App.css"
 import { useExpandState } from "./hooks/useExpandState"
@@ -57,8 +60,10 @@ export type AppProps = {
 
 export function App({ data, connected, lastUpdatedMs }: AppProps) {
   const { expandedIds, toggle, expandAll, collapseAll } = useExpandState()
-  const { playSessionIdle, playPlanComplete, playSessionError } = useSoundNotifications()
+  const { config: soundConfig, setConfig: setSoundConfig, playSessionIdle, playPlanComplete, playSessionError } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
+  const { config: stripConfig, toggle: toggleStripConfig } = useStripConfig()
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const prevDataRef = useRef<DashboardMultiProjectPayload | null>(null)
   const firstLoadRef = useRef(true)
 
@@ -165,6 +170,7 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
         onCollapseAll={collapseAll}
         columns={columns}
         onSetColumns={setColumns}
+        onSettingsOpen={() => setSettingsOpen(true)}
       />
 
       <div className="container">
@@ -174,6 +180,7 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
           <div className="dashboard-empty">
             <span className="dashboard-empty__icon">⊘</span>
             <span>No registered projects found</span>
+            <AddProjectForm onProjectAdded={() => { /* data will refresh on next poll */ }} />
           </div>
         ) : (
           <DndContext
@@ -198,6 +205,7 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
                       project={project}
                       expanded={expanded}
                       onToggleExpand={() => toggle(project.sourceId)}
+                      stripConfig={stripConfig}
                     />
                   )
                 })}
@@ -206,6 +214,20 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
           </DndContext>
         )}
       </div>
+
+      <SettingsPanel
+        stripConfig={stripConfig}
+        onToggleStrip={toggleStripConfig}
+        soundConfig={soundConfig}
+        onSoundConfigChange={setSoundConfig}
+        onTestSound={(event) => {
+          if (event === 'idle') playSessionIdle()
+          if (event === 'complete') playPlanComplete()
+          if (event === 'error') playSessionError()
+        }}
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </div>
   )
 }
@@ -217,9 +239,10 @@ type SortableProjectStripProps = {
   project: ProjectSnapshot
   expanded: boolean
   onToggleExpand: () => void
+  stripConfig?: StripConfigState
 }
 
-function SortableProjectStrip({ id, project, expanded, onToggleExpand }: SortableProjectStripProps) {
+function SortableProjectStrip({ id, project, expanded, onToggleExpand, stripConfig }: SortableProjectStripProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
 
   const style: React.CSSProperties = {
@@ -233,6 +256,7 @@ function SortableProjectStrip({ id, project, expanded, onToggleExpand }: Sortabl
         project={project}
         expanded={expanded}
         onToggleExpand={onToggleExpand}
+        stripConfig={stripConfig}
       />
     </div>
   )
@@ -244,14 +268,16 @@ type ProjectStripWithChildrenProps = {
   project: ProjectSnapshot
   expanded: boolean
   onToggleExpand: () => void
+  stripConfig?: StripConfigState
 }
 
-function ProjectStripWithChildren({ project, expanded, onToggleExpand }: ProjectStripWithChildrenProps) {
+function ProjectStripWithChildren({ project, expanded, onToggleExpand, stripConfig }: ProjectStripWithChildrenProps) {
   return (
     <ProjectStrip
       project={project}
       expanded={expanded}
       onToggleExpand={onToggleExpand}
+      stripConfig={stripConfig}
     >
       {{
         miniSparkline: (

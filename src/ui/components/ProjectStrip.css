@@ -163,6 +163,12 @@
   background: var(--bg-tertiary);
 }
 
+/* Full swimlane slot */
+.swimlane-slot {
+  width: 100%;
+  min-height: 48px;
+}
+
 /* ── Background tasks table ── */
 .strip-bg-tasks {
   display: flex;

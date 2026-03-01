@@ -1,12 +1,15 @@
-import { useMemo, useCallback } from "react"
+import { useMemo, useCallback, useRef, useEffect } from "react"
 import type { DashboardMultiProjectPayload, ProjectSnapshot, SessionStatus } from "../types"
 import { DashboardHeader } from "./components/DashboardHeader"
 import { ProjectStrip } from "./components/ProjectStrip"
 import { Sparkline } from "./components/Sparkline"
 import { PlanProgress } from "./components/PlanProgress"
+import { SessionSwimlane } from "./components/SessionSwimlane"
+
 import "./App.css"
 import { useExpandState } from "./hooks/useExpandState"
 import { useDensityMode } from "./hooks/useDensityMode"
+import { useSoundNotifications } from "./hooks/useSoundNotifications"
 
 /* ── Helpers ── */
 
@@ -38,6 +41,9 @@ export type AppProps = {
 
 export function App({ data, connected, lastUpdatedMs }: AppProps) {
   const { expandedIds, toggle, expandAll, collapseAll } = useExpandState()
+  const { playSessionIdle, playPlanComplete, playSessionError } = useSoundNotifications()
+  const prevDataRef = useRef<DashboardMultiProjectPayload | null>(null)
+  const firstLoadRef = useRef(true)
 
   const handleExpandAll = useCallback(() => {
     if (!data) return
@@ -133,6 +139,10 @@ function ProjectStripWithChildren({ project, expanded, onToggleExpand }: Project
             mode="full"
           />
         ),
+        sessionSwimlane: (
+          <SessionSwimlane sessionTimeSeries={project.sessionTimeSeries} />
+        ),
+
       }}
     </ProjectStrip>
   )

@@ -187,6 +187,7 @@ function computeScaleMax(
     /* Background is rendered separately, so account for it independently */
     const bgVal = toSafe(bgV[i])
     const candidate = Math.max(stacked, mainFromOverall, bgVal)
+    if (candidate > max) max = candidate
   }
   return Math.max(1, max)
 }

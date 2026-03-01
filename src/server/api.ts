@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import * as path from "node:path"
-import { listSources, getDefaultSourceId } from "../ingest/sources-registry"
+import * as fs from "node:fs"
+import { listSources, getDefaultSourceId, addOrUpdateSource } from "../ingest/sources-registry"
 import { getStorageRoots, getMessageDir } from "../ingest/session"
 import { assertAllowedPath } from "../ingest/paths"
 import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../ingest/tool-calls"
@@ -56,6 +57,25 @@ export function createApi(opts: {
     const sources = listSources(opts.storageRoot)
     const defaultSourceId = getDefaultSourceId(opts.storageRoot)
     return c.json({ ok: true, sources, defaultSourceId })
+  })
+
+  // ---------------------------------------------------------------------------
+  // POST /sources — register a new project source
+  // ---------------------------------------------------------------------------
+  api.post("/sources", async (c) => {
+    const body = await c.req.json<{ projectRoot?: string; label?: string }>()
+    const { projectRoot, label } = body
+
+    if (!projectRoot || typeof projectRoot !== "string" || projectRoot.trim() === "") {
+      return c.json({ ok: false, error: "projectRoot is required and must be a non-empty string" }, 400)
+    }
+
+    if (!fs.existsSync(projectRoot)) {
+      return c.json({ ok: false, error: "projectRoot directory does not exist" }, 400)
+    }
+
+    const sourceId = addOrUpdateSource(opts.storageRoot, projectRoot, label)
+    return c.json({ ok: true, sourceId })
   })
 
   // ---------------------------------------------------------------------------

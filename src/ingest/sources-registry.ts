@@ -42,8 +42,28 @@ function emptyRegistry(): SourcesRegistry {
   return { version: REGISTRY_VERSION, sources: {} }
 }
 
-// NOTE: writeRegistry and addOrUpdateSource have been intentionally removed.
-// This module is read-only in ez-omo-dash.
+export function writeRegistry(storageRoot: string, registry: SourcesRegistry): void {
+  const registryPath = getRegistryPath(storageRoot)
+  fs.mkdirSync(path.dirname(registryPath), { recursive: true })
+  fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2), "utf8")
+}
+
+export function addOrUpdateSource(storageRoot: string, projectRoot: string, label?: string): string {
+  const canonical = canonicalizeProjectRoot(projectRoot)
+  const id = hashProjectRoot(canonical)
+  const registry = loadRegistry(storageRoot)
+  const now = Date.now()
+  const existing = registry.sources[id]
+  registry.sources[id] = {
+    id,
+    projectRoot: canonical,
+    label,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  }
+  writeRegistry(storageRoot, registry)
+  return id
+}
 
 export function loadRegistry(storageRoot: string): SourcesRegistry {
   const registryPath = getRegistryPath(storageRoot)
@@ -55,7 +75,8 @@ export function loadRegistry(storageRoot: string): SourcesRegistry {
       return emptyRegistry()
     }
     return parsed
-  } catch {
+  } catch (err) {
+    console.debug("[ez-dash][sources-registry] loadRegistry parse failed (file may not exist):", err)
     return emptyRegistry()
   }
 }

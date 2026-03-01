@@ -50,7 +50,8 @@
 }
 
 .swimlane-row:hover .swimlane-pin,
-.swimlane-row--pinned .swimlane-pin {
+.swimlane-row--pinned .swimlane-pin,
+.swimlane-pin:focus-visible {
   opacity: 1;
 }
 

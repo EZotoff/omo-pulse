@@ -17,11 +17,13 @@ export function AddProjectForm({ onProjectAdded }: AddProjectFormProps) {
   const [statusType, setStatusType] = useState<"success" | "error" | null>(null)
   const [fading, setFading] = useState(false)
   const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
-  /* Clear fade timer on unmount */
+  /* Clear fade timer and abort in-flight fetch on unmount */
   useEffect(() => {
     return () => {
       if (fadeTimer.current) clearTimeout(fadeTimer.current)
+      if (abortRef.current) abortRef.current.abort()
     }
   }, [])
 
@@ -44,11 +46,18 @@ export function AddProjectForm({ onProjectAdded }: AddProjectFormProps) {
       }
 
       setLoading(true)
+
+      /* Abort any previous in-flight request */
+      if (abortRef.current) abortRef.current.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
+
       try {
         const res = await fetch("/api/sources", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ projectRoot: projectRoot.trim(), label: label.trim() || undefined }),
+          signal: controller.signal,
         })
         const data = await res.json()
 
@@ -60,7 +69,8 @@ export function AddProjectForm({ onProjectAdded }: AddProjectFormProps) {
         } else {
           showStatus(data.error ?? "Failed to add project", "error")
         }
-      } catch {
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") return
         showStatus("Network error — could not reach server", "error")
       } finally {
         setLoading(false)

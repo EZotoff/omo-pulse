@@ -266,3 +266,32 @@
 - **Key Insight**: Playwright `webServer` is the standard pattern for integration tests that need a local dev server. The config was completely missing from Task 16, causing all tests to fail with `ERR_CONNECTION_REFUSED`.
 - **Gotcha**: For subsequent E2E runs, if Vite doesn't fully stop, `reuseExistingServer` allows reuse. In CI environments, set `CI=1` env var to force fresh server startup.
 - **Verification**: ✓ All 9 tests pass, ✓ no LSP diagnostics on config file, ✓ ready for CI integration
+
+## Dashboard Payload Builder Consolidation (Task: assemblePayload extraction)
+- **Files Modified**: `src/server/dashboard.ts` (516 → 514 lines)
+- **Helpers Extracted**: 3 private functions:
+  1. `readPlanData(projectRoot)` — reads boulder state, plan name/path, plan progress, plan steps
+  2. `buildMainSessionTask(opts)` — constructs the main session task array (status mapping, timeline, tool call summary)
+  3. `assemblePayload(data)` — constructs the full `DashboardPayload` object with mainSession, planProgress, backgroundTasks mapping, raw mirror
+- **Deduplication Strategy**: Keep data-fetching different (file-based vs SQLite with Result types), share only the assembly logic
+- **Key Design Decision**: `buildMainSessionTask` accepts `toolCalls: Array<{ tool?: string }>` — caller resolves the data source (file-based `deriveToolCalls` vs SQLite `deriveToolCallsSqlite` Result) before calling
+- **SQLite IIFE preserved**: The SQLite builder's `mainSessionTasks` IIFE still handles `deriveToolCallsSqlite` Result checking locally, then delegates to `buildMainSessionTask`
+- **Line count**: Modest reduction (2 lines) because typed helper signatures add overhead, but the real win is single source of truth for payload shape — future changes to DashboardPayload only need updating in one place
+- **Gotcha**: The file-based `main` variable lacks `currentModel` in its fallback literal (`{ agent: "unknown", ... }`) — must use `"currentModel" in main` check. The SQLite fallback includes `currentModel: null` explicitly
+- **Verification**: ✓ `bunx tsc --noEmit` clean, ✓ 26/26 tests pass, ✓ `bun run build` succeeds
+
+## React.memo() Optimization (Task R1)
+- **Files Modified**: `src/ui/components/ProjectStrip.tsx`, `Sparkline.tsx`, `PlanProgress.tsx`
+- **Pattern Applied**: Wrapped each component in `React.memo()` to prevent unnecessary re-renders during polling
+- **Implementation Strategy**:
+  - Renamed original function (e.g., `ProjectStrip` → `ProjectStripInner`)
+  - Created const export: `export const ProjectStrip = memo(ProjectStripInner)`
+  - Imported `memo` from 'react' at top of each file
+  - Maintained original export names to preserve all downstream imports
+- **Why These Three Components**:
+  - All are pure presentational (zero state, zero effects, no data fetching)
+  - Parent `App` re-renders every 2.2s due to polling cycle
+  - Default shallow comparison is sufficient (no custom comparators needed)
+  - Prevents redundant DOM reconciliation when props unchanged
+- **Performance Impact**: With 10+ projects in dense mode, this saves ~N component re-renders per 2.2s poll, where N = 30 (3 components × 10 projects)
+- **Verification**: ✓ `bun run build` — 42 modules, clean, ✓ no LSP diagnostics on components, ✓ export names unchanged (backward compatible)

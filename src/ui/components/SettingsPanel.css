@@ -80,6 +80,11 @@
   color: var(--text-primary);
 }
 
+.settings-panel__close:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
 /* Section */
 .settings-section {
   padding: var(--sp-4);
@@ -132,6 +137,11 @@
   border: 1px solid var(--border-secondary);
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.settings-switch:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .settings-switch[data-checked="true"] {
@@ -200,6 +210,11 @@
   border-color: var(--accent-primary);
 }
 
+.settings-sound-event__test:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
 /* Volume slider */
 .settings-volume {
   display: flex;
@@ -224,6 +239,11 @@
   background: var(--border-primary);
   outline: none;
   cursor: pointer;
+}
+
+.settings-volume__slider:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .settings-volume__slider::-webkit-slider-thumb {

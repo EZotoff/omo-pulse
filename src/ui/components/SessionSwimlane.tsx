@@ -1,10 +1,7 @@
 import type { SessionTimeSeriesPayload } from "../../types"
+import type { AgentTone } from "../types"
 import { memo, useState, useMemo, useCallback } from "react"
 import "./SessionSwimlane.css"
-
-/* ── Types ── */
-
-type AgentTone = "teal" | "red" | "green" | "sand"
 
 /* ── Helpers ── */
 
@@ -36,23 +33,23 @@ const PAD_TOP = 1
 function GradientDefs() {
   return (
     <defs>
-      <linearGradient id="sparkline-grad-teal" x1="0" x2="0" y1="1" y2="0">
+      <linearGradient id="swim-sparkline-grad-teal" x1="0" x2="0" y1="1" y2="0">
         <stop offset="0%" stopColor="rgba(0,212,170,0.4)" />
         <stop offset="100%" stopColor="rgba(0,212,170,0.3)" />
       </linearGradient>
-      <linearGradient id="sparkline-grad-red" x1="0" x2="0" y1="1" y2="0">
+      <linearGradient id="swim-sparkline-grad-red" x1="0" x2="0" y1="1" y2="0">
         <stop offset="0%" stopColor="rgba(255,107,107,0.4)" />
         <stop offset="100%" stopColor="rgba(255,107,107,0.3)" />
       </linearGradient>
-      <linearGradient id="sparkline-grad-green" x1="0" x2="0" y1="1" y2="0">
+      <linearGradient id="swim-sparkline-grad-green" x1="0" x2="0" y1="1" y2="0">
         <stop offset="0%" stopColor="rgba(78,205,196,0.4)" />
         <stop offset="100%" stopColor="rgba(78,205,196,0.3)" />
       </linearGradient>
-      <linearGradient id="sparkline-grad-sand" x1="0" x2="0" y1="1" y2="0">
+      <linearGradient id="swim-sparkline-grad-sand" x1="0" x2="0" y1="1" y2="0">
         <stop offset="0%" stopColor="rgba(255,165,2,0.4)" />
         <stop offset="100%" stopColor="rgba(255,165,2,0.3)" />
       </linearGradient>
-      <linearGradient id="sparkline-grad-muted" x1="0" x2="0" y1="1" y2="0">
+      <linearGradient id="swim-sparkline-grad-muted" x1="0" x2="0" y1="1" y2="0">
         <stop offset="0%" stopColor="rgba(102,102,128,0.3)" />
         <stop offset="100%" stopColor="rgba(102,102,128,0.2)" />
       </linearGradient>
@@ -144,7 +141,7 @@ export const SessionSwimlane = memo(function SessionSwimlane({
                 return (
                   <rect
                     key={i}
-                    fill={`url(#sparkline-grad-${tone})`}
+                    fill={`url(#swim-sparkline-grad-${tone})`}
                     x={i + BAR_INSET}
                     y={PAD_TOP + BAR_H - h}
                     width={BAR_W}

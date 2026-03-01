@@ -62,3 +62,13 @@ body {
 .mono {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
+
+ /* ── Focus-visible — keyboard-only focus indicators ── */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}

@@ -61,6 +61,16 @@ export function useSoundNotifications(): {
     persistConfig(config)
   }, [config])
 
+  // Close AudioContext on unmount to release audio resources
+  useEffect(() => {
+    return () => {
+      if (audioCtxRef.current) {
+        void audioCtxRef.current.close()
+        audioCtxRef.current = null
+      }
+    }
+  }, [])
+
   /** Lazily get or create the AudioContext */
   const getAudioContext = useCallback((): AudioContext => {
     audioCtxRef.current ??= new AudioContext()

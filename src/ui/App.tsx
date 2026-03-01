@@ -64,6 +64,7 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { config: stripConfig, toggle: toggleStripConfig } = useStripConfig()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const handleCloseSettings = useCallback(() => setSettingsOpen(false), [])
   const prevDataRef = useRef<DashboardMultiProjectPayload | null>(null)
   const firstLoadRef = useRef(true)
 
@@ -226,7 +227,7 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
           if (event === 'error') playSessionError()
         }}
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        onClose={handleCloseSettings}
       />
     </div>
   )
@@ -284,14 +285,12 @@ function ProjectStripWithChildren({ project, expanded, onToggleExpand, stripConf
           <Sparkline
             mode="mini"
             timeSeries={project.timeSeries}
-            sessionTimeSeries={project.sessionTimeSeries}
           />
         ),
         fullSparkline: (
           <Sparkline
             mode="full"
             timeSeries={project.timeSeries}
-            sessionTimeSeries={project.sessionTimeSeries}
           />
         ),
         compactPlan: (

@@ -1,14 +1,13 @@
 import type {
   TimeSeriesPayload,
   TimeSeriesSeries,
-  SessionTimeSeriesPayload,
-} from "../../types"
+  } from "../../types"
+import type { AgentTone } from "../types"
 import { memo } from "react"
 import "./Sparkline.css"
 
 /* ── Types ── */
 
-type AgentTone = "teal" | "red" | "green" | "sand"
 
 interface StackedSegment {
   tone: AgentTone
@@ -26,7 +25,6 @@ interface AgentCounts {
 export interface SparklineProps {
   mode: "mini" | "full"
   timeSeries: TimeSeriesPayload
-  sessionTimeSeries?: SessionTimeSeriesPayload
   width?: number
   height?: number
   className?: string
@@ -291,23 +289,23 @@ function renderMini(
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id="sparkline-grad-teal" x1="0" x2="0" y1="1" y2="0">
+        <linearGradient id="mini-sparkline-grad-teal" x1="0" x2="0" y1="1" y2="0">
           <stop offset="0%" stopColor="rgba(0,212,170,0.4)" />
           <stop offset="100%" stopColor="rgba(0,212,170,0.3)" />
         </linearGradient>
-        <linearGradient id="sparkline-grad-red" x1="0" x2="0" y1="1" y2="0">
+        <linearGradient id="mini-sparkline-grad-red" x1="0" x2="0" y1="1" y2="0">
           <stop offset="0%" stopColor="rgba(255,107,107,0.4)" />
           <stop offset="100%" stopColor="rgba(255,107,107,0.3)" />
         </linearGradient>
-        <linearGradient id="sparkline-grad-green" x1="0" x2="0" y1="1" y2="0">
+        <linearGradient id="mini-sparkline-grad-green" x1="0" x2="0" y1="1" y2="0">
           <stop offset="0%" stopColor="rgba(78,205,196,0.4)" />
           <stop offset="100%" stopColor="rgba(78,205,196,0.3)" />
         </linearGradient>
-        <linearGradient id="sparkline-grad-sand" x1="0" x2="0" y1="1" y2="0">
+        <linearGradient id="mini-sparkline-grad-sand" x1="0" x2="0" y1="1" y2="0">
           <stop offset="0%" stopColor="rgba(255,165,2,0.4)" />
           <stop offset="100%" stopColor="rgba(255,165,2,0.3)" />
         </linearGradient>
-        <linearGradient id="sparkline-grad-muted" x1="0" x2="0" y1="1" y2="0">
+        <linearGradient id="mini-sparkline-grad-muted" x1="0" x2="0" y1="1" y2="0">
           <stop offset="0%" stopColor="rgba(102,102,128,0.3)" />
           <stop offset="100%" stopColor="rgba(102,102,128,0.2)" />
         </linearGradient>
@@ -324,7 +322,7 @@ function renderMini(
             {bgBarH > 0 && (
               <rect
                 className="sparkline-bar sparkline-bar--muted"
-                fill="url(#sparkline-grad-muted)"
+                fill="url(#mini-sparkline-grad-muted)"
                 x={i + barInset}
                 y={padTop + chartH - bgBarH}
                 width={barW}
@@ -336,7 +334,7 @@ function renderMini(
               <>
                 <rect
                   className={`sparkline-bar sparkline-bar--${dominantTone}`}
-                  fill={`url(#sparkline-grad-${dominantTone})`}
+                  fill={`url(#mini-sparkline-grad-${dominantTone})`}
                   x={i + barInset}
                   y={padTop + chartH - barH}
                   width={barW}
@@ -401,23 +399,23 @@ function renderFull(
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id="sparkline-grad-teal" x1="0" x2="0" y1="1" y2="0">
+        <linearGradient id="full-sparkline-grad-teal" x1="0" x2="0" y1="1" y2="0">
           <stop offset="0%" stopColor="rgba(0,212,170,0.4)" />
           <stop offset="100%" stopColor="rgba(0,212,170,0.3)" />
         </linearGradient>
-        <linearGradient id="sparkline-grad-red" x1="0" x2="0" y1="1" y2="0">
+        <linearGradient id="full-sparkline-grad-red" x1="0" x2="0" y1="1" y2="0">
           <stop offset="0%" stopColor="rgba(255,107,107,0.4)" />
           <stop offset="100%" stopColor="rgba(255,107,107,0.3)" />
         </linearGradient>
-        <linearGradient id="sparkline-grad-green" x1="0" x2="0" y1="1" y2="0">
+        <linearGradient id="full-sparkline-grad-green" x1="0" x2="0" y1="1" y2="0">
           <stop offset="0%" stopColor="rgba(78,205,196,0.4)" />
           <stop offset="100%" stopColor="rgba(78,205,196,0.3)" />
         </linearGradient>
-        <linearGradient id="sparkline-grad-sand" x1="0" x2="0" y1="1" y2="0">
+        <linearGradient id="full-sparkline-grad-sand" x1="0" x2="0" y1="1" y2="0">
           <stop offset="0%" stopColor="rgba(255,165,2,0.4)" />
           <stop offset="100%" stopColor="rgba(255,165,2,0.3)" />
         </linearGradient>
-        <linearGradient id="sparkline-grad-muted" x1="0" x2="0" y1="1" y2="0">
+        <linearGradient id="full-sparkline-grad-muted" x1="0" x2="0" y1="1" y2="0">
           <stop offset="0%" stopColor="rgba(102,102,128,0.3)" />
           <stop offset="100%" stopColor="rgba(102,102,128,0.2)" />
         </linearGradient>
@@ -448,7 +446,7 @@ function renderFull(
             {bgBarH > 0 && (
               <rect
                 className="sparkline-bar sparkline-bar--muted"
-                fill="url(#sparkline-grad-muted)"
+                fill="url(#full-sparkline-grad-muted)"
                 x={i + barInset}
                 y={padTop + chartH - bgBarH}
                 width={barW}
@@ -460,7 +458,7 @@ function renderFull(
               <g key={`${i}-${seg.tone}`}>
                 <rect
                   className={`sparkline-bar sparkline-bar--${seg.tone}`}
-                  fill={`url(#sparkline-grad-${seg.tone})`}
+                  fill={`url(#full-sparkline-grad-${seg.tone})`}
                   x={i + barInset}
                   y={padTop + seg.y}
                   width={barW}

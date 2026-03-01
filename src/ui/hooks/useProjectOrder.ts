@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react"
-import { ProjectOrderState } from "../../types"
+import type { ProjectOrderState } from "../../types"
 
 const STORAGE_KEY = "dashboard-project-order"
 

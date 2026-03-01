@@ -24,6 +24,13 @@
   box-shadow: 0 0 0 1px var(--accent-primary);
 }
 
+.add-project-input:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary);
+}
+
 .add-project-input--path {
   font-family: var(--font-mono);
   min-width: 220px;
@@ -54,6 +61,11 @@
   transition: background var(--transition-fast), color var(--transition-fast);
   line-height: 1;
   white-space: nowrap;
+}
+
+.add-project-submit:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .add-project-submit:hover:not(:disabled) {

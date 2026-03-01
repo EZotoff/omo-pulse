@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react"
-import { StripConfigState } from "../../types"
+import type { StripConfigState } from "../../types"
 
 const STORAGE_KEY = "dashboard-strip-config"
 

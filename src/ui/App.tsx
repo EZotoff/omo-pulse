@@ -14,6 +14,7 @@ import { useExpandState } from "./hooks/useExpandState"
 import { useDensityMode } from "./hooks/useDensityMode"
 import { useSoundNotifications } from "./hooks/useSoundNotifications"
 import { useProjectOrder } from "./hooks/useProjectOrder"
+import { useProjectVisibility } from "./hooks/useProjectVisibility"
 import {
   DndContext,
   closestCenter,
@@ -63,6 +64,7 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
   const { expandedIds, toggle, expandAll, collapseAll } = useExpandState()
   const { config: soundConfig, setConfig: setSoundConfig, playWaiting, playAllClear, playAttention, playQuestion } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
+  const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
   const { config: stripConfig, toggle: toggleStripConfig } = useStripConfig()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const handleCloseSettings = useCallback(() => setSettingsOpen(false), [])
@@ -135,14 +137,13 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
     }
   }, [sortedProjects, syncIds])
 
-  /* Display projects in DnD order when available, else status sort */
+  /* Display projects in DnD order when available, else status sort; then filter by visibility */
   const displayProjects = useMemo(() => {
-    if (orderedIds.length === 0) return sortedProjects
     const map = new Map(sortedProjects.map((p) => [p.sourceId, p]))
-    return orderedIds
-      .map((id) => map.get(id))
-      .filter((p): p is ProjectSnapshot => p !== undefined)
-  }, [sortedProjects, orderedIds])
+    const ordered = orderedIds.length === 0 ? sortedProjects :
+      orderedIds.map((id) => map.get(id)).filter((p): p is ProjectSnapshot => p !== undefined)
+    return ordered.filter((p) => isVisible(p.sourceId))
+  }, [sortedProjects, orderedIds, isVisible])
 
   const projectCount = displayProjects.length
   const density = useDensityMode(projectCount)
@@ -183,11 +184,16 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
       <div className="container">
         {data === null ? (
           <div className="dashboard-loading">Loading…</div>
-        ) : projectCount === 0 ? (
+        ) : projectCount === 0 && data.projects.length === 0 ? (
           <div className="dashboard-empty">
             <span className="dashboard-empty__icon">⊘</span>
             <span>No registered projects found</span>
             <AddProjectForm onProjectAdded={() => { /* data will refresh on next poll */ }} />
+          </div>
+        ) : projectCount === 0 ? (
+          <div className="dashboard-empty">
+            <span className="dashboard-empty__icon">⊘</span>
+            <span>All projects hidden — adjust visibility in Settings</span>
           </div>
         ) : (
           <DndContext
@@ -235,6 +241,9 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
         }}
         open={settingsOpen}
         onClose={handleCloseSettings}
+        projects={data?.projects ?? []}
+        visibility={visibility}
+        onToggleVisibility={toggleVisibility}
       />
     </div>
   )

@@ -141,3 +141,6 @@ export type ProjectOrderState = {
   orderedIds: string[]
   columns: number
 }
+
+/** Per-project visibility configuration */
+export type VisibilityConfig = Record<string, boolean>

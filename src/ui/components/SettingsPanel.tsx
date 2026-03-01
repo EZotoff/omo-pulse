@@ -12,6 +12,9 @@ export type SettingsPanelProps = {
   onTestSound: (event: "idle" | "complete" | "error" | "question") => void
   open: boolean
   onClose: () => void
+  projects: Array<{ sourceId: string; label: string; mainSession: { status: string } }>
+  visibility: Record<string, boolean>
+  onToggleVisibility: (sourceId: string) => void
 }
 
 /* ── Display toggle metadata ── */
@@ -50,6 +53,9 @@ export function SettingsPanel({
   onTestSound,
   open,
   onClose,
+  projects,
+  visibility,
+  onToggleVisibility,
 }: SettingsPanelProps) {
   /* Escape key handler */
   useEffect(() => {
@@ -115,6 +121,26 @@ export function SettingsPanel({
           </button>
         </div>
 
+
+        {/* Project Visibility */}
+        <div className="settings-section">
+          <h3 className="settings-section__title">Project Visibility</h3>
+          {projects.map((project) => (
+            <div className="settings-toggle-row" key={project.sourceId}>
+              <span className="strip-status-dot" data-status={project.mainSession.status} aria-hidden="true" />
+              <span className="settings-toggle-label">{project.label}</span>
+              <button
+                className="settings-switch"
+                data-checked={visibility[project.sourceId] !== false}
+                onClick={() => onToggleVisibility(project.sourceId)}
+                type="button"
+                role="switch"
+                aria-checked={visibility[project.sourceId] !== false}
+                aria-label={`Show ${project.label}`}
+              />
+            </div>
+          ))}
+        </div>
         {/* Display Options */}
         <div className="settings-section">
           <h3 className="settings-section__title">Display Options</h3>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 
 /* ── Props ── */
 
@@ -19,18 +19,7 @@ export type DashboardHeaderProps = {
 
 /* ── Helpers ── */
 
-function getTheme(): "dark" | "light" {
-  return (document.documentElement.getAttribute("data-theme") as "dark" | "light") ?? "dark"
-}
 
-function setTheme(theme: "dark" | "light") {
-  document.documentElement.setAttribute("data-theme", theme)
-  try {
-    localStorage.setItem("ezOmoDashTheme", theme)
-  } catch {
-    /* localStorage unavailable */
-  }
-}
 
 function formatUpdateTime(ms: number | null): string {
   if (ms === null) return "—"
@@ -59,13 +48,7 @@ export function DashboardHeader({
   onZoomOut,
   onZoomReset,
 }: DashboardHeaderProps) {
-  const [theme, setThemeState] = useState<"dark" | "light">(getTheme)
 
-  const toggleTheme = useCallback(() => {
-    const next = theme === "dark" ? "light" : "dark"
-    setTheme(next)
-    setThemeState(next)
-  }, [theme])
 
   /* Re-render update time every second */
   const [, setTick] = useState(0)
@@ -138,15 +121,7 @@ export function DashboardHeader({
           </button>
         )}
 
-        <button
-          className="theme-toggle header-btn"
-          onClick={toggleTheme}
-          type="button"
-          title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-        >
-          {theme === "dark" ? "☀" : "☾"}
-        </button>
+
       </div>
     </header>
   )

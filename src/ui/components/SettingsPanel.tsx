@@ -1,6 +1,21 @@
-import { useEffect, useCallback } from "react"
+import { useEffect, useCallback, useState } from "react"
 import type { StripConfigState, SoundConfig } from "../../types"
 import "./SettingsPanel.css"
+
+/* ── Theme helpers ── */
+
+function getTheme(): "dark" | "light" {
+  return (document.documentElement.getAttribute("data-theme") as "dark" | "light") ?? "dark"
+}
+
+function setTheme(theme: "dark" | "light") {
+  document.documentElement.setAttribute("data-theme", theme)
+  try {
+    localStorage.setItem("ezOmoDashTheme", theme)
+  } catch {
+    /* localStorage unavailable */
+  }
+}
 
 /* ── Props ── */
 
@@ -60,6 +75,14 @@ export function SettingsPanel({
   visibility,
   onToggleVisibility,
 }: SettingsPanelProps) {
+  const [theme, setThemeState] = useState<"dark" | "light">(getTheme)
+
+  const toggleTheme = useCallback(() => {
+    const next = theme === "dark" ? "light" : "dark"
+    setTheme(next)
+    setThemeState(next)
+  }, [theme])
+
   /* Escape key handler */
   useEffect(() => {
     if (!open) return
@@ -236,7 +259,27 @@ export function SettingsPanel({
             </div>
           ))}
         </div>
+
+        {/* Theme Toggle */}
+        <div className="settings-section">
+          <div className="settings-toggle-row">
+            <span className="settings-toggle-label">Theme</span>
+            <button
+              className="theme-toggle settings-switch"
+              data-checked={theme === "light"}
+              onClick={toggleTheme}
+              type="button"
+              role="switch"
+              aria-checked={theme === "light"}
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+              title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+            >
+              {theme === "dark" ? "☀" : "☾"}
+            </button>
+          </div>
+        </div>
       </aside>
     </>
   )
 }
+

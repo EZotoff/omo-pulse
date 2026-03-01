@@ -1,5 +1,6 @@
 import type React from "react"
-import type { ProjectSnapshot } from "../../types"
+import { memo } from "react"
+import type { ProjectSnapshot, StripConfigState } from "../../types"
 import "./ProjectStrip.css"
 
 /* ── Helpers ── */
@@ -31,29 +32,31 @@ export type ProjectStripProps = {
   project: ProjectSnapshot
   expanded: boolean
   onToggleExpand: () => void
+  stripConfig?: StripConfigState
   children?: {
     miniSparkline: React.ReactNode
     fullSparkline: React.ReactNode
     compactPlan: React.ReactNode
     fullPlan: React.ReactNode
+    sessionSwimlane?: React.ReactNode
   }
 }
 
 /* ── Component ── */
 
-export function ProjectStrip({ project, expanded, onToggleExpand, children }: ProjectStripProps) {
+function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, children }: ProjectStripProps) {
   const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs } = project
 
   return (
     <div className="project-strip" data-expanded={expanded}>
       {/* Collapsed header — always visible */}
-      <div className="strip-header" onClick={onToggleExpand} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggleExpand() } }}>
-        <span className="strip-status-dot" data-status={mainSession.status} />
+      <div className="strip-header" onClick={onToggleExpand} role="button" tabIndex={0} aria-expanded={expanded} aria-label={`${project.label} — ${mainSession.status}`} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggleExpand() } }}>
+        {stripConfig?.showStatusDot !== false && <span className="strip-status-dot" data-status={mainSession.status} aria-hidden="true" />}
         <span className="strip-label truncate">{project.label}</span>
-        <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>
-        <span className="strip-agent-badge">{mainSession.agent}</span>
-        <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>
-        <span className="strip-updated">{formatRelativeTime(lastUpdatedMs)}</span>
+        {stripConfig?.showMiniSparkline !== false && <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>}
+        {stripConfig?.showAgentBadge !== false && <span className="strip-agent-badge">{mainSession.agent}</span>}
+        {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
+        {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{formatRelativeTime(lastUpdatedMs)}</span>}
         <span className="strip-chevron" aria-hidden="true">{expanded ? "▾" : "▸"}</span>
       </div>
 
@@ -64,6 +67,12 @@ export function ProjectStrip({ project, expanded, onToggleExpand, children }: Pr
           <div className="strip-section">
             <span className="strip-section-label">Activity</span>
             <div className="sparkline-slot sparkline-slot--full">{children?.fullSparkline}</div>
+          </div>
+
+          {/* Session swimlane */}
+          <div className="strip-section">
+            <span className="strip-section-label">Session Activity</span>
+            <div className="swimlane-slot">{children?.sessionSwimlane}</div>
           </div>
 
           {/* Plan progress — full width */}
@@ -96,26 +105,28 @@ export function ProjectStrip({ project, expanded, onToggleExpand, children }: Pr
           </div>
 
           {/* Background tasks */}
-          <div className="strip-section">
-            <span className="strip-section-label">Background Tasks ({backgroundTasks.length})</span>
-            {backgroundTasks.length > 0 ? (
-              <div className="strip-bg-tasks">
-                {backgroundTasks.map((task) => (
-                  <div key={task.taskId} className="strip-bg-task-row">
-                    <span className="strip-bg-task-status">{task.status}</span>
-                    <span className="truncate">{task.agent}</span>
-                    <span className="truncate">{task.model ?? "—"}</span>
-                    <span className="truncate">{task.currentTool || "—"}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <span className="strip-bg-task-empty">No background tasks</span>
-            )}
-          </div>
+          {stripConfig?.showBackgroundTasks !== false && (
+            <div className="strip-section">
+              <span className="strip-section-label">Background Tasks ({backgroundTasks.length})</span>
+              {backgroundTasks.length > 0 ? (
+                <div className="strip-bg-tasks">
+                  {backgroundTasks.map((task) => (
+                    <div key={task.taskId} className="strip-bg-task-row">
+                      <span className="strip-bg-task-status">{task.status}</span>
+                      <span className="truncate">{task.agent}</span>
+                      <span className="truncate">{task.model ?? "—"}</span>
+                      <span className="truncate">{task.currentTool || "—"}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="strip-bg-task-empty">No background tasks</span>
+              )}
+            </div>
+          )}
 
           {/* Token usage */}
-          {tokenUsage && (
+          {stripConfig?.showTokenUsage !== false && tokenUsage && (
             <div className="strip-section">
               <span className="strip-section-label">Token Usage</span>
               <div className="strip-tokens">
@@ -134,8 +145,12 @@ export function ProjectStrip({ project, expanded, onToggleExpand, children }: Pr
               </div>
             </div>
           )}
+
+          {/* Git worktrees — reserved for future use via showGitWorktrees config toggle */}
         </div>
       </div>
     </div>
   )
 }
+
+export const ProjectStrip = memo(ProjectStripInner)

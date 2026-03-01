@@ -163,9 +163,8 @@
 /* Full plan slot */
 .plan-slot--full {
   width: 100%;
-  height: 24px;
+  min-height: 24px;
   border-radius: var(--radius-sm);
-  background: var(--bg-tertiary);
 }
 
 /* Full swimlane slot */

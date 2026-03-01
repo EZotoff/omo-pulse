@@ -25,27 +25,22 @@
 
 /* Tone colors — gradient fills + glow vars */
 .sparkline-bar--teal {
-  fill: url(#sparkline-grad-teal);
   --glow-color: rgba(0, 212, 170, 0.6);
 }
 
 .sparkline-bar--red {
-  fill: url(#sparkline-grad-red);
   --glow-color: rgba(255, 107, 107, 0.6);
 }
 
 .sparkline-bar--green {
-  fill: url(#sparkline-grad-green);
   --glow-color: rgba(78, 205, 196, 0.6);
 }
 
 .sparkline-bar--sand {
-  fill: url(#sparkline-grad-sand);
   --glow-color: rgba(255, 165, 2, 0.6);
 }
 
 .sparkline-bar--muted {
-  fill: url(#sparkline-grad-muted);
   --glow-color: rgba(102, 102, 128, 0.4);
 }
 

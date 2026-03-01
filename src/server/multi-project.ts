@@ -10,6 +10,7 @@ import type {
 import { listSources, getSourceById } from "../ingest/sources-registry"
 import { getLegacyStorageRootForBackend, type StorageBackend } from "../ingest/storage-backend"
 import { createDashboardStore, type DashboardStore, type DashboardPayload } from "./dashboard"
+import { derivePerSessionTimeSeries } from "../ingest/per-session-timeseries"
 
 // ---------------------------------------------------------------------------
 // Helpers: transform DashboardPayload → ProjectSnapshot
@@ -68,6 +69,7 @@ function transformPayloadToSnapshot(
   projectRoot: string,
   payload: DashboardPayload,
   nowMs: number,
+  sqlitePath?: string,
 ): ProjectSnapshot {
   return {
     sourceId,
@@ -92,7 +94,17 @@ function transformPayloadToSnapshot(
     },
     timeSeries: payload.timeSeries,
     backgroundTasks: mapBackgroundTasks(payload),
-    sessionTimeSeries: buildEmptySessionTimeSeries(nowMs),
+    sessionTimeSeries: (() => {
+      if (sqlitePath) {
+        try {
+          const result = derivePerSessionTimeSeries({ sqlitePath, projectRoot, nowMs })
+          if (result.ok) return result.value
+        } catch {
+          // Per-source error isolation: fall back to empty on unexpected errors
+        }
+      }
+      return buildEmptySessionTimeSeries(nowMs)
+    })(),
     tokenUsage: mapTokenUsage(payload),
     lastUpdatedMs: nowMs,
   }
@@ -147,7 +159,8 @@ export function createMultiProjectService(opts: {
         const store = getOrCreateStore(source.id, entry.projectRoot)
         const payload = store.getSnapshot()
         const label = source.label ?? entry.projectRoot
-        const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, nowMs)
+        const sqlitePath = opts.storageBackend.kind === "sqlite" ? opts.storageBackend.sqlitePath : undefined
+        const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, nowMs, sqlitePath)
         projects.push(snapshot)
       } catch {
         // Per-source error isolation: if one source fails, others still return

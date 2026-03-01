@@ -50,6 +50,49 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
     expandAll(data.projects.map((p) => p.sourceId))
   }, [data, expandAll])
 
+  /* Sound notifications on status transitions */
+  useEffect(() => {
+    if (!data || !connected) return
+
+    // Skip sound on first successful load
+    if (firstLoadRef.current) {
+      firstLoadRef.current = false
+      prevDataRef.current = data
+      return
+    }
+
+    const prev = prevDataRef.current
+    if (prev) {
+      for (const project of data.projects) {
+        const prevProject = prev.projects.find(p => p.sourceId === project.sourceId)
+        if (!prevProject) continue
+
+        const prevStatus = prevProject.mainSession.status
+        const currStatus = project.mainSession.status
+        const activeStates: SessionStatus[] = ['busy', 'running_tool', 'thinking']
+
+        // Session idle: active → idle
+        if (activeStates.includes(prevStatus) && currStatus === 'idle') {
+          playSessionIdle()
+        }
+
+        // Session error: active/idle → unknown
+        if (prevStatus !== 'unknown' && currStatus === 'unknown') {
+          playSessionError()
+        }
+
+        // Plan complete: in progress → complete
+        const prevPlanStatus = prevProject.planProgress.status
+        const currPlanStatus = project.planProgress.status
+        if (prevPlanStatus === 'in progress' && currPlanStatus === 'complete') {
+          playPlanComplete()
+        }
+      }
+    }
+
+    prevDataRef.current = data
+  }, [data, connected, playSessionIdle, playPlanComplete, playSessionError])
+
   /* Sort projects: active first */
   const sortedProjects = useMemo(() => {
     if (!data) return []

@@ -9,7 +9,7 @@ export type SettingsPanelProps = {
   onToggleStrip: (key: keyof StripConfigState) => void
   soundConfig: SoundConfig
   onSoundConfigChange: (config: SoundConfig) => void
-  onTestSound: (event: "idle" | "complete" | "error") => void
+  onTestSound: (event: "idle" | "complete" | "error" | "question") => void
   open: boolean
   onClose: () => void
 }
@@ -30,13 +30,14 @@ const DISPLAY_TOGGLES: { key: keyof StripConfigState; label: string }[] = [
 /* ── Sound event metadata ── */
 
 const SOUND_EVENTS: {
-  key: "onSessionIdle" | "onPlanComplete" | "onSessionError"
+  key: "onSessionIdle" | "onPlanComplete" | "onSessionError" | "onQuestion"
   label: string
-  event: "idle" | "complete" | "error"
+  event: "idle" | "complete" | "error" | "question"
 }[] = [
   { key: "onSessionIdle", label: "Session Idle", event: "idle" },
   { key: "onPlanComplete", label: "Plan Complete", event: "complete" },
   { key: "onSessionError", label: "Session Error", event: "error" },
+  { key: "onQuestion", label: "Question", event: "question" },
 ]
 
 /* ── Component ── */
@@ -77,7 +78,7 @@ export function SettingsPanel({
   )
 
   const handleSoundEventToggle = useCallback(
-    (key: "onSessionIdle" | "onPlanComplete" | "onSessionError") => {
+    (key: "onSessionIdle" | "onPlanComplete" | "onSessionError" | "onQuestion") => {
       onSoundConfigChange({ ...soundConfig, [key]: !soundConfig[key] })
     },
     [soundConfig, onSoundConfigChange],

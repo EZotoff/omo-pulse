@@ -9,6 +9,7 @@ const DEFAULT_CONFIG: SoundConfig = {
   onSessionIdle: true,
   onPlanComplete: true,
   onSessionError: true,
+  onQuestion: true,
 }
 
 /** Read persisted sound config from localStorage, returning defaults on failure */
@@ -25,6 +26,7 @@ function readPersistedConfig(): SoundConfig {
       onSessionIdle: typeof obj.onSessionIdle === "boolean" ? obj.onSessionIdle : DEFAULT_CONFIG.onSessionIdle,
       onPlanComplete: typeof obj.onPlanComplete === "boolean" ? obj.onPlanComplete : DEFAULT_CONFIG.onPlanComplete,
       onSessionError: typeof obj.onSessionError === "boolean" ? obj.onSessionError : DEFAULT_CONFIG.onSessionError,
+      onQuestion: typeof obj.onQuestion === "boolean" ? obj.onQuestion : DEFAULT_CONFIG.onQuestion,
     }
   } catch {
     return DEFAULT_CONFIG
@@ -40,12 +42,21 @@ function persistConfig(config: SoundConfig): void {
   }
 }
 
+/** Apply an ADSR envelope to a gain node */
+function applyADSR(gain: GainNode, now: number, peak: number, a: number, d: number, s: number, r: number): void {
+  gain.gain.setValueAtTime(0, now)
+  gain.gain.linearRampToValueAtTime(peak, now + a)
+  gain.gain.linearRampToValueAtTime(peak * s, now + a + d)
+  gain.gain.linearRampToValueAtTime(0, now + a + d + r)
+}
+
 export function useSoundNotifications(): {
   config: SoundConfig
   setConfig: (config: SoundConfig) => void
-  playSessionIdle: () => void
-  playPlanComplete: () => void
-  playSessionError: () => void
+  playWaiting: () => void
+  playAllClear: () => void
+  playAttention: () => void
+  playQuestion: () => void
 } {
   const [config, setConfig] = useState<SoundConfig>(() => readPersistedConfig())
   const audioCtxRef = useRef<AudioContext | null>(null)
@@ -78,105 +89,133 @@ export function useSoundNotifications(): {
   }, [])
 
   /**
-   * Low-frequency gentle tone: 300Hz, 200ms, sine wave, volume ramp down.
+   * Waiting sound (mapped to onSessionIdle):
+   * Sine portamento glide A3 (220Hz) → E4 (329.63Hz), 1.2s total.
    */
-  const playSessionIdle = useCallback(() => {
+  const playWaiting = useCallback(() => {
     const cfg = configRef.current
     if (!cfg.enabled || !cfg.onSessionIdle) return
 
     const ctx = getAudioContext()
     if (ctx.state === "suspended") void ctx.resume()
 
-    const gain = (cfg.volume / 100) * 0.3
+    const peak = (cfg.volume / 100) * 0.06
     const now = ctx.currentTime
 
-    const oscillator = ctx.createOscillator()
+    const osc = ctx.createOscillator()
     const gainNode = ctx.createGain()
 
-    oscillator.type = "sine"
-    oscillator.frequency.setValueAtTime(300, now)
+    osc.type = "sine"
+    osc.frequency.setValueAtTime(220, now)
+    osc.frequency.linearRampToValueAtTime(329.63, now + 1.2)
 
-    gainNode.gain.setValueAtTime(gain, now)
-    gainNode.gain.linearRampToValueAtTime(0, now + 0.2)
+    applyADSR(gainNode, now, peak, 0.15, 0.1, 0.7, 0.3)
 
-    oscillator.connect(gainNode)
+    osc.connect(gainNode)
     gainNode.connect(ctx.destination)
 
-    oscillator.start(now)
-    oscillator.stop(now + 0.2)
+    osc.start(now)
+    osc.stop(now + 0.15 + 0.1 + 0.3)
   }, [getAudioContext])
 
   /**
-   * Rising two-tone sequence: 400Hz then 600Hz, 150ms each, triangle wave.
+   * All-clear sound (mapped to onPlanComplete):
+   * 3 rapid staccato sine notes: C5(523.25) → G5(783.99) → C6(1046.5).
    */
-  const playPlanComplete = useCallback(() => {
+  const playAllClear = useCallback(() => {
     const cfg = configRef.current
     if (!cfg.enabled || !cfg.onPlanComplete) return
 
     const ctx = getAudioContext()
     if (ctx.state === "suspended") void ctx.resume()
 
-    const gain = (cfg.volume / 100) * 0.3
+    const peak = (cfg.volume / 100) * 0.06
     const now = ctx.currentTime
 
-    // First tone: 400Hz
-    const osc1 = ctx.createOscillator()
-    const gain1 = ctx.createGain()
-    osc1.type = "triangle"
-    osc1.frequency.setValueAtTime(400, now)
-    gain1.gain.setValueAtTime(gain, now)
-    osc1.connect(gain1)
-    gain1.connect(ctx.destination)
-    osc1.start(now)
-    osc1.stop(now + 0.15)
+    const notes = [523.25, 783.99, 1046.5]
+    const noteSpacing = 0.1
 
-    // Second tone: 600Hz
-    const osc2 = ctx.createOscillator()
-    const gain2 = ctx.createGain()
-    osc2.type = "triangle"
-    osc2.frequency.setValueAtTime(600, now + 0.15)
-    gain2.gain.setValueAtTime(gain, now + 0.15)
-    osc2.connect(gain2)
-    gain2.connect(ctx.destination)
-    osc2.start(now + 0.15)
-    osc2.stop(now + 0.3)
+    for (let i = 0; i < notes.length; i++) {
+      const noteStart = now + i * noteSpacing
+      const osc = ctx.createOscillator()
+      const gainNode = ctx.createGain()
+
+      osc.type = "sine"
+      osc.frequency.setValueAtTime(notes[i], noteStart)
+
+      applyADSR(gainNode, noteStart, peak, 0.01, 0.02, 0.6, 0.05)
+
+      osc.connect(gainNode)
+      gainNode.connect(ctx.destination)
+
+      osc.start(noteStart)
+      osc.stop(noteStart + 0.01 + 0.02 + 0.05)
+    }
   }, [getAudioContext])
 
   /**
-   * Short alert: 500Hz, 100ms, sawtooth wave, two quick pulses.
+   * Attention sound (mapped to onSessionError):
+   * Sine A4 (440Hz), 2 short pulses, 80ms each with 60ms gap.
    */
-  const playSessionError = useCallback(() => {
+  const playAttention = useCallback(() => {
     const cfg = configRef.current
     if (!cfg.enabled || !cfg.onSessionError) return
 
     const ctx = getAudioContext()
     if (ctx.state === "suspended") void ctx.resume()
 
-    const gain = (cfg.volume / 100) * 0.3
+    const peak = (cfg.volume / 100) * 0.06
     const now = ctx.currentTime
 
-    // First pulse
-    const osc1 = ctx.createOscillator()
-    const gain1 = ctx.createGain()
-    osc1.type = "sawtooth"
-    osc1.frequency.setValueAtTime(500, now)
-    gain1.gain.setValueAtTime(gain, now)
-    osc1.connect(gain1)
-    gain1.connect(ctx.destination)
-    osc1.start(now)
-    osc1.stop(now + 0.1)
+    const pulseOffsets = [0, 0.14] // 80ms pulse + 60ms gap = 140ms
 
-    // Second pulse (after 50ms gap)
-    const osc2 = ctx.createOscillator()
-    const gain2 = ctx.createGain()
-    osc2.type = "sawtooth"
-    osc2.frequency.setValueAtTime(500, now + 0.15)
-    gain2.gain.setValueAtTime(gain, now + 0.15)
-    osc2.connect(gain2)
-    gain2.connect(ctx.destination)
-    osc2.start(now + 0.15)
-    osc2.stop(now + 0.25)
+    for (const offset of pulseOffsets) {
+      const pulseStart = now + offset
+      const osc = ctx.createOscillator()
+      const gainNode = ctx.createGain()
+
+      osc.type = "sine"
+      osc.frequency.setValueAtTime(440, pulseStart)
+
+      applyADSR(gainNode, pulseStart, peak, 0.005, 0.01, 0.8, 0.02)
+
+      osc.connect(gainNode)
+      gainNode.connect(ctx.destination)
+
+      osc.start(pulseStart)
+      osc.stop(pulseStart + 0.005 + 0.01 + 0.02)
+    }
   }, [getAudioContext])
 
-  return { config, setConfig, playSessionIdle, playPlanComplete, playSessionError }
+  /**
+   * Question sound (mapped to onQuestion):
+   * Sine descending D5 (587.33Hz) → A4 (440Hz), 400ms.
+   */
+  const playQuestion = useCallback(() => {
+    const cfg = configRef.current
+    if (!cfg.enabled || !cfg.onQuestion) return
+
+    const ctx = getAudioContext()
+    if (ctx.state === "suspended") void ctx.resume()
+
+    const peak = (cfg.volume / 100) * 0.06
+    const now = ctx.currentTime
+
+    const osc = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+
+    osc.type = "sine"
+    osc.frequency.setValueAtTime(587.33, now)
+    osc.frequency.linearRampToValueAtTime(440, now + 0.4)
+
+    applyADSR(gainNode, now, peak, 0.02, 0.05, 0.6, 0.15)
+
+    osc.connect(gainNode)
+    gainNode.connect(ctx.destination)
+
+    osc.start(now)
+    osc.stop(now + 0.02 + 0.05 + 0.15)
+  }, [getAudioContext])
+
+  return { config, setConfig, playWaiting, playAllClear, playAttention, playQuestion }
 }

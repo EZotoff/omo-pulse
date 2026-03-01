@@ -13,7 +13,7 @@ export type SourceRegistryEntry = {
 }
 
 /** Session status from MainSessionView */
-export type SessionStatus = "busy" | "idle" | "thinking" | "running_tool" | "unknown"
+export type SessionStatus = "busy" | "idle" | "thinking" | "running_tool" | "question" | "unknown"
 
 /** Plan status based on progress */
 export type PlanStatus = "not started" | "in progress" | "complete"
@@ -133,6 +133,7 @@ export type SoundConfig = {
   onSessionIdle: boolean
   onPlanComplete: boolean
   onSessionError: boolean
+  onQuestion: boolean
 }
 
 /** Project ordering and layout state */

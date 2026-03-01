@@ -38,12 +38,13 @@ const STATUS_PRIORITY: Record<SessionStatus, number> = {
   running_tool: 1,
   thinking: 2,
   idle: 3,
-  unknown: 4,
+  unknown: 5,
+  question: 4,
 }
 
 function compareProjects(a: ProjectSnapshot, b: ProjectSnapshot): number {
-  const pa = STATUS_PRIORITY[a.mainSession.status] ?? 4
-  const pb = STATUS_PRIORITY[b.mainSession.status] ?? 4
+  const pa = STATUS_PRIORITY[a.mainSession.status] ?? 5
+  const pb = STATUS_PRIORITY[b.mainSession.status] ?? 5
   if (pa !== pb) return pa - pb
   return b.lastUpdatedMs - a.lastUpdatedMs
 }
@@ -60,7 +61,7 @@ export type AppProps = {
 
 export function App({ data, connected, lastUpdatedMs }: AppProps) {
   const { expandedIds, toggle, expandAll, collapseAll } = useExpandState()
-  const { config: soundConfig, setConfig: setSoundConfig, playSessionIdle, playPlanComplete, playSessionError } = useSoundNotifications()
+  const { config: soundConfig, setConfig: setSoundConfig, playWaiting, playAllClear, playAttention, playQuestion } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { config: stripConfig, toggle: toggleStripConfig } = useStripConfig()
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -96,25 +97,30 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
 
         // Session idle: active → idle
         if (activeStates.includes(prevStatus) && currStatus === 'idle') {
-          playSessionIdle()
+          playWaiting()
         }
 
         // Session error: active/idle → unknown
         if (prevStatus !== 'unknown' && currStatus === 'unknown') {
-          playSessionError()
+          playAttention()
         }
 
         // Plan complete: in progress → complete
         const prevPlanStatus = prevProject.planProgress.status
         const currPlanStatus = project.planProgress.status
         if (prevPlanStatus === 'in progress' && currPlanStatus === 'complete') {
-          playPlanComplete()
+          playAllClear()
+        }
+
+        // Question: any → question
+        if (prevStatus !== 'question' && currStatus === 'question') {
+          playQuestion()
         }
       }
     }
 
     prevDataRef.current = data
-  }, [data, connected, playSessionIdle, playPlanComplete, playSessionError])
+  }, [data, connected, playWaiting, playAllClear, playAttention, playQuestion])
 
   /* Sort projects: active first */
   const sortedProjects = useMemo(() => {
@@ -222,9 +228,10 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
         soundConfig={soundConfig}
         onSoundConfigChange={setSoundConfig}
         onTestSound={(event) => {
-          if (event === 'idle') playSessionIdle()
-          if (event === 'complete') playPlanComplete()
-          if (event === 'error') playSessionError()
+          if (event === 'idle') playWaiting()
+          if (event === 'complete') playAllClear()
+          if (event === 'error') playAttention()
+          if (event === 'question') playQuestion()
         }}
         open={settingsOpen}
         onClose={handleCloseSettings}

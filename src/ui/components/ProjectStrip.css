@@ -305,4 +305,15 @@
 [data-density="ultra-dense"] .strip-chevron {
   font-size: var(--font-xs);
   width: 10px;
+  background: var(--bg-tertiary);
+}
+
+/* Stale state overrides */
+.project-strip[data-stale="true"] {
+  opacity: 0.6;
+}
+
+.strip-status-dot[data-stale="true"] {
+  color: var(--text-muted);
+  box-shadow: none;
 }

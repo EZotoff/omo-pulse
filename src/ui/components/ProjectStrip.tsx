@@ -5,6 +5,8 @@ import "./ProjectStrip.css"
 
 /* ── Helpers ── */
 
+const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+
 /** Format millisecond timestamp to relative time string ("2s ago", "1m ago", "3h ago") */
 export function formatRelativeTime(ms: number): string {
   const now = Date.now()
@@ -46,12 +48,17 @@ export type ProjectStripProps = {
 
 function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, children }: ProjectStripProps) {
   const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs } = project
+  const isStale = (() => {
+    if (!mainSession?.lastUpdated) return false
+    const lastUpdatedTime = new Date(mainSession.lastUpdated).getTime()
+    return Date.now() - lastUpdatedTime > STALE_THRESHOLD_MS
+  })()
 
   return (
-    <div className="project-strip" data-expanded={expanded}>
+    <div className="project-strip" data-expanded={expanded} data-stale={isStale}>
       {/* Collapsed header — always visible */}
       <div className="strip-header" onClick={onToggleExpand} role="button" tabIndex={0} aria-expanded={expanded} aria-label={`${project.label} — ${mainSession.status}`} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggleExpand() } }}>
-        {stripConfig?.showStatusDot !== false && <span className="strip-status-dot" data-status={mainSession.status} aria-hidden="true" />}
+        {stripConfig?.showStatusDot !== false && <span className="strip-status-dot" data-status={mainSession.status} data-stale={isStale} aria-hidden="true" />}
         <span className="strip-label truncate">{project.label}</span>
         {stripConfig?.showMiniSparkline !== false && <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>}
         {stripConfig?.showAgentBadge !== false && <span className="strip-agent-badge">{mainSession.agent}</span>}

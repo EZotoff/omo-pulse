@@ -184,8 +184,9 @@ function computeScaleMax(
       toSafe(sisV[i]) + toSafe(proV[i]) + toSafe(atlV[i])
     /* Also consider overall - background as potential ceiling */
     const mainFromOverall = toSafe(overallV[i]) - toSafe(bgV[i])
-    const candidate = Math.max(stacked, mainFromOverall)
-    if (candidate > max) max = candidate
+    /* Background is rendered separately, so account for it independently */
+    const bgVal = toSafe(bgV[i])
+    const candidate = Math.max(stacked, mainFromOverall, bgVal)
   }
   return Math.max(1, max)
 }
@@ -235,18 +236,44 @@ function renderMini(
   const sisV = lookup.get("agent:sisyphus")?.values ?? []
   const proV = lookup.get("agent:prometheus")?.values ?? []
   const atlV = lookup.get("agent:atlas")?.values ?? []
+  const bgV = lookup.get("background-total")?.values ?? []
 
   const startIdx = Math.max(0, totalBuckets - windowSize)
   const count = Math.min(windowSize, totalBuckets)
 
-  /* Compute summed values + max */
+  /* Compute summed values + max, and track dominant agent tone */
   const sums: number[] = []
+  const dominantTones: AgentTone[] = []
   let maxVal = 0
   for (let i = 0; i < count; i++) {
     const idx = startIdx + i
-    const sum = toSafe(sisV[idx]) + toSafe(proV[idx]) + toSafe(atlV[idx])
+    const sisVal = toSafe(sisV[idx])
+    const proVal = toSafe(proV[idx])
+    const atlVal = toSafe(atlV[idx])
+    const sum = sisVal + proVal + atlVal
     sums.push(sum)
     if (sum > maxVal) maxVal = sum
+    
+    /* Determine dominant agent tone for this bucket */
+    let dominantTone: AgentTone = "teal" /* default */
+    const maxVal_bucket = Math.max(sisVal, proVal, atlVal)
+    if (maxVal_bucket > 0) {
+      if (sisVal === maxVal_bucket) {
+        dominantTone = "teal"
+      } else if (proVal === maxVal_bucket) {
+        dominantTone = "red"
+      } else if (atlVal === maxVal_bucket) {
+        dominantTone = "green"
+      }
+    }
+    dominantTones.push(dominantTone)
+  }
+  /* Update scaleMax to account for background bars */
+  for (let i = 0; i < count; i++) {
+    const idx = startIdx + i
+    const bgVal = toSafe(bgV[idx])
+    const candidate = Math.max(sums[i], bgVal)
+    if (candidate > maxVal) maxVal = candidate
   }
   const scaleMax = Math.max(1, maxVal)
 
@@ -285,27 +312,46 @@ function renderMini(
         </linearGradient>
       </defs>
       {sums.map((val, i) => {
+        const idx = startIdx + i
         const barH = (val / scaleMax) * chartH
-        if (barH <= 0) return null
+        const bgVal = toSafe(bgV[idx])
+        const bgBarH = (bgVal / scaleMax) * chartH
+        const dominantTone = dominantTones[i]
+        if (barH <= 0 && bgBarH <= 0) return null
         return (
           <g key={i}>
-            <rect
-              className="sparkline-bar sparkline-bar--teal"
-              fill="url(#sparkline-grad-teal)"
-              x={i + barInset}
-              y={padTop + chartH - barH}
-              width={barW}
-              height={barH}
-              rx={1}
-            />
-            <rect
-              className="sparkline-glow sparkline-glow--teal"
-              x={i + barInset}
-              y={padTop + chartH - barH}
-              width={barW}
-              height={1}
-              rx={1}
-            />
+            {bgBarH > 0 && (
+              <rect
+                className="sparkline-bar sparkline-bar--muted"
+                fill="url(#sparkline-grad-muted)"
+                x={i + barInset}
+                y={padTop + chartH - bgBarH}
+                width={barW}
+                height={bgBarH}
+                rx={1}
+              />
+            )}
+            {barH > 0 && (
+              <>
+                <rect
+                  className={`sparkline-bar sparkline-bar--${dominantTone}`}
+                  fill={`url(#sparkline-grad-${dominantTone})`}
+                  x={i + barInset}
+                  y={padTop + chartH - barH}
+                  width={barW}
+                  height={barH}
+                  rx={1}
+                />
+                <rect
+                  className={`sparkline-glow sparkline-glow--${dominantTone}`}
+                  x={i + barInset}
+                  y={padTop + chartH - barH}
+                  width={barW}
+                  height={1}
+                  rx={1}
+                />
+              </>
+            )}
           </g>
         )
       })}
@@ -390,30 +436,48 @@ function renderFull(
           scaleMax,
           chartH,
         )
-
-        if (segments.length === 0) return null
-
-        return segments.map((seg) => (
-          <g key={`${i}-${seg.tone}`}>
-            <rect
-              className={`sparkline-bar sparkline-bar--${seg.tone}`}
-              fill={`url(#sparkline-grad-${seg.tone})`}
-              x={i + barInset}
-              y={padTop + seg.y}
-              width={barW}
-              height={seg.height}
-              rx={1}
-            />
-            <rect
-              className={`sparkline-glow sparkline-glow--${seg.tone}`}
-              x={i + barInset}
-              y={padTop + seg.y}
-              width={barW}
-              height={1}
-              rx={1}
-            />
+        
+        const bgVal = toSafe(bgV[i])
+        const bgBarH = (bgVal / scaleMax) * chartH
+        
+        if (segments.length === 0 && bgBarH <= 0) return null
+        
+        return (
+          <g key={`bucket-${i}`}>
+            {bgBarH > 0 && (
+              <rect
+                className="sparkline-bar sparkline-bar--muted"
+                fill="url(#sparkline-grad-muted)"
+                x={i + barInset}
+                y={padTop + chartH - bgBarH}
+                width={barW}
+                height={bgBarH}
+                rx={1}
+              />
+            )}
+            {segments.map((seg) => (
+              <g key={`${i}-${seg.tone}`}>
+                <rect
+                  className={`sparkline-bar sparkline-bar--${seg.tone}`}
+                  fill={`url(#sparkline-grad-${seg.tone})`}
+                  x={i + barInset}
+                  y={padTop + seg.y}
+                  width={barW}
+                  height={seg.height}
+                  rx={1}
+                />
+                <rect
+                  className={`sparkline-glow sparkline-glow--${seg.tone}`}
+                  x={i + barInset}
+                  y={padTop + seg.y}
+                  width={barW}
+                  height={1}
+                  rx={1}
+                />
+              </g>
+            ))}
           </g>
-        ))
+        )
       })}
     </svg>
   )

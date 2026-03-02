@@ -34,6 +34,8 @@ export type SettingsPanelProps = {
   onCollapsedHeightChange: (height: number) => void
   gridGap: number
   onGridGapChange: (gap: number) => void
+  idleTimeoutMs: number
+  onIdleTimeoutMsChange: (ms: number) => void
 }
 
 /* ── Display toggle metadata ── */

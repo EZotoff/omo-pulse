@@ -114,6 +114,16 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
     document.documentElement.style.setProperty('--grid-gap', `${gridGap}px`)
   }, [gridGap])
 
+  /* ── Idle timeout ── */
+  const [idleTimeoutMs, setIdleTimeoutMs] = useState<number>(() => {
+    const stored = localStorage.getItem('idle-timeout-ms')
+    return stored ? Number(stored) : 300_000 // 5 min default
+  })
+
+  useEffect(() => {
+    localStorage.setItem('idle-timeout-ms', String(idleTimeoutMs))
+  }, [idleTimeoutMs])
+
   /* ── Column widths ── */
   const [columnWidths, setColumnWidths] = useState<Record<string, number[]>>(() => {
     try {
@@ -326,6 +336,7 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
                       expanded={expanded}
                       onToggleExpand={() => toggle(project.sourceId)}
                       stripConfig={stripConfig}
+                      idleTimeoutMs={idleTimeoutMs}
                     />
                   )
                 })}
@@ -368,6 +379,8 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
         onCollapsedHeightChange={setCollapsedHeight}
         gridGap={gridGap}
         onGridGapChange={setGridGap}
+        idleTimeoutMs={idleTimeoutMs}
+        onIdleTimeoutMsChange={setIdleTimeoutMs}
       />
     </div>
   )
@@ -381,9 +394,10 @@ type SortableProjectStripProps = {
   expanded: boolean
   onToggleExpand: () => void
   stripConfig?: StripConfigState
+  idleTimeoutMs: number
 }
 
-function SortableProjectStrip({ id, project, expanded, onToggleExpand, stripConfig }: SortableProjectStripProps) {
+function SortableProjectStrip({ id, project, expanded, onToggleExpand, stripConfig, idleTimeoutMs }: SortableProjectStripProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
 
   const style: React.CSSProperties = {
@@ -398,6 +412,7 @@ function SortableProjectStrip({ id, project, expanded, onToggleExpand, stripConf
         expanded={expanded}
         onToggleExpand={onToggleExpand}
         stripConfig={stripConfig}
+        idleTimeoutMs={idleTimeoutMs}
       />
     </div>
   )
@@ -410,15 +425,17 @@ type ProjectStripWithChildrenProps = {
   expanded: boolean
   onToggleExpand: () => void
   stripConfig?: StripConfigState
+  idleTimeoutMs: number
 }
 
-function ProjectStripWithChildren({ project, expanded, onToggleExpand, stripConfig }: ProjectStripWithChildrenProps) {
+function ProjectStripWithChildren({ project, expanded, onToggleExpand, stripConfig, idleTimeoutMs }: ProjectStripWithChildrenProps) {
   return (
     <ProjectStrip
       project={project}
       expanded={expanded}
       onToggleExpand={onToggleExpand}
       stripConfig={stripConfig}
+      idleTimeoutMs={idleTimeoutMs}
     >
       {{
         miniSparkline: (

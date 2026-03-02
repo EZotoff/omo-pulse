@@ -37,6 +37,7 @@ export type ProjectStripProps = {
   expanded: boolean
   onToggleExpand: () => void
   stripConfig?: StripConfigState
+  idleTimeoutMs?: number
   children?: {
     miniSparkline: React.ReactNode
     fullSparkline: React.ReactNode
@@ -48,7 +49,7 @@ export type ProjectStripProps = {
 
 /* ── Component ── */
 
-function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, children }: ProjectStripProps) {
+function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idleTimeoutMs, children }: ProjectStripProps) {
   const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs } = project
   const sourceId = project.sourceId
   const isStale = (() => {
@@ -58,6 +59,15 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, chi
     if (activeStates.includes(mainSession.status)) return false
     const lastUpdatedTime = new Date(mainSession.lastUpdated).getTime()
     return Date.now() - lastUpdatedTime > STALE_THRESHOLD_MS
+  })()
+
+  const ACTIVE_OVERRIDE_STATUSES = ['running_tool', 'thinking', 'busy', 'error', 'question']
+  const displayStatus = (() => {
+    if (!ACTIVE_OVERRIDE_STATUSES.includes(mainSession.status)) return mainSession.status
+    const timeout = idleTimeoutMs ?? 300_000
+    const updatedTime = mainSession.lastUpdated ? new Date(mainSession.lastUpdated).getTime() : 0
+    const isClientStale = Date.now() - updatedTime > timeout
+    return isClientStale ? "idle" : mainSession.status
   })()
 
   /* ── Pane height management ── */
@@ -129,10 +139,10 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, chi
     : {}
 
   return (
-    <div className="project-strip" data-expanded={expanded} data-stale={isStale} data-status={mainSession.status}>
+    <div className="project-strip" data-expanded={expanded} data-stale={isStale} data-status={displayStatus}>
       {/* Collapsed header — always visible */}
-      <div className="strip-header" onClick={onToggleExpand} role="button" tabIndex={0} aria-expanded={expanded} aria-label={`${project.label} — ${mainSession.status}`} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggleExpand() } }}>
-        {stripConfig?.showStatusDot !== false && <span className="strip-status-dot" data-status={mainSession.status} data-stale={isStale} aria-hidden="true" />}
+      <div className="strip-header" onClick={onToggleExpand} role="button" tabIndex={0} aria-expanded={expanded} aria-label={`${project.label} — ${displayStatus}`} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggleExpand() } }}>
+        {stripConfig?.showStatusDot !== false && <span className="strip-status-dot" data-status={displayStatus} data-stale={isStale} aria-hidden="true" />}
         {stripConfig?.showAvatar !== false && (
           <span className="strip-avatar" style={{ backgroundColor: getAvatarColor(project.label) }}>
             {getInitials(project.label)}

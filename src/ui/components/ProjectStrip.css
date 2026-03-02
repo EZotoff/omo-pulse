@@ -36,8 +36,8 @@
 
 /* Status indicator dot */
 .strip-status-dot {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   flex-shrink: 0;
   position: relative;
@@ -47,39 +47,43 @@
 
 /* ── Per-status dot colors ── */
 
-/* busy / running_tool — cyan, no animation, expected default */
+/* busy / running_tool — cyan, inset shadow, dimmer glow */
 .strip-status-dot[data-status="busy"],
 .strip-status-dot[data-status="running_tool"] {
   color: var(--status-busy-new);
   background: var(--status-busy-new);
-  border-color: rgba(0, 212, 170, 0.3);
-  box-shadow: none;
+  border-color: transparent;
+  box-shadow: inset 0 2px 4px var(--status-active-inset), 0 0 6px 1px rgba(6, 182, 212, 0.3);
 }
 
-/* thinking — cyan, no animation, working baseline */
+/* thinking — cyan, inset shadow, dimmer glow */
 .strip-status-dot[data-status="thinking"] {
   color: var(--status-busy-new);
   background: var(--status-busy-new);
-  border-color: rgba(0, 212, 170, 0.3);
-  box-shadow: none;
+  border-color: transparent;
+  box-shadow: inset 0 2px 4px var(--status-active-inset), 0 0 6px 1px rgba(6, 182, 212, 0.3);
 }
 
-/* idle — dark slate, soft glow pulse (needs attention) */
+/* idle — MOST PROMINENT: stone texture, large glow, breathing animation */
 .strip-status-dot[data-status="idle"] {
   color: var(--status-idle-glow);
-  background: var(--status-idle-glow);
-  border-color: var(--status-idle-glow-border);
-  box-shadow: 0 0 4px var(--status-idle-glow);
+  background:
+    radial-gradient(ellipse 3px 3px at 30% 25%, var(--status-stone-highlight) 0%, transparent 100%),
+    radial-gradient(ellipse 2px 2px at 70% 60%, var(--status-stone-highlight) 0%, transparent 100%),
+    radial-gradient(ellipse 4px 3px at 45% 80%, var(--status-stone-highlight) 0%, transparent 100%),
+    var(--status-stone-base);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  box-shadow: 0 0 12px 2px rgba(148, 163, 184, 0.5);
 }
 
-/* question — amber, dashed border, PROMINENT */
+/* question — amber, dashed border, ? overlay, PROMINENT */
 .strip-status-dot[data-status="question"] {
   color: var(--status-question);
   background: var(--status-question);
   border-style: dashed;
   border-width: 2px;
   border-color: var(--status-question-border);
-  box-shadow: 0 0 6px var(--status-question);
+  box-shadow: 0 0 12px 2px rgba(245, 158, 11, 0.5);
 }
 
 /* question — literal "?" character via ::after */
@@ -96,34 +100,34 @@
   pointer-events: none;
 }
 
-/* error — red, pulse + red glow, PROMINENT */
+/* error — red, pulse + intense glow, PROMINENT */
 .strip-status-dot[data-status="error"] {
   color: var(--status-danger);
   background: var(--status-danger);
   border-color: var(--status-danger);
-  box-shadow: 0 0 8px var(--status-danger);
+  box-shadow: 0 0 10px 3px rgba(239, 68, 68, 0.6);
 }
 
-/* plan_complete — teal, celebration glow */
+/* plan_complete — emerald, breathing glow */
 .strip-status-dot[data-status="plan_complete"] {
   color: var(--status-plan-complete);
   background: var(--status-plan-complete);
-  border-color: var(--status-plan-complete);
-  box-shadow: 0 0 8px var(--status-plan-complete-glow);
+  border-color: transparent;
+  box-shadow: 0 0 12px 2px rgba(16, 185, 129, 0.5);
 }
 
-/* unknown — neutral, no animation */
+/* unknown — muted, no glow, no animation */
 .strip-status-dot[data-status="unknown"] {
-  color: var(--status-unknown);
-  background: var(--status-unknown);
+  color: var(--text-muted);
+  background: var(--text-muted);
   border-color: transparent;
   box-shadow: none;
 }
 
 /* Expanded dot size */
 .project-strip[data-expanded="true"] .strip-status-dot {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
 }
 
 /* Project label */
@@ -142,7 +146,8 @@
   height: 20px;
   flex-shrink: 0;
   border-radius: 2px;
-  background: var(--bg-tertiary);
+  background: var(--bg-primary);
+  border: 1px solid var(--bg-tertiary);
 }
 
 /* Agent badge */
@@ -250,7 +255,8 @@
   width: 100%;
   height: 80px;
   border-radius: var(--radius-sm);
-  background: var(--bg-tertiary);
+  background: var(--bg-primary);
+  border: 1px solid var(--bg-tertiary);
   overflow: visible;
 }
 
@@ -354,13 +360,13 @@
 /* ── Keyframes ── */
 
 @keyframes status-glow {
-  0%, 100% { opacity: 1; box-shadow: 0 0 4px currentColor; }
-  50% { opacity: 0.6; box-shadow: 0 0 8px currentColor; }
+  0%, 100% { box-shadow: 0 0 12px 2px rgba(148, 163, 184, 0.5); }
+  50% { box-shadow: 0 0 12px 2px rgba(148, 163, 184, 0.8); }
 }
 
 @keyframes status-pulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
+  50% { transform: scale(1.3); }
 }
 
 @keyframes status-dash-rotate {
@@ -372,15 +378,14 @@
 
 /* ── Dot animations — expanded strips ONLY ── */
 
-/* idle — soft breathing glow */
+/* idle — breathing glow, 4s cycle */
 .project-strip[data-expanded="true"] .strip-status-dot[data-status="idle"] {
-  animation: status-glow 3s ease-in-out infinite;
+  animation: status-glow 4s ease-in-out infinite;
 }
 
-/* error — scale pulse + red glow */
+/* error — scale pulse + intense red glow */
 .project-strip[data-expanded="true"] .strip-status-dot[data-status="error"] {
   animation: status-pulse 1s ease-in-out infinite;
-  box-shadow: 0 0 10px var(--status-danger);
 }
 
 /* question — dashed border color rotation */
@@ -393,10 +398,9 @@
   animation: status-pulse 1.5s ease-in-out infinite;
 }
 
-/* plan_complete — celebration glow */
+/* plan_complete — celebration breathing glow, 2s cycle */
 .project-strip[data-expanded="true"] .strip-status-dot[data-status="plan_complete"] {
   animation: status-glow 2s ease-in-out infinite;
-  box-shadow: 0 0 12px var(--status-plan-complete-glow);
 }
 
 
@@ -430,6 +434,10 @@
   height: 16px;
   font-size: 0.6rem;
 }
+[data-density="dense"] .strip-status-dot {
+  width: 12px;
+  height: 12px;
+}
 
 /* Ultra-dense mode: 36px strips, minimal padding, abbreviated */
 [data-density="ultra-dense"] .strip-header {
@@ -451,6 +459,10 @@
   height: 14px;
   padding: 0 var(--sp-1);
   font-size: 0.55rem;
+}
+[data-density="ultra-dense"] .strip-status-dot {
+  width: 10px;
+  height: 10px;
 }
 [data-density="ultra-dense"] .strip-updated {
   font-size: 0.55rem;
@@ -512,6 +524,14 @@
   opacity: 0.4;
   animation: none !important;
 }
+/* Stale+idle: flat stone-base, no texture */
+.project-strip[data-stale="true"] .strip-status-dot[data-status="idle"] {
+  background: var(--status-stone-base);
+  box-shadow: none;
+  border-color: transparent;
+  opacity: 0.4;
+  animation: none !important;
+}
 .strip-status-dot[data-stale="true"] {
   color: var(--text-muted);
   box-shadow: none;
@@ -523,7 +543,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .project-strip,
-  .strip-status-dot {
+  .strip-status-dot,
+  .strip-status-dot::before,
+  .strip-status-dot::after {
     animation: none !important;
   }
 }

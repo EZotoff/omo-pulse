@@ -5,12 +5,68 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-secondary);
   border-radius: var(--radius-sm);
+  position: relative;
   overflow: hidden;
   transition: border-color var(--transition-fast);
 }
 
 .project-strip:hover {
   border-color: var(--border-primary);
+}
+
+/* ── Gradient border via ::before ── */
+.project-strip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    var(--status-border-glow) 0%,
+    transparent 40%,
+    transparent 60%,
+    var(--status-border-glow) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* ::before — active states: full opacity */
+.project-strip[data-status="busy"]::before,
+.project-strip[data-status="running_tool"]::before,
+.project-strip[data-status="thinking"]::before {
+  opacity: 1;
+}
+
+/* ::before — idle: subtle gradient border */
+.project-strip[data-status="idle"]::before {
+  opacity: 0.4;
+}
+
+/* ── Scanning sheen via ::after ── */
+.project-strip::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--status-sheen) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
 }
 
 /* ── Collapsed header bar ── */
@@ -369,6 +425,11 @@
   50% { transform: scale(1.3); }
 }
 
+@keyframes strip-sheen {
+  0% { left: -100%; opacity: 1; }
+  100% { left: 200%; opacity: 0; }
+}
+
 @keyframes status-dash-rotate {
   0% { border-color: var(--status-question); }
   50% { border-color: var(--status-question-border); }
@@ -411,6 +472,10 @@
 }
 .project-strip[data-expanded="false"] {
   animation: none !important;
+}
+.project-strip[data-expanded="false"]::after {
+  animation: none;
+  opacity: 0;
 }
 
 
@@ -512,6 +577,21 @@
   box-shadow: 0 0 8px var(--status-plan-complete-glow);
 }
 
+/* ── Enhanced strip glow — expanded active only ── */
+.project-strip[data-expanded="true"][data-status="busy"],
+.project-strip[data-expanded="true"][data-status="running_tool"],
+.project-strip[data-expanded="true"][data-status="thinking"] {
+  box-shadow: 0 0 15px 2px rgba(6, 182, 212, 0.1), inset 0 1px 0 rgba(6, 182, 212, 0.05);
+}
+
+/* ── Scanning sheen — expanded active only ── */
+.project-strip[data-expanded="true"][data-status="busy"]::after,
+.project-strip[data-expanded="true"][data-status="running_tool"]::after,
+.project-strip[data-expanded="true"][data-status="thinking"]::after {
+  animation: strip-sheen 4s ease-in-out infinite;
+  opacity: 1;
+}
+
 
 /* ── Stale state overrides (MUST come after status rules) ── */
 
@@ -519,6 +599,13 @@
   opacity: 0.6;
   border-color: var(--border-primary, #2a2a3e) !important;
   animation: none !important;
+}
+.project-strip[data-stale="true"]::before {
+  opacity: 0;
+}
+.project-strip[data-stale="true"]::after {
+  animation: none;
+  opacity: 0;
 }
 .project-strip[data-stale="true"] .strip-status-dot {
   opacity: 0.4;
@@ -543,10 +630,14 @@
 
 @media (prefers-reduced-motion: reduce) {
   .project-strip,
+  .project-strip::after,
   .strip-status-dot,
   .strip-status-dot::before,
   .strip-status-dot::after {
     animation: none !important;
+  }
+  .project-strip::after {
+    opacity: 0 !important;
   }
 }
 

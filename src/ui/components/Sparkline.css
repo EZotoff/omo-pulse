@@ -59,26 +59,26 @@
 }
 
 .sparkline-glow--teal {
-  fill: #00d4aa;
-  filter: drop-shadow(0 0 4px rgba(0, 212, 170, 0.6));
+  fill: rgba(6, 182, 212, 0.8);
+  filter: drop-shadow(0 0 6px rgba(6, 182, 212, var(--sparkline-glow-intensity, 0.7)));
 }
 
 .sparkline-glow--red {
-  fill: #ff6b6b;
-  filter: drop-shadow(0 0 4px rgba(255, 107, 107, 0.6));
+  fill: rgba(239, 68, 68, 0.8);
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, var(--sparkline-glow-intensity, 0.7)));
 }
 
 .sparkline-glow--green {
-  fill: #4ecdc4;
-  filter: drop-shadow(0 0 4px rgba(78, 205, 196, 0.6));
+  fill: rgba(16, 185, 129, 0.8);
+  filter: drop-shadow(0 0 6px rgba(16, 185, 129, var(--sparkline-glow-intensity, 0.7)));
 }
 
 .sparkline-glow--sand {
-  fill: #ffa502;
-  filter: drop-shadow(0 0 4px rgba(255, 165, 2, 0.6));
+  fill: rgba(245, 158, 11, 0.8);
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, var(--sparkline-glow-intensity, 0.7)));
 }
 
 .sparkline-glow--muted {
-  fill: #666680;
-  filter: drop-shadow(0 0 4px rgba(102, 102, 128, 0.4));
+  fill: rgba(148, 163, 184, 0.5);
+  filter: drop-shadow(0 0 4px rgba(148, 163, 184, 0.4));
 }

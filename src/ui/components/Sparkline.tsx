@@ -290,24 +290,24 @@ function renderMini(
     >
       <defs>
         <linearGradient id="mini-sparkline-grad-teal" x1="0" x2="0" y1="1" y2="0">
-          <stop offset="0%" stopColor="rgba(0,212,170,0.4)" />
-          <stop offset="100%" stopColor="rgba(0,212,170,0.3)" />
+          <stop offset="0%" stopColor="rgba(6,182,212,0.55)" />
+          <stop offset="100%" stopColor="rgba(6,182,212,0.70)" />
         </linearGradient>
         <linearGradient id="mini-sparkline-grad-red" x1="0" x2="0" y1="1" y2="0">
-          <stop offset="0%" stopColor="rgba(255,107,107,0.4)" />
-          <stop offset="100%" stopColor="rgba(255,107,107,0.3)" />
+          <stop offset="0%" stopColor="rgba(239,68,68,0.55)" />
+          <stop offset="100%" stopColor="rgba(239,68,68,0.70)" />
         </linearGradient>
         <linearGradient id="mini-sparkline-grad-green" x1="0" x2="0" y1="1" y2="0">
-          <stop offset="0%" stopColor="rgba(78,205,196,0.4)" />
-          <stop offset="100%" stopColor="rgba(78,205,196,0.3)" />
+          <stop offset="0%" stopColor="rgba(16,185,129,0.55)" />
+          <stop offset="100%" stopColor="rgba(16,185,129,0.70)" />
         </linearGradient>
         <linearGradient id="mini-sparkline-grad-sand" x1="0" x2="0" y1="1" y2="0">
-          <stop offset="0%" stopColor="rgba(255,165,2,0.4)" />
-          <stop offset="100%" stopColor="rgba(255,165,2,0.3)" />
+          <stop offset="0%" stopColor="rgba(245,158,11,0.55)" />
+          <stop offset="100%" stopColor="rgba(245,158,11,0.70)" />
         </linearGradient>
         <linearGradient id="mini-sparkline-grad-muted" x1="0" x2="0" y1="1" y2="0">
-          <stop offset="0%" stopColor="rgba(102,102,128,0.3)" />
-          <stop offset="100%" stopColor="rgba(102,102,128,0.2)" />
+          <stop offset="0%" stopColor="rgba(148,163,184,0.35)" />
+          <stop offset="100%" stopColor="rgba(148,163,184,0.50)" />
         </linearGradient>
       </defs>
       {sums.map((val, i) => {
@@ -346,7 +346,7 @@ function renderMini(
                   x={i + barInset}
                   y={padTop + chartH - barH}
                   width={barW}
-                  height={1}
+                  height={2}
                   rx={1}
                 />
               </>
@@ -400,24 +400,24 @@ function renderFull(
     >
       <defs>
         <linearGradient id="full-sparkline-grad-teal" x1="0" x2="0" y1="1" y2="0">
-          <stop offset="0%" stopColor="rgba(0,212,170,0.4)" />
-          <stop offset="100%" stopColor="rgba(0,212,170,0.3)" />
+          <stop offset="0%" stopColor="rgba(6,182,212,0.55)" />
+          <stop offset="100%" stopColor="rgba(6,182,212,0.70)" />
         </linearGradient>
         <linearGradient id="full-sparkline-grad-red" x1="0" x2="0" y1="1" y2="0">
-          <stop offset="0%" stopColor="rgba(255,107,107,0.4)" />
-          <stop offset="100%" stopColor="rgba(255,107,107,0.3)" />
+          <stop offset="0%" stopColor="rgba(239,68,68,0.55)" />
+          <stop offset="100%" stopColor="rgba(239,68,68,0.70)" />
         </linearGradient>
         <linearGradient id="full-sparkline-grad-green" x1="0" x2="0" y1="1" y2="0">
-          <stop offset="0%" stopColor="rgba(78,205,196,0.4)" />
-          <stop offset="100%" stopColor="rgba(78,205,196,0.3)" />
+          <stop offset="0%" stopColor="rgba(16,185,129,0.55)" />
+          <stop offset="100%" stopColor="rgba(16,185,129,0.70)" />
         </linearGradient>
         <linearGradient id="full-sparkline-grad-sand" x1="0" x2="0" y1="1" y2="0">
-          <stop offset="0%" stopColor="rgba(255,165,2,0.4)" />
-          <stop offset="100%" stopColor="rgba(255,165,2,0.3)" />
+          <stop offset="0%" stopColor="rgba(245,158,11,0.55)" />
+          <stop offset="100%" stopColor="rgba(245,158,11,0.70)" />
         </linearGradient>
         <linearGradient id="full-sparkline-grad-muted" x1="0" x2="0" y1="1" y2="0">
-          <stop offset="0%" stopColor="rgba(102,102,128,0.3)" />
-          <stop offset="100%" stopColor="rgba(102,102,128,0.2)" />
+          <stop offset="0%" stopColor="rgba(148,163,184,0.35)" />
+          <stop offset="100%" stopColor="rgba(148,163,184,0.50)" />
         </linearGradient>
       </defs>
       {Array.from({ length: totalBuckets }, (_, i) => {
@@ -470,7 +470,7 @@ function renderFull(
                   x={i + barInset}
                   y={padTop + seg.y}
                   width={barW}
-                  height={1}
+                  height={2}
                   rx={1}
                 />
               </g>

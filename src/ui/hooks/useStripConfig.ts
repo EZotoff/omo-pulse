@@ -13,6 +13,7 @@ const DEFAULT_CONFIG: StripConfigState = {
   showTokenUsage: true,
   showBackgroundTasks: true,
   showGitWorktrees: true,
+  showAvatar: true,
 }
 
 /** Read persisted strip config from localStorage, returning defaults on failure */

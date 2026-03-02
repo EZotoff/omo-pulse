@@ -187,6 +187,22 @@
   height: 16px;
 }
 
+/* Avatar circle */
+.strip-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
 /* Project label */
 .strip-label {
   font-size: var(--font-sm);

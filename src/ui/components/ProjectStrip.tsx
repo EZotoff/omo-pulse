@@ -2,6 +2,7 @@ import type React from "react"
 import { memo, useRef, useEffect, useCallback } from "react"
 import type { ProjectSnapshot, StripConfigState } from "../../types"
 import { useProjectPaneHeights } from "../hooks/useProjectPaneHeights"
+import { getInitials, getAvatarColor } from "../utils/avatar"
 import "./ProjectStrip.css"
 
 /* ── Helpers ── */
@@ -132,6 +133,11 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, chi
       {/* Collapsed header — always visible */}
       <div className="strip-header" onClick={onToggleExpand} role="button" tabIndex={0} aria-expanded={expanded} aria-label={`${project.label} — ${mainSession.status}`} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggleExpand() } }}>
         {stripConfig?.showStatusDot !== false && <span className="strip-status-dot" data-status={mainSession.status} data-stale={isStale} aria-hidden="true" />}
+        {stripConfig?.showAvatar !== false && (
+          <span className="strip-avatar" style={{ backgroundColor: getAvatarColor(project.label) }}>
+            {getInitials(project.label)}
+          </span>
+        )}
         <span className="strip-label truncate">{project.label}</span>
         {stripConfig?.showMiniSparkline !== false && <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>}
         {stripConfig?.showAgentBadge !== false && <span className="strip-agent-badge">{mainSession.agent}</span>}

@@ -282,7 +282,7 @@ function renderMini(
   return (
     <svg
       className={cls}
-      width={w}
+      style={widthProp ? { width: widthProp } : undefined}
       height={h}
       viewBox={viewBox}
       preserveAspectRatio="none"

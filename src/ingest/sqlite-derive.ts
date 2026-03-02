@@ -382,10 +382,13 @@ export function getMainSessionViewSqlite(opts: {
     if (activeTool) break
   }
 
+  const ACTIVE_STALE_MS = 120_000
+  const isStaleActivity = typeof lastUpdated === "number" && nowMs - lastUpdated > ACTIVE_STALE_MS
+
   let status: MainSessionView["status"] = "unknown"
-  if (activeTool?.status === "pending" || activeTool?.status === "running") {
+  if (!isStaleActivity && (activeTool?.status === "pending" || activeTool?.status === "running")) {
     status = "running_tool"
-  } else if (recent?.role === "assistant" && typeof recent.time?.created === "number" && typeof recent.time?.completed !== "number") {
+  } else if (!isStaleActivity && recent?.role === "assistant" && typeof recent.time?.created === "number" && typeof recent.time?.completed !== "number") {
     status = "thinking"
   } else if (typeof lastUpdated === "number") {
     status = nowMs - lastUpdated <= 15_000 ? "busy" : "idle"

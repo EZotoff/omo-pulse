@@ -36,7 +36,7 @@ export type MainSessionView = {
   currentModel: string | null
   lastUpdated: number | null
   sessionLabel: string
-  status: "busy" | "idle" | "unknown" | "running_tool" | "thinking" | "question"
+  status: "busy" | "idle" | "unknown" | "running_tool" | "thinking" | "question" | "error"
 }
 
 export type OpenCodeStorageRoots = {
@@ -275,6 +275,25 @@ function readLastToolPart(partStorage: string, messageID: string): { tool: strin
   return null
 }
 
+function hasErrorToolPart(partStorage: string, messageID: string): boolean {
+  const partDir = path.join(partStorage, messageID)
+  if (!fs.existsSync(partDir)) return false
+
+  const files = fs.readdirSync(partDir).filter((f) => f.endsWith(".json"))
+  for (const file of files) {
+    try {
+      const content = fs.readFileSync(path.join(partDir, file), "utf8")
+      const part = JSON.parse(content) as Partial<StoredToolPart>
+      if (part.type === "tool" && part.state?.status === "error") {
+        return true
+      }
+    } catch {
+      continue
+    }
+  }
+  return false
+}
+
 export function getMainSessionView(opts: {
   projectRoot: string
   sessionId: string
@@ -305,6 +324,16 @@ export function getMainSessionView(opts: {
     }
   }
 
+  let hasErrorTool = false
+  if (!activeTool) {
+    for (const meta of recentMetas) {
+      if (hasErrorToolPart(opts.storage.part, meta.id)) {
+        hasErrorTool = true
+        break
+      }
+    }
+  }
+
   // If the last activity is older than 2 min, a "running" tool or incomplete
   // assistant message is almost certainly a stale leftover from a crashed process.
   const ACTIVE_STALE_MS = 120_000
@@ -312,7 +341,9 @@ export function getMainSessionView(opts: {
 
   let status: MainSessionView["status"] = "unknown"
   if (!isStaleActivity && (activeTool?.status === "pending" || activeTool?.status === "running")) {
-    status = "running_tool"
+    status = activeTool.tool === "question" ? "question" : "running_tool"
+   } else if (!isStaleActivity && hasErrorTool) {
+     status = "error"
   } else if (!isStaleActivity && recent?.role === "assistant" && typeof recent?.time?.created === "number" && typeof recent?.time?.completed !== "number") {
     status = "thinking"
   } else if (typeof lastUpdated === "number") {

@@ -394,7 +394,7 @@ export function getMainSessionViewSqlite(opts: {
     }
   }
 
-  const ACTIVE_STALE_MS = 120_000
+  const ACTIVE_STALE_MS = 300_000
   const isStaleActivity = typeof lastUpdated === "number" && nowMs - lastUpdated > ACTIVE_STALE_MS
 
   let status: MainSessionView["status"] = "unknown"

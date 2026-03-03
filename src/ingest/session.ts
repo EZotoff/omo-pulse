@@ -336,7 +336,7 @@ export function getMainSessionView(opts: {
 
   // If the last activity is older than 2 min, a "running" tool or incomplete
   // assistant message is almost certainly a stale leftover from a crashed process.
-  const ACTIVE_STALE_MS = 120_000
+  const ACTIVE_STALE_MS = 300_000
   const isStaleActivity = typeof lastUpdated === "number" && nowMs - lastUpdated > ACTIVE_STALE_MS
 
   let status: MainSessionView["status"] = "unknown"

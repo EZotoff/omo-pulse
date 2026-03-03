@@ -126,6 +126,7 @@ export type StripConfigState = {
   showTokenUsage: boolean
   showBackgroundTasks: boolean
   showGitWorktrees: boolean
+  showAvatar: boolean
 }
 
 /** Sound notification configuration */

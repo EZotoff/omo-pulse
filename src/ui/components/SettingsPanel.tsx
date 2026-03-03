@@ -17,6 +17,20 @@ function setTheme(theme: "dark" | "light") {
   }
 }
 
+/* ── Formatting helpers ── */
+
+function formatTimeout(ms: number): string {
+  const minutes = Math.round(ms / 60_000)
+  if (minutes < 1) return "<1 min"
+  if (minutes === 1) return "1 min"
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
+  }
+  return `${minutes} min`
+}
+
 /* ── Props ── */
 
 export type SettingsPanelProps = {
@@ -34,6 +48,8 @@ export type SettingsPanelProps = {
   onCollapsedHeightChange: (height: number) => void
   gridGap: number
   onGridGapChange: (gap: number) => void
+  idleTimeoutMs: number
+  onIdleTimeoutMsChange: (ms: number) => void
 }
 
 /* ── Display toggle metadata ── */
@@ -44,6 +60,7 @@ const COLLAPSED_TOGGLES: { key: keyof StripConfigState; label: string }[] = [
   { key: "showPlanProgress", label: "Plan Progress" },
   { key: "showAgentBadge", label: "Agent Badge" },
   { key: "showLastUpdated", label: "Last Updated" },
+  { key: "showAvatar", label: "Show Avatar" },
 ]
 
 const EXPANDED_TOGGLES: { key: keyof StripConfigState; label: string }[] = [
@@ -82,6 +99,8 @@ export function SettingsPanel({
   onCollapsedHeightChange,
   gridGap,
   onGridGapChange,
+  idleTimeoutMs,
+  onIdleTimeoutMsChange,
 }: SettingsPanelProps) {
   const [theme, setThemeState] = useState<"dark" | "light">(getTheme)
 
@@ -239,6 +258,22 @@ export function SettingsPanel({
               aria-label="Grid gap between columns"
             />
             <span className="settings-slider-value">{gridGap}px</span>
+          </div>
+
+          {/* Idle Timeout */}
+          <div className="settings-slider-row">
+            <span className="settings-slider-label">Idle Timeout</span>
+            <input
+              className="settings-slider"
+              type="range"
+              min={30_000}
+              max={3_600_000}
+              step={30_000}
+              value={idleTimeoutMs}
+              onChange={(e) => onIdleTimeoutMsChange(Number(e.target.value))}
+              aria-label="Idle timeout duration"
+            />
+            <span className="settings-slider-value">{formatTimeout(idleTimeoutMs)}</span>
           </div>
         </div>
         {/* Sound Notifications */}

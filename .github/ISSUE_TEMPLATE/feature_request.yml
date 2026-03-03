@@ -1,0 +1,33 @@
+name: Feature Request
+description: Suggest a feature for omo-pulse
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Motivation
+      description: Describe the problem you are trying to solve or the use case that would benefit from this feature
+      placeholder: Explain what problem this feature would solve
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe how you would like this feature to be implemented
+      placeholder: Explain your proposed approach or implementation
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What other approaches or workarounds have you considered?
+      placeholder: Describe alternative approaches
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other context, use cases, or information that would be helpful
+      placeholder: Add any additional context or examples

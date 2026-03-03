@@ -1,5 +1,25 @@
 {
-  "name": "ez-omo-dash",
+  "name": "omo-pulse",
+  "description": "Real-time developer dashboard for monitoring OpenCode AI coding sessions",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ezotoff/omo-pulse.git"
+  },
+  "homepage": "https://github.com/ezotoff/omo-pulse#readme",
+  "bugs": {
+    "url": "https://github.com/ezotoff/omo-pulse/issues"
+  },
+  "keywords": [
+    "opencode",
+    "dashboard",
+    "developer-tools",
+    "ai-coding",
+    "monitoring",
+    "real-time"
+  ],
+  "author": "EZotoff",
+  "license": "MIT",
+  "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {

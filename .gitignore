@@ -1,7 +1,14 @@
 node_modules/
 dist/
+
+.env*
+*.log
+
 .sisyphus/evidence/
+.sisyphus/drafts/
+
 test-results/
 playwright-report/
 .playwright-cli/
+
 qa-*.png

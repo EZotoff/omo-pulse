@@ -25,5 +25,12 @@ export default defineConfig({
   },
   test: {
     exclude: ["tests/e2e/**", "node_modules/**"],
+    environment: "node",
+    setupFiles: ["./vitest.setup.ts"],
+    server: {
+      deps: {
+        inline: ["bun:sqlite"],
+      },
+    },
   },
 });

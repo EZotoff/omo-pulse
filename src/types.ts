@@ -127,6 +127,7 @@ export type StripConfigState = {
   showBackgroundTasks: boolean
   showGitWorktrees: boolean
   showAvatar: boolean
+  showProjectName: boolean
 }
 
 /** Sound notification configuration */

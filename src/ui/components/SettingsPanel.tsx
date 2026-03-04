@@ -55,6 +55,7 @@ export type SettingsPanelProps = {
 /* ── Display toggle metadata ── */
 
 const COLLAPSED_TOGGLES: { key: keyof StripConfigState; label: string }[] = [
+  { key: "showProjectName", label: "Project Name" },
   { key: "showStatusDot", label: "Status Dot" },
   { key: "showMiniSparkline", label: "Mini Sparkline" },
   { key: "showPlanProgress", label: "Plan Progress" },
@@ -103,6 +104,9 @@ export function SettingsPanel({
   onIdleTimeoutMsChange,
 }: SettingsPanelProps) {
   const [theme, setThemeState] = useState<"dark" | "light">(getTheme)
+  const [serviceStatus, setServiceStatus] = useState<{ installed: boolean; enabled: boolean; active: boolean } | null>(null)
+  const [serviceLoading, setServiceLoading] = useState(false)
+  const [serviceError, setServiceError] = useState<string | null>(null)
 
   const toggleTheme = useCallback(() => {
     const next = theme === "dark" ? "light" : "dark"
@@ -110,7 +114,35 @@ export function SettingsPanel({
     setThemeState(next)
   }, [theme])
 
-  /* Escape key handler */
+  const fetchServiceStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/service/status")
+      const data = await res.json()
+      if (data.ok) setServiceStatus(data)
+    } catch { /* ignore */ }
+  }, [])
+
+  const handleServiceToggle = useCallback(async () => {
+    if (!serviceStatus) return
+    setServiceLoading(true)
+    setServiceError(null)
+    try {
+      const endpoint = serviceStatus.active ? "/api/service/disable" : "/api/service/enable"
+      const res = await fetch(endpoint, { method: "POST" })
+      const data = await res.json()
+      if (!data.ok) setServiceError(data.error ?? "Unknown error")
+      await fetchServiceStatus()
+    } catch (err) {
+      setServiceError(String(err))
+    } finally {
+      setServiceLoading(false)
+    }
+  }, [serviceStatus, fetchServiceStatus])
+
+  useEffect(() => {
+    if (open) fetchServiceStatus()
+  }, [open, fetchServiceStatus])
+
   useEffect(() => {
     if (!open) return
 
@@ -333,6 +365,43 @@ export function SettingsPanel({
               />
             </div>
           ))}
+        </div>
+
+        {/* System Service */}
+        <div className={`settings-section${!serviceStatus?.installed ? " settings-section--disabled" : ""}`}>
+          <h3 className="settings-section__title">System Service</h3>
+          {serviceStatus ? (
+            <>
+              <div className="settings-toggle-row">
+                <span className="settings-toggle-label">
+                  Auto-start on login
+                </span>
+                <button
+                  className="settings-switch"
+                  data-checked={serviceStatus.active}
+                  onClick={handleServiceToggle}
+                  disabled={!serviceStatus.installed || serviceLoading}
+                  type="button"
+                  role="switch"
+                  aria-checked={serviceStatus.active}
+                  aria-label="Toggle system service"
+                />
+              </div>
+              <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>
+                Status: {serviceStatus.active ? "Running" : serviceStatus.enabled ? "Enabled (stopped)" : "Disabled"}
+              </p>
+              {!serviceStatus.installed && (
+                <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>
+                  Run <code>scripts/install-service.sh</code> to install
+                </p>
+              )}
+            </>
+          ) : (
+            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Loading…</p>
+          )}
+          {serviceError && (
+            <p style={{ fontSize: "0.8rem", color: "var(--accent-error)", margin: "0.25rem 0 0 0" }}>{serviceError}</p>
+          )}
         </div>
 
         {/* Theme Toggle */}

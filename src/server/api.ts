@@ -173,5 +173,60 @@ export function createApi(opts: {
     })
   })
 
+  // ---------------------------------------------------------------------------
+  // GET /service/status — check systemd service state
+  // ---------------------------------------------------------------------------
+  api.get("/service/status", async (c) => {
+    const servicePath = `${process.env.HOME}/.config/systemd/user/ez-omo-dash.service`
+    const installed = await Bun.file(servicePath).exists()
+
+    let enabled = false
+    let active = false
+
+    if (installed) {
+      try {
+        const enabledResult = Bun.spawnSync(["systemctl", "--user", "is-enabled", "ez-omo-dash"])
+        enabled = enabledResult.exitCode === 0
+      } catch { /* not available */ }
+
+      try {
+        const activeResult = Bun.spawnSync(["systemctl", "--user", "is-active", "ez-omo-dash"])
+        active = activeResult.exitCode === 0
+      } catch { /* not available */ }
+    }
+
+    return c.json({ ok: true, installed, enabled, active })
+  })
+
+  // ---------------------------------------------------------------------------
+  // POST /service/enable — enable and start the systemd service
+  // ---------------------------------------------------------------------------
+  api.post("/service/enable", async (c) => {
+    try {
+      const result = Bun.spawnSync(["systemctl", "--user", "enable", "--now", "ez-omo-dash"])
+      if (result.exitCode !== 0) {
+        return c.json({ ok: false, error: "Failed to enable service" }, 500)
+      }
+      return c.json({ ok: true })
+    } catch (err) {
+      return c.json({ ok: false, error: String(err) }, 500)
+    }
+  })
+
+  // ---------------------------------------------------------------------------
+  // POST /service/disable — disable and stop the systemd service
+  // ---------------------------------------------------------------------------
+  api.post("/service/disable", async (c) => {
+    try {
+      const result = Bun.spawnSync(["systemctl", "--user", "disable", "--now", "ez-omo-dash"])
+      if (result.exitCode !== 0) {
+        return c.json({ ok: false, error: "Failed to disable service" }, 500)
+      }
+      return c.json({ ok: true })
+    } catch (err) {
+      return c.json({ ok: false, error: String(err) }, 500)
+    }
+  })
+
   return api
 }

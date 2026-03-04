@@ -6,7 +6,7 @@
 [![Runtime: Bun](https://img.shields.io/badge/Runtime-Bun-%23f9f1e1?logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?logo=typescript)](https://www.typescriptlang.org/)
 
-![Dashboard](docs/screenshots/dashboard-loaded.png)
+![Dashboard — expanded panes showing plan progress, background tasks, and token usage](docs/screenshots/expanded_panes.png)
 
 ## What is omo-pulse?
 
@@ -16,22 +16,43 @@ Run it as a persistent service alongside your development workflow and always kn
 
 ## Features
 
-- **Multi-project dashboard** — monitor all registered OpenCode projects at a glance
-- **Drag-and-drop reordering** — organize project strips in the order you prefer
-- **Real-time polling** — auto-refreshing data every ~2 seconds with connection status indicator
-- **Collapsible project strips** — expand for full session details or collapse for a compact overview
-- **Plan progress tracking** — visualize Sisyphus plan completion with step-by-step breakdown
-- **Session swimlane** — per-session activity timeline showing which sessions are active
-- **Sparkline charts** — time-series activity graphs for each project
-- **Background task tracking** — see active background agents, their models, and current tools
-- **Token usage display** — input/output/total token consumption per project
-- **Sound notifications** — configurable audio alerts for session idle, plan complete, errors, and questions
-- **Multi-column layout** — adjustable column count with resizable column widths
-- **Zoom controls** — scale the UI from 50% to 200%
-- **Per-project visibility** — show/hide individual projects from the settings panel
-- **Dark mode UI** — easy on the eyes during long coding sessions
-- **SQLite storage** — reads OpenCode's native SQLite database with file-based fallback
-- **Systemd service integration** — install as a user service for auto-start on login
+### Functionality — What You Can Monitor
+
+- **Multi-project dashboard** — watch all OpenCode projects from a single view
+- **Real-time polling** — auto-refreshing every ~2s with connection health indicator
+- **Plan progress** — step-by-step plan completion tracking with live status
+- **Background tasks** — active agents, models (Claude, GPT, Kimi), and running tools
+- **Token consumption** — input / output / total token usage per project
+- **Session swimlane** — per-session activity timeline across all projects
+- **Activity sparklines** — time-series charts for quick pattern recognition
+- **Sound notifications** — audio alerts for idle, plan complete, errors, and questions
+- **Zero instrumentation** — reads OpenCode's native SQLite database directly
+- **Systemd service** — persistent background service with auto-start on login
+
+### Interface — How You Monitor It
+
+- **Multi-column layouts** — 1, 2, or 3-column grid to match your screen
+- **Collapsible panes** — expand for full session details or collapse for quick status
+- **Density modes** — comfortable, compact, and ultra-compact display options
+- **Drag-and-drop ordering** — organize projects in your preferred order
+- **Zoom controls** — scale the entire UI from 50% to 200%
+- **Status-aware borders** — cyan glow (active), orange (needs attention), gray (idle)
+- **Per-project visibility** — show/hide individual projects from settings
+- **Resizable columns** — drag handles to adjust column widths
+- **Dark mode** — optimized for extended coding sessions
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/1col_wide.png" alt="Single column — full detail view" width="270"/></td>
+    <td><img src="docs/screenshots/2col_compact.png" alt="Two-column compact grid" width="270"/></td>
+    <td><img src="docs/screenshots/3col_ultra_compact.png" alt="Three-column ultra-compact view" width="270"/></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Full detail</em></td>
+    <td align="center"><em>Compact grid</em></td>
+    <td align="center"><em>Ultra-compact</em></td>
+  </tr>
+</table>
 
 ## Quick Start
 

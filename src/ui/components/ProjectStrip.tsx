@@ -2,7 +2,7 @@ import type React from "react"
 import { memo, useRef, useEffect, useCallback } from "react"
 import type { ProjectSnapshot, StripConfigState } from "../../types"
 import { useProjectPaneHeights } from "../hooks/useProjectPaneHeights"
-import { getInitials, getAvatarColor } from "../utils/avatar"
+import { getInitials } from "../utils/avatar"
 import "./ProjectStrip.css"
 
 /* ── Helpers ── */
@@ -63,6 +63,7 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
 
   const ACTIVE_OVERRIDE_STATUSES = ['running_tool', 'thinking', 'busy', 'error', 'question']
   const displayStatus = (() => {
+    if (mainSession.status === 'plan_complete') return 'idle'
     if (!ACTIVE_OVERRIDE_STATUSES.includes(mainSession.status)) return mainSession.status
     const timeout = idleTimeoutMs ?? 300_000
     const updatedTime = mainSession.lastUpdated ? new Date(mainSession.lastUpdated).getTime() : 0
@@ -142,13 +143,14 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
     <div className="project-strip" data-expanded={expanded} data-stale={isStale} data-status={displayStatus}>
       {/* Collapsed header — always visible */}
       <div className="strip-header" onClick={onToggleExpand} role="button" tabIndex={0} aria-expanded={expanded} aria-label={`${project.label} — ${displayStatus}`} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggleExpand() } }}>
-        {stripConfig?.showStatusDot !== false && <span className="strip-status-dot" data-status={displayStatus} data-stale={isStale} aria-hidden="true" />}
-        {stripConfig?.showAvatar !== false && (
-          <span className="strip-avatar" style={{ backgroundColor: getAvatarColor(project.label) }}>
-            {getInitials(project.label)}
+        {stripConfig?.showStatusDot !== false && (
+          <span className="strip-status-dot" data-status={displayStatus} data-stale={isStale} data-avatar={stripConfig?.showAvatar !== false ? "true" : undefined} aria-hidden="true">
+            {stripConfig?.showAvatar !== false ? getInitials(project.label) : null}
           </span>
         )}
-        <span className="strip-label truncate">{project.label}</span>
+        {stripConfig?.showProjectName !== false && (
+          <span className="strip-label truncate">{project.label}</span>
+        )}
         {stripConfig?.showMiniSparkline !== false && <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>}
         {stripConfig?.showAgentBadge !== false && <span className="strip-agent-badge">{mainSession.agent}</span>}
         {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}

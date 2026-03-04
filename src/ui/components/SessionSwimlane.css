@@ -1,76 +1,11 @@
-/* SessionSwimlane — per-session horizontal time bar rows */
+/* SessionSwimlane — aggregated project-level stacked bar chart */
 
 /* ── Container ── */
 .session-swimlane {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   width: 100%;
-}
-
-/* ── Row ── */
-.swimlane-row {
-  display: flex;
-  align-items: center;
-  height: 16px;
-  gap: var(--sp-1);
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-fast);
-}
-
-.swimlane-row:hover {
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.swimlane-row--pinned {
-  background: rgba(0, 212, 170, 0.04);
-}
-
-.swimlane-row--pinned:hover {
-  background: rgba(0, 212, 170, 0.07);
-}
-
-/* ── Pin button ── */
-.swimlane-pin {
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: var(--text-muted);
-  font-size: 8px;
-  line-height: 1;
-  opacity: 0;
-  transition: opacity var(--transition-fast), color var(--transition-fast);
-}
-
-.swimlane-row:hover .swimlane-pin,
-.swimlane-row--pinned .swimlane-pin,
-.swimlane-pin:focus-visible {
-  opacity: 1;
-}
-
-.swimlane-row--pinned .swimlane-pin {
-  color: var(--accent-primary);
-}
-
-/* ── Label ── */
-.swimlane-label {
-  flex-shrink: 0;
-  width: 80px;
-  font-family: var(--font-mono);
-  font-size: var(--font-xs);
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  line-height: 16px;
-  user-select: none;
 }
 
 /* ── SVG bars area ── */
@@ -81,6 +16,41 @@
   overflow: hidden;
   border-radius: 2px;
 }
+
+.swimlane-bars--aggregated {
+  height: 28px;
+}
+
+/* ── Legend ── */
+.swimlane-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: 0 2px;
+}
+
+.swimlane-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.swimlane-legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.swimlane-legend-dot--teal  { background: rgba(0, 212, 170, 0.7); }
+.swimlane-legend-dot--red   { background: rgba(255, 107, 107, 0.7); }
+.swimlane-legend-dot--green { background: rgba(78, 205, 196, 0.7); }
+.swimlane-legend-dot--sand  { background: rgba(255, 165, 2, 0.7); }
+.swimlane-legend-dot--muted { background: rgba(102, 102, 128, 0.5); }
 
 /* ── Empty state ── */
 .swimlane-empty {

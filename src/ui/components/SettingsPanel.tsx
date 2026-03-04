@@ -127,7 +127,7 @@ export function SettingsPanel({
     setServiceLoading(true)
     setServiceError(null)
     try {
-      const endpoint = serviceStatus.active ? "/api/service/disable" : "/api/service/enable"
+      const endpoint = serviceStatus.enabled ? "/api/service/disable" : "/api/service/enable"
       const res = await fetch(endpoint, { method: "POST" })
       const data = await res.json()
       if (!data.ok) setServiceError(data.error ?? "Unknown error")
@@ -376,16 +376,16 @@ export function SettingsPanel({
                 <span className="settings-toggle-label">
                   Auto-start on login
                 </span>
-                <button
-                  className="settings-switch"
-                  data-checked={serviceStatus.active}
-                  onClick={handleServiceToggle}
-                  disabled={!serviceStatus.installed || serviceLoading}
-                  type="button"
-                  role="switch"
-                  aria-checked={serviceStatus.active}
-                  aria-label="Toggle system service"
-                />
+                 <button
+                   className="settings-switch"
+                   data-checked={serviceStatus.enabled}
+                   onClick={handleServiceToggle}
+                   disabled={!serviceStatus.installed || serviceLoading}
+                   type="button"
+                   role="switch"
+                   aria-checked={serviceStatus.enabled}
+                   aria-label="Toggle system service"
+                 />
               </div>
               <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>
                 Status: {serviceStatus.active ? "Running" : serviceStatus.enabled ? "Enabled (stopped)" : "Disabled"}

@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import * as path from "node:path"
 import * as fs from "node:fs"
+import { homedir } from "node:os"
 import { listSources, getDefaultSourceId, addOrUpdateSource } from "../ingest/sources-registry"
 import { getStorageRoots, getMessageDir } from "../ingest/session"
 import { assertAllowedPath } from "../ingest/paths"
@@ -177,7 +178,7 @@ export function createApi(opts: {
   // GET /service/status — check systemd service state
   // ---------------------------------------------------------------------------
   api.get("/service/status", async (c) => {
-    const servicePath = `${process.env.HOME}/.config/systemd/user/ez-omo-dash.service`
+    const servicePath = `${homedir()}/.config/systemd/user/ez-omo-dash.service`
     const installed = await Bun.file(servicePath).exists()
 
     let enabled = false

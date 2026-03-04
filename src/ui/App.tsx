@@ -42,7 +42,8 @@ const STATUS_PRIORITY: Record<SessionStatus, number> = {
   idle: 3,
   question: 4,
   plan_complete: 4,
-  unknown: 5,
+  error: 5,
+  unknown: 6,
 }
 
 function compareProjects(a: ProjectSnapshot, b: ProjectSnapshot): number {
@@ -60,6 +61,16 @@ export type AppProps = {
   lastUpdatedMs: number | null
 }
 
+/* ── localStorage helpers ── */
+
+function safeGetItem(key: string): string | null {
+  try { return localStorage.getItem(key) } catch { return null }
+}
+
+function safeSetItem(key: string, value: string): void {
+  try { localStorage.setItem(key, value) } catch { /* localStorage may be unavailable */ }
+}
+
 /* ── Component ── */
 
 export function App({ data, connected, lastUpdatedMs }: AppProps) {
@@ -72,12 +83,12 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
 
   /* ── Zoom ── */
   const [zoom, setZoom] = useState<number>(() => {
-    const saved = localStorage.getItem('dashboard-zoom')
+    const saved = safeGetItem('dashboard-zoom')
     return saved ? parseFloat(saved) : 1
   })
 
   useEffect(() => {
-    localStorage.setItem('dashboard-zoom', String(zoom))
+    safeSetItem('dashboard-zoom', String(zoom))
     document.documentElement.style.setProperty('--zoom', String(zoom))
   }, [zoom])
 
@@ -95,39 +106,39 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
 
   /* ── Collapsed pane height & grid gap ── */
   const [collapsedHeight, setCollapsedHeight] = useState<number>(() => {
-    const saved = localStorage.getItem('dashboard-collapsed-height')
+    const saved = safeGetItem('dashboard-collapsed-height')
     return saved ? parseInt(saved, 10) : 40
   })
 
   const [gridGap, setGridGap] = useState<number>(() => {
-    const saved = localStorage.getItem('dashboard-grid-gap')
+    const saved = safeGetItem('dashboard-grid-gap')
     return saved ? parseInt(saved, 10) : 10
   })
 
   useEffect(() => {
-    localStorage.setItem('dashboard-collapsed-height', String(collapsedHeight))
+    safeSetItem('dashboard-collapsed-height', String(collapsedHeight))
     document.documentElement.style.setProperty('--collapsed-pane-height', `${collapsedHeight}px`)
   }, [collapsedHeight])
 
   useEffect(() => {
-    localStorage.setItem('dashboard-grid-gap', String(gridGap))
+    safeSetItem('dashboard-grid-gap', String(gridGap))
     document.documentElement.style.setProperty('--grid-gap', `${gridGap}px`)
   }, [gridGap])
 
   /* ── Idle timeout ── */
   const [idleTimeoutMs, setIdleTimeoutMs] = useState<number>(() => {
-    const stored = localStorage.getItem('idle-timeout-ms')
+    const stored = safeGetItem('idle-timeout-ms')
     return stored ? Number(stored) : 300_000 // 5 min default
   })
 
   useEffect(() => {
-    localStorage.setItem('idle-timeout-ms', String(idleTimeoutMs))
+    safeSetItem('idle-timeout-ms', String(idleTimeoutMs))
   }, [idleTimeoutMs])
 
   /* ── Column widths ── */
   const [columnWidths, setColumnWidths] = useState<Record<string, number[]>>(() => {
     try {
-      const raw = localStorage.getItem('dashboard-column-widths')
+      const raw = safeGetItem('dashboard-column-widths')
       if (!raw) return {}
       const parsed: unknown = JSON.parse(raw)
       if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
@@ -141,9 +152,9 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
 
   useEffect(() => {
     try {
-      localStorage.setItem('dashboard-column-widths', JSON.stringify(columnWidths))
+      safeSetItem('dashboard-column-widths', JSON.stringify(columnWidths))
     } catch {
-      /* localStorage may be unavailable */
+      /* JSON.stringify or safeSetItem may fail */
     }
   }, [columnWidths])
 
@@ -202,7 +213,7 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
     }
 
     const prev = prevDataRef.current
-    const soundDebug = localStorage.getItem('dashboard-sound-debug') === 'true'
+    const soundDebug = safeGetItem('dashboard-sound-debug') === 'true'
     if (prev) {
       for (const project of data.projects) {
         const prevProject = prev.projects.find(p => p.sourceId === project.sourceId)

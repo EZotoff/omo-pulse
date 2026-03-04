@@ -165,14 +165,6 @@
   box-shadow: 0 0 10px 3px rgba(239, 68, 68, 0.6);
 }
 
-/* plan_complete — emerald, breathing glow */
-.strip-status-dot[data-status="plan_complete"] {
-  color: var(--status-plan-complete);
-  background: var(--status-plan-complete);
-  border-color: transparent;
-  box-shadow: 0 0 12px 2px rgba(16, 185, 129, 0.5);
-}
-
 /* unknown — muted, no glow, no animation */
 .strip-status-dot[data-status="unknown"] {
   color: var(--text-muted);
@@ -187,20 +179,37 @@
   height: 16px;
 }
 
-/* Avatar circle */
-.strip-avatar {
+.project-strip[data-expanded="true"] .strip-status-dot[data-avatar="true"] {
   width: 24px;
   height: 24px;
-  border-radius: 50%;
   font-size: 10px;
-  font-weight: 600;
-  color: white;
-  text-transform: uppercase;
+}
+
+/* Avatar-enabled dot: shows project initials inside the status dot */
+.strip-status-dot[data-avatar="true"] {
+  width: 22px;
+  height: 22px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  margin-right: 6px;
+  text-transform: uppercase;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Suppress "?" overlay when avatar initials are shown */
+.strip-status-dot[data-avatar="true"][data-status="question"]::after {
+  content: none;
+}
+
+/* Dark letters for light-background status dots (idle/unknown) */
+.strip-status-dot[data-avatar="true"][data-status="idle"],
+.strip-status-dot[data-avatar="true"][data-status="unknown"] {
+  color: #1e293b;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.3);
 }
 
 /* Project label */
@@ -476,10 +485,6 @@
   animation: status-pulse 1.5s ease-in-out infinite;
 }
 
-/* plan_complete — celebration breathing glow, 2s cycle */
-.project-strip[data-expanded="true"] .strip-status-dot[data-status="plan_complete"] {
-  animation: status-glow 2s ease-in-out infinite;
-}
 
 
 /* ── Collapsed strips: NO animations, static only ── */
@@ -520,6 +525,11 @@
   width: 12px;
   height: 12px;
 }
+[data-density="dense"] .strip-status-dot[data-avatar="true"] {
+  width: 18px;
+  height: 18px;
+  font-size: 8px;
+}
 
 /* Ultra-dense mode: 36px strips, minimal padding, abbreviated */
 [data-density="ultra-dense"] .strip-header {
@@ -545,6 +555,11 @@
 [data-density="ultra-dense"] .strip-status-dot {
   width: 10px;
   height: 10px;
+}
+[data-density="ultra-dense"] .strip-status-dot[data-avatar="true"] {
+  width: 16px;
+  height: 16px;
+  font-size: 7px;
 }
 [data-density="ultra-dense"] .strip-updated {
   font-size: 0.55rem;
@@ -585,10 +600,6 @@
   border-color: var(--status-danger);
   --strip-glow-color: rgba(239, 68, 68, 0.15);
 }
-.project-strip[data-status="plan_complete"] {
-  border-color: var(--status-plan-complete);
-  --strip-glow-color: rgba(34, 197, 94, 0.12);
-}
 .project-strip[data-status="unknown"] {
   border-color: var(--status-unknown);
   --strip-glow-color: transparent;
@@ -602,9 +613,6 @@
 }
 .project-strip[data-expanded="true"][data-status="question"] {
   box-shadow: 0 0 8px rgba(255, 165, 2, 0.2);
-}
-.project-strip[data-expanded="true"][data-status="plan_complete"] {
-  box-shadow: 0 0 8px var(--status-plan-complete-glow);
 }
 
 /* ── Enhanced strip glow — expanded active only ── */

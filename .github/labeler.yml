@@ -1,0 +1,11 @@
+code:
+  - src/**
+
+documentation:
+  - docs/**
+
+github-actions:
+  - .github/**
+
+root:
+  - '*'

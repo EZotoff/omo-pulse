@@ -148,7 +148,9 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
             {stripConfig?.showAvatar !== false ? getInitials(project.label) : null}
           </span>
         )}
-        <span className="strip-label truncate">{project.label}</span>
+        {stripConfig?.showProjectName !== false && (
+          <span className="strip-label truncate">{project.label}</span>
+        )}
         {stripConfig?.showMiniSparkline !== false && <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>}
         {stripConfig?.showAgentBadge !== false && <span className="strip-agent-badge">{mainSession.agent}</span>}
         {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}

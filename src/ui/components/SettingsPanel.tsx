@@ -55,6 +55,7 @@ export type SettingsPanelProps = {
 /* ── Display toggle metadata ── */
 
 const COLLAPSED_TOGGLES: { key: keyof StripConfigState; label: string }[] = [
+  { key: "showProjectName", label: "Project Name" },
   { key: "showStatusDot", label: "Status Dot" },
   { key: "showMiniSparkline", label: "Mini Sparkline" },
   { key: "showPlanProgress", label: "Plan Progress" },

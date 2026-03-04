@@ -151,11 +151,7 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
   })
 
   useEffect(() => {
-    try {
-      safeSetItem('dashboard-column-widths', JSON.stringify(columnWidths))
-    } catch {
-      /* JSON.stringify or safeSetItem may fail */
-    }
+    safeSetItem('dashboard-column-widths', JSON.stringify(columnWidths))
   }, [columnWidths])
 
   const currentWidths = useMemo(() => {

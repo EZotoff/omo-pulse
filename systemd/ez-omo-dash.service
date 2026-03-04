@@ -1,0 +1,14 @@
+[Unit]
+Description=omo-pulse dashboard
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=__PROJECT_DIR__
+ExecStart=__BUN_PATH__ src/server/start.ts
+Environment=NODE_ENV=production
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

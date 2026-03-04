@@ -202,6 +202,7 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
     }
 
     const prev = prevDataRef.current
+    const soundDebug = localStorage.getItem('dashboard-sound-debug') === 'true'
     if (prev) {
       for (const project of data.projects) {
         const prevProject = prev.projects.find(p => p.sourceId === project.sourceId)
@@ -215,27 +216,31 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
         const currStatus = project.mainSession.status
         const activeStates: SessionStatus[] = ['busy', 'running_tool', 'thinking']
 
-        // Session idle: active → idle
-        if (activeStates.includes(prevStatus) && currStatus === 'idle') {
-          playWaiting()
-        }
+         // Session idle: active → idle
+         if (activeStates.includes(prevStatus) && currStatus === 'idle') {
+           playWaiting()
+           if (soundDebug) console.debug('[sound] idle', project.sourceId, prevStatus, '→', currStatus)
+         }
 
-        // Session error: active/idle → unknown
-        if (prevStatus !== 'unknown' && currStatus === 'unknown') {
-          playAttention()
-        }
+         // Session error: active/idle → error
+         if (prevStatus !== 'error' && currStatus === 'error') {
+           playAttention()
+           if (soundDebug) console.debug('[sound] error', project.sourceId, prevStatus, '→', currStatus)
+         }
 
-        // Plan complete: in progress → complete
-        const prevPlanStatus = prevProject.planProgress.status
-        const currPlanStatus = project.planProgress.status
-        if (prevPlanStatus === 'in progress' && currPlanStatus === 'complete') {
-          playAllClear()
-        }
+         // Plan complete: in progress → complete
+         const prevPlanStatus = prevProject.planProgress.status
+         const currPlanStatus = project.planProgress.status
+         if (prevPlanStatus === 'in progress' && currPlanStatus === 'complete') {
+           playAllClear()
+           if (soundDebug) console.debug('[sound] complete', project.sourceId, prevPlanStatus, '→', currPlanStatus)
+         }
 
-        // Question: any → question
-        if (prevStatus !== 'question' && currStatus === 'question') {
-          playQuestion()
-        }
+         // Question: any → question
+         if (prevStatus !== 'question' && currStatus === 'question') {
+           playQuestion()
+           if (soundDebug) console.debug('[sound] question', project.sourceId, prevStatus, '→', currStatus)
+         }
       }
     }
 

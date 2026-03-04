@@ -96,6 +96,40 @@ tests/
 docs/                     → Screenshots, documentation
 ```
 
+## WHERE TO LOOK
+
+| Task | Location | Notes |
+|------|----------|-------|
+| Add/modify shared types | `src/types.ts` | All layers import from here |
+| New API endpoint | `src/server/api.ts` | Factory pattern via `createApi` |
+| Change data derivation | `src/ingest/` | SQLite queries + file-based fallback |
+| New UI component | `src/ui/components/` | Co-located `.tsx` + `.css` pair |
+| New dashboard hook | `src/ui/hooks/` | Explicit return type annotations |
+| Session status logic | `src/server/dashboard.ts` | `buildDashboardPayload` + `buildDashboardPayloadFiles` |
+| Multi-project aggregation | `src/server/multi-project.ts` | `createMultiProjectService` → `DashboardStore` per source |
+| Storage backend selection | `src/ingest/storage-backend.ts` | `selectStorageBackend()` → SQLite or files |
+| Token counting | `src/ingest/token-usage.ts` | `token-usage-core.ts` for low-level logic |
+| Plan/boulder detection | `src/ingest/boulder.ts` | Reads `.sisyphus/` plan files |
+| CSS design tokens | `src/styles/tokens.css` | All custom properties defined here |
+| Sound notifications | `src/ui/hooks/useSoundNotifications.ts` | Web Audio API, ADSR envelopes |
+| Systemd service | `scripts/` + `systemd/` | Install/uninstall helpers |
+
+## CODE MAP
+
+| Symbol | Type | Location | Role |
+|--------|------|----------|------|
+| `SessionStatus` | type | `types.ts:16` | 7-value union driving all status logic |
+| `ProjectSnapshot` | type | `types.ts:82` | Full project state sent to UI |
+| `StorageBackend` | union | `storage-backend.ts:22` | Discriminated `sqlite` \| `files` |
+| `withReadonlyDb` | fn | `storage-backend.ts:50` | Safe SQLite open/close wrapper |
+| `selectStorageBackend` | fn | `storage-backend.ts:417` | Auto-detect storage kind |
+| `createApi` | fn | `api.ts:14` | Hono app factory with all routes |
+| `createMultiProjectService` | fn | `multi-project.ts:121` | Aggregates all project stores |
+| `createDashboardStore` | fn | `dashboard.ts:499` | Per-project cached snapshot store |
+| `buildDashboardPayload` | fn | `dashboard.ts:297` | SQLite → dashboard payload |
+| `buildDashboardPayloadFiles` | fn | `dashboard.ts:150` | File-based → dashboard payload |
+| `transformPayloadToSnapshot` | fn | `multi-project.ts:68` | Raw payload → `ProjectSnapshot` |
+
 ## Code Conventions
 
 ### TypeScript
@@ -180,3 +214,22 @@ All routes are under `/api` prefix (via Vite proxy in dev, direct in production)
 - **Do not reference ESLint, Prettier, or other linting tools** — none are configured
 - **Do not create CSS modules or CSS-in-JS** — use plain co-located CSS files
 - **Do not introduce external state management** (Redux, Zustand, etc.)
+
+## Subdirectory Documentation
+
+Deeper context lives in child `AGENTS.md` files — never repeated here:
+
+```
+AGENTS.md                    ← this file (root)
+├── src/ingest/AGENTS.md     ← data ingestion, SQLite, storage
+├── src/server/AGENTS.md     ← Hono API, dashboard assembly
+├── src/ui/components/AGENTS.md ← React components, DnD, CSS
+└── src/ui/hooks/AGENTS.md   ← custom hooks, state, sound
+```
+
+## Notes
+
+- `bun:sqlite` is a Bun built-in — no install needed, but only works under Bun runtime
+- Dev mode: Vite proxies `/api` → `:4301`; production: single Hono server serves SPA + API on `:4300`
+- `unknown` is the error/disconnected status — there is no explicit `error` in `SessionStatus`
+- `DashboardStore.getSnapshot()` caches results for `pollIntervalMs` to avoid redundant SQLite reads

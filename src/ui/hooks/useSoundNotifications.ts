@@ -173,7 +173,7 @@ export function useSoundNotifications(): {
     const ctx = getAudioContext()
     if (ctx.state === "suspended") void ctx.resume()
 
-    const peak = (cfg.volume / 100) * 0.06 * 0.6
+     const peak = (cfg.volume / 100) * 0.06 * 0.3
     const now = ctx.currentTime
 
     // Phase 1: "Peew" (0 to 0.2s)

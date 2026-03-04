@@ -207,6 +207,10 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
         const prevProject = prev.projects.find(p => p.sourceId === project.sourceId)
         if (!prevProject) continue
 
+        const prevSessionId = prevProject.mainSession.sessionId
+        const currSessionId = project.mainSession.sessionId
+        if (prevSessionId !== currSessionId) continue
+
         const prevStatus = prevProject.mainSession.status
         const currStatus = project.mainSession.status
         const activeStates: SessionStatus[] = ['busy', 'running_tool', 'thinking']
@@ -284,21 +288,21 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
 
   return (
     <div className="page" data-density={density}>
+      <DashboardHeader
+        connected={connected}
+        lastUpdatedMs={lastUpdatedMs}
+        projectCount={projectCount}
+        onExpandAll={handleExpandAll}
+        onCollapseAll={collapseAll}
+        columns={columns}
+        onSetColumns={setColumns}
+        onSettingsOpen={() => setSettingsOpen(true)}
+        zoom={zoom}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
+      />
       <div className="container">
-        <DashboardHeader
-          connected={connected}
-          lastUpdatedMs={lastUpdatedMs}
-          projectCount={projectCount}
-          onExpandAll={handleExpandAll}
-          onCollapseAll={collapseAll}
-          columns={columns}
-          onSetColumns={setColumns}
-          onSettingsOpen={() => setSettingsOpen(true)}
-          zoom={zoom}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onZoomReset={handleZoomReset}
-        />
         {data === null ? (
           <div className="dashboard-loading">Loading…</div>
         ) : projectCount === 0 && data.projects.length === 0 ? (

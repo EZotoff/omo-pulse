@@ -1,6 +1,6 @@
 import type { SessionTimeSeriesPayload } from "../../types"
 import type { AgentTone } from "../types"
-import { memo, useState, useMemo, useCallback } from "react"
+import { memo, useMemo } from "react"
 import "./SessionSwimlane.css"
 
 /* ── Helpers ── */
@@ -25,7 +25,7 @@ function sumValues(values: number[]): number {
 const BAR_W = 0.85
 const BAR_INSET = (1 - BAR_W) / 2
 const SVG_H = 14
-const BAR_H = 12 /* 14px minus 1px top/bottom padding */
+const BAR_H = 12
 const PAD_TOP = 1
 
 /* ── Gradient defs (replicated from Sparkline) ── */
@@ -63,43 +63,61 @@ export interface SessionSwimlaneProps {
   sessionTimeSeries: SessionTimeSeriesPayload
 }
 
+type StackRect = {
+  key: string
+  fill: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 export const SessionSwimlane = memo(function SessionSwimlane({
   sessionTimeSeries,
 }: SessionSwimlaneProps) {
   const { buckets, sessions } = sessionTimeSeries
-  const [pinned, setPinned] = useState<Set<string>>(() => new Set())
 
-  const togglePin = useCallback((sessionId: string) => {
-    setPinned((prev) => {
-      const next = new Set(prev)
-      if (next.has(sessionId)) next.delete(sessionId)
-      else next.add(sessionId)
-      return next
-    })
-  }, [])
+  const sessionTones = useMemo(
+    () => sessions.map(s => ({ ...s, tone: detectTone(s.sessionLabel, s.isBackground) })),
+    [sessions],
+  )
 
-  /* Sort: pinned first, then by total activity descending */
-  const sorted = useMemo(() => {
-    const withSum = sessions.map((s) => ({ entry: s, total: sumValues(s.values) }))
-    withSum.sort((a, b) => {
-      const aPinned = pinned.has(a.entry.sessionId) ? 1 : 0
-      const bPinned = pinned.has(b.entry.sessionId) ? 1 : 0
-      if (aPinned !== bPinned) return bPinned - aPinned
-      return b.total - a.total
-    })
-    return withSum
-  }, [sessions, pinned])
+  const sorted = useMemo(
+    () => [...sessionTones].sort((a, b) => sumValues(b.values) - sumValues(a.values)),
+    [sessionTones],
+  )
 
-  /* Scale: max single-bucket value across all sessions */
   const scaleMax = useMemo(() => {
     let mx = 1
-    for (const s of sessions) {
-      for (const v of s.values) {
-        if (v > mx) mx = v
-      }
+    for (let i = 0; i < buckets; i++) {
+      let total = 0
+      for (const s of sessions) total += s.values[i] ?? 0
+      if (total > mx) mx = total
     }
     return mx
-  }, [sessions])
+  }, [sessions, buckets])
+
+  const rects = useMemo(() => {
+    const out: StackRect[] = []
+    for (let i = 0; i < buckets; i++) {
+      let yOffset = 0
+      for (const s of sorted) {
+        const val = s.values[i] ?? 0
+        if (val <= 0) continue
+        const h = (val / scaleMax) * BAR_H
+        yOffset += h
+        out.push({
+          key: `${s.sessionId}-${i}`,
+          fill: `url(#swim-sparkline-grad-${s.tone})`,
+          x: i + BAR_INSET,
+          y: PAD_TOP + BAR_H - yOffset,
+          w: BAR_W,
+          h,
+        })
+      }
+    }
+    return out
+  }, [buckets, sorted, scaleMax])
 
   if (sessions.length === 0) {
     return <div className="swimlane-empty">No active sessions</div>
@@ -107,53 +125,36 @@ export const SessionSwimlane = memo(function SessionSwimlane({
 
   return (
     <div className="session-swimlane">
-      {sorted.map(({ entry }) => {
-        const isPinned = pinned.has(entry.sessionId)
-        const tone = detectTone(entry.sessionLabel, entry.isBackground)
-        const rowCls = `swimlane-row${isPinned ? " swimlane-row--pinned" : ""}`
+      <svg
+        className="swimlane-bars swimlane-bars--aggregated"
+        viewBox={`0 0 ${buckets} ${SVG_H}`}
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <GradientDefs />
+        {rects.map(r => (
+          <rect
+            key={r.key}
+            fill={r.fill}
+            x={r.x}
+            y={r.y}
+            width={r.w}
+            height={r.h}
+            rx={1}
+          />
+        ))}
+      </svg>
 
-        return (
-          <div key={entry.sessionId} className={rowCls}>
-            <button
-              className="swimlane-pin"
-              onClick={() => togglePin(entry.sessionId)}
-              aria-label={isPinned ? "Unpin session" : "Pin session"}
-              type="button"
-            >
-              {isPinned ? "◆" : "◇"}
-            </button>
-
-            <span className="swimlane-label" title={entry.sessionLabel}>
-              {entry.sessionLabel}
+      {sessions.length > 1 && (
+        <div className="swimlane-legend">
+          {sorted.map(s => (
+            <span key={s.sessionId} className="swimlane-legend-item">
+              <span className={`swimlane-legend-dot swimlane-legend-dot--${s.tone}`} />
+              {s.sessionLabel}
             </span>
-
-            <svg
-              className="swimlane-bars"
-              viewBox={`0 0 ${buckets} ${SVG_H}`}
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              <GradientDefs />
-
-              {entry.values.map((val, i) => {
-                if (val <= 0) return null
-                const h = (val / scaleMax) * BAR_H
-                return (
-                  <rect
-                    key={i}
-                    fill={`url(#swim-sparkline-grad-${tone})`}
-                    x={i + BAR_INSET}
-                    y={PAD_TOP + BAR_H - h}
-                    width={BAR_W}
-                    height={h}
-                    rx={1}
-                  />
-                )
-              })}
-            </svg>
-          </div>
-        )
-      })}
+          ))}
+        </div>
+      )}
     </div>
   )
 })

@@ -148,13 +148,13 @@
 }
 
 /* DnD visual feedback — @dnd-kit applies inline transform/transition */
-.project-stack > [style*="transform"] {
+.project-stack > [style*="translate"] {
   z-index: 5;
   opacity: 0.92;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-.project-stack > [style*="transform"] .project-strip {
+.project-stack > [style*="translate"] .project-strip {
   border-color: var(--accent-primary);
 }
 

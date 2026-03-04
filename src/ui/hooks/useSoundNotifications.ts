@@ -193,7 +193,7 @@ export function useSoundNotifications(): {
     const explDuration = 0.5
 
     // Noise buffer
-    const bufferSize = ctx.sampleRate * explDuration
+    const bufferSize = Math.round(ctx.sampleRate * explDuration)
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
     const data = buffer.getChannelData(0)
     for (let i = 0; i < bufferSize; i++) {

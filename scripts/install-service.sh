@@ -23,9 +23,14 @@ if [[ ! -f "$TEMPLATE" ]]; then
   exit 1
 fi
 
+# Escape sed special characters (&, \, |) in replacement strings
+escape_sed() { printf '%s\n' "$1" | sed 's/[&\\|]/\\&/g'; }
+SAFE_PROJECT_DIR=$(escape_sed "$PROJECT_DIR")
+SAFE_BUN_PATH=$(escape_sed "$BUN_PATH")
+
 sed \
-  -e "s|__PROJECT_DIR__|$PROJECT_DIR|g" \
-  -e "s|__BUN_PATH__|$BUN_PATH|g" \
+  -e "s|__PROJECT_DIR__|${SAFE_PROJECT_DIR}|g" \
+  -e "s|__BUN_PATH__|${SAFE_BUN_PATH}|g" \
   "$TEMPLATE" > "$SERVICE_DIR/ez-omo-dash.service"
 
 systemctl --user daemon-reload

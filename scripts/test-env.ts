@@ -22,8 +22,10 @@ const TEST_DB_PATH = path.join(TEST_DB_DIR, "opencode.db")
 const TEST_STORAGE_DIR = path.join(TEST_DATA_DIR, "opencode", "storage")
 const TEST_PROJECTS_DIR = "/tmp/omo-test-projects"
 
-const API_PORT = 51244
+const API_PORT = parseInt(process.env.EZ_DASH_API_PORT || "51244", 10)
+const VITE_PORT = parseInt(process.env.EZ_DASH_UI_PORT || "5173", 10)
 const API_BASE = `http://127.0.0.1:${API_PORT}`
+const VITE_BASE = `http://127.0.0.1:${VITE_PORT}`
 const HEALTH_URL = `${API_BASE}/api/health`
 const SOURCES_URL = `${API_BASE}/api/sources`
 
@@ -405,26 +407,10 @@ async function main(): Promise<void> {
     XDG_DATA_HOME: TEST_DATA_DIR,
   }
 
-  console.log("[test-env] Launching API server...")
-  const apiProc = Bun.spawn(["bun", "run", "src/server/dev.ts"], {
-    cwd: PROJECT_ROOT,
-    env,
-    stdout: "inherit",
-    stderr: "inherit",
-  })
-
-  console.log("[test-env] Launching Vite dev server...")
-  const viteProc = Bun.spawn(["bunx", "vite"], {
-    cwd: PROJECT_ROOT,
-    env,
-    stdout: "inherit",
-    stderr: "inherit",
-  })
-
-  const childProcesses = [apiProc, viteProc]
-
+  // Setup shutdown handler first (before spawning processes)
   let shuttingDown = false
   let tickTimer: ReturnType<typeof setInterval> | null = null
+  const childProcesses: Bun.Subprocess[] = []
 
   const shutdown = () => {
     if (shuttingDown) return
@@ -442,12 +428,40 @@ async function main(): Promise<void> {
   process.on("SIGINT", shutdown)
   process.on("SIGTERM", shutdown)
 
+  console.log("[test-env] Launching API server...")
+  const apiProc = Bun.spawn(["bun", "run", "src/server/dev.ts"], {
+    cwd: PROJECT_ROOT,
+    env,
+    stdout: "inherit",
+    stderr: "inherit",
+  })
+  childProcesses.push(apiProc)
+
+  console.log("[test-env] Launching Vite dev server...")
+  const viteProc = Bun.spawn(["bunx", "vite"], {
+    cwd: PROJECT_ROOT,
+    env: { ...env, EZ_DASH_UI_PORT: String(VITE_PORT) },
+    stdout: "inherit",
+    stderr: "inherit",
+  })
+  childProcesses.push(viteProc)
+
+  const monitorProcessExit = async (proc: Bun.Subprocess, name: string) => {
+    const exitCode = await proc.exited
+    if (!shuttingDown && exitCode !== 0) {
+      console.error(`[test-env] ${name} exited unexpectedly with code ${exitCode}`)
+      shutdown()
+    }
+  }
+  monitorProcessExit(apiProc, "API server")
+  monitorProcessExit(viteProc, "Vite server")
+
   await waitForHealth()
   await registerSources(records)
 
   console.log(`[test-env] Starting tick loop (${TICK_INTERVAL_MS}ms interval)`)
   console.log("[test-env] Active projects:", [...ACTIVE_PROJECT_NAMES].join(", "))
-  console.log(`[test-env] Dashboard: http://localhost:5173`)
+  console.log(`[test-env] Dashboard: ${VITE_BASE}`)
   console.log("[test-env] Press Ctrl+C to stop\n")
 
   tickTimer = setInterval(() => {
@@ -458,7 +472,9 @@ async function main(): Promise<void> {
     }
   }, TICK_INTERVAL_MS)
 
-  await new Promise(() => {})
+  // Wait indefinitely for signals (SIGINT/SIGTERM) - this promise never resolves,
+  // but the process will exit via shutdown() when signals are received.
+  await new Promise<void>(() => {})
 }
 
 main().catch((err) => {

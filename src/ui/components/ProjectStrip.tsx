@@ -50,13 +50,13 @@ export type ProjectStripProps = {
 /* ── Component ── */
 
 function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idleTimeoutMs, children }: ProjectStripProps) {
-  const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs } = project
+  const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount } = project
   const sourceId = project.sourceId
   const isStale = (() => {
-    if (planProgress?.planStale) return true
-    if (!mainSession?.lastUpdated) return true
     const activeStates = ['busy', 'thinking', 'running_tool']
     if (activeStates.includes(mainSession.status)) return false
+    if (planProgress?.planStale) return true
+    if (!mainSession?.lastUpdated) return true
     const lastUpdatedTime = new Date(mainSession.lastUpdated).getTime()
     return Date.now() - lastUpdatedTime > STALE_THRESHOLD_MS
   })()
@@ -153,6 +153,11 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
         )}
         {stripConfig?.showMiniSparkline !== false && <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>}
         {stripConfig?.showAgentBadge !== false && <span className="strip-agent-badge">{mainSession.agent}</span>}
+        {gitUncommittedCount != null && gitUncommittedCount > 0 && (
+          <span className="strip-git-badge" title={`${gitUncommittedCount} uncommitted change${gitUncommittedCount === 1 ? '' : 's'}`}>
+            {gitUncommittedCount > 999 ? '999+' : gitUncommittedCount}
+          </span>
+        )}
         {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
         {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{mainSession.lastUpdated ? formatRelativeTime(new Date(mainSession.lastUpdated).getTime()) : "—"}</span>}
         {expanded && (

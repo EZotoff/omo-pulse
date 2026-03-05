@@ -22,6 +22,10 @@ vi.mock("../server/dashboard", () => ({
   })),
 }))
 
+vi.mock("../ingest/git-status", () => ({
+  getGitUncommittedCount: vi.fn(() => Promise.resolve(undefined)),
+}))
+
 // ---------------------------------------------------------------------------
 // Import AFTER mocking
 // ---------------------------------------------------------------------------
@@ -74,7 +78,7 @@ describe("createMultiProjectService", () => {
     vi.clearAllMocks()
   })
 
-  it("returns empty projects when no sources are registered", () => {
+  it("returns empty projects when no sources are registered", async () => {
     vi.mocked(listSources).mockReturnValue([])
 
     const service = createMultiProjectService({
@@ -82,13 +86,13 @@ describe("createMultiProjectService", () => {
       storageBackend: { kind: "sqlite", dataDir: "/tmp", sqlitePath: "/tmp/test.db" },
     })
 
-    const payload = service.getMultiProjectPayload()
+    const payload = await service.getMultiProjectPayload()
     expect(payload.projects).toEqual([])
     expect(payload.pollIntervalMs).toBe(2000)
     expect(typeof payload.serverNowMs).toBe("number")
   })
 
-  it("returns ProjectSnapshot with correct shape for a valid source", () => {
+  it("returns ProjectSnapshot with correct shape for a valid source", async () => {
     vi.mocked(listSources).mockReturnValue([
       { id: "src-1", label: "My App", updatedAt: 1000 },
     ])
@@ -106,7 +110,7 @@ describe("createMultiProjectService", () => {
       storageBackend: { kind: "sqlite", dataDir: "/tmp", sqlitePath: "/tmp/test.db" },
     })
 
-    const payload = service.getMultiProjectPayload()
+    const payload = await service.getMultiProjectPayload()
     expect(payload.projects).toHaveLength(1)
 
     const project = payload.projects[0]
@@ -118,7 +122,7 @@ describe("createMultiProjectService", () => {
     expect(project.planProgress.status).toBe("in progress")
   })
 
-  it("isolates errors: one failing source doesn't break others", () => {
+  it("isolates errors: one failing source doesn't break others", async () => {
     vi.mocked(listSources).mockReturnValue([
       { id: "good", label: "Good", updatedAt: 1000 },
       { id: "bad", label: "Bad", updatedAt: 900 },
@@ -141,13 +145,13 @@ describe("createMultiProjectService", () => {
       storageBackend: { kind: "sqlite", dataDir: "/tmp", sqlitePath: "/tmp/test.db" },
     })
 
-    const payload = service.getMultiProjectPayload()
+    const payload = await service.getMultiProjectPayload()
     // Only the good source should appear; the null source is silently skipped
     expect(payload.projects).toHaveLength(1)
     expect(payload.projects[0].sourceId).toBe("good")
   })
 
-  it("maps statusPill values correctly to SessionStatus", () => {
+  it("maps statusPill values correctly to SessionStatus", async () => {
     const testCases: Array<{ pill: string; expected: string }> = [
       { pill: "running tool", expected: "running_tool" },
       { pill: "thinking", expected: "thinking" },
@@ -180,7 +184,7 @@ describe("createMultiProjectService", () => {
         storageBackend: { kind: "sqlite", dataDir: "/tmp", sqlitePath: "/tmp/test.db" },
       })
 
-      const payload = service.getMultiProjectPayload()
+      const payload = await service.getMultiProjectPayload()
       expect(payload.projects[0].mainSession.status).toBe(tc.expected)
     }
   })

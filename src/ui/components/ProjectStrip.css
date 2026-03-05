@@ -248,6 +248,22 @@
   flex-shrink: 0;
 }
 
+/* Git uncommitted changes badge */
+.strip-git-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--sp-2);
+  height: 18px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent-warning) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-warning) 40%, transparent);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--accent-warning);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* Plan progress compact slot */
 .plan-slot--compact {
   flex: 0 0 auto;
@@ -521,6 +537,10 @@
   height: 16px;
   font-size: 0.6rem;
 }
+[data-density="dense"] .strip-git-badge {
+  height: 16px;
+  font-size: 0.6rem;
+}
 [data-density="dense"] .strip-status-dot {
   width: 12px;
   height: 12px;
@@ -548,6 +568,11 @@
   height: 16px;
 }
 [data-density="ultra-dense"] .strip-agent-badge {
+  height: 14px;
+  padding: 0 var(--sp-1);
+  font-size: 0.55rem;
+}
+[data-density="ultra-dense"] .strip-git-badge {
   height: 14px;
   padding: 0 var(--sp-1);
   font-size: 0.55rem;

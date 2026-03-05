@@ -260,15 +260,15 @@ export function useSoundNotifications(): {
 
     osc.type = "sine"
     
-    // Pitch contour: 500Hz -> 400Hz (~0.15s) -> 2000Hz (~0.3s)
-    osc.frequency.setValueAtTime(500, now)
+    // Pitch contour: 600Hz -> 450Hz (~0.1s) -> 2800Hz (~0.25s)
+    osc.frequency.setValueAtTime(600, now)
     // First segment (wh-): slight downward dip
-    osc.frequency.exponentialRampToValueAtTime(400, now + 0.15)
-    // Second segment (-aaa?): dramatic upward sweep accelerating
-    osc.frequency.exponentialRampToValueAtTime(2000, now + 0.45)
+    osc.frequency.exponentialRampToValueAtTime(450, now + 0.1)
+    // Second segment (-aaa?): fast upward sweep
+    osc.frequency.exponentialRampToValueAtTime(4000, now + 0.35)
 
     // Volume contour covering both segments
-    applyADSR(gainNode, now, peak * 1.2, 0.05, 0.1, 0.8, 0.3)
+    applyADSR(gainNode, now, peak * 1.2, 0.04, 0.08, 0.7, 0.23)
 
     osc.connect(gainNode)
     gainNode.connect(ctx.destination)

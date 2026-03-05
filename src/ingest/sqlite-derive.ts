@@ -408,9 +408,16 @@ export function getMainSessionViewSqlite(opts: {
     status = nowMs - lastUpdated <= 15_000 ? "busy" : "idle"
   }
 
-  // Question detection: user sent a message with no subsequent assistant response
-  if ((status === "busy" || status === "idle") && recent?.role === "user") {
-    status = "question"
+  if (status === "idle" || status === "busy" || status === "unknown") {
+    const bgResult = deriveBackgroundTasksSqlite({
+      sqlitePath: opts.sqlitePath,
+      mainSessionId: opts.sessionId,
+      nowMs,
+    })
+    if (bgResult.ok && bgResult.value.some((t) => t.status === "running" || t.status === "queued")) {
+      status = "running_tool"
+      if (!activeTool) activeTool = { tool: "task", status: "running" }
+    }
   }
 
   return {

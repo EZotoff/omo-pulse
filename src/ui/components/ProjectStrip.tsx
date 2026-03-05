@@ -53,7 +53,7 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
   const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount } = project
   const sourceId = project.sourceId
   const isStale = (() => {
-    const activeStates = ['busy', 'thinking', 'running_tool']
+    const activeStates = ['busy', 'thinking', 'running_tool', 'question', 'error']
     if (activeStates.includes(mainSession.status)) return false
     if (planProgress?.planStale) return true
     if (!mainSession?.lastUpdated) return true

@@ -53,10 +53,10 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
   const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount } = project
   const sourceId = project.sourceId
   const isStale = (() => {
-    if (planProgress?.planStale) return true
-    if (!mainSession?.lastUpdated) return true
     const activeStates = ['busy', 'thinking', 'running_tool']
     if (activeStates.includes(mainSession.status)) return false
+    if (planProgress?.planStale) return true
+    if (!mainSession?.lastUpdated) return true
     const lastUpdatedTime = new Date(mainSession.lastUpdated).getTime()
     return Date.now() - lastUpdatedTime > STALE_THRESHOLD_MS
   })()

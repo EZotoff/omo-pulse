@@ -2,6 +2,7 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import { pickLatestModelString } from "./model"
 import { getOpenCodeStorageDir, realpathSafe } from "./paths"
+import { deriveBackgroundTasks } from "./background-tasks"
 
 export type SessionMetadata = {
   id: string
@@ -350,9 +351,16 @@ export function getMainSessionView(opts: {
     status = nowMs - lastUpdated <= 15_000 ? "busy" : "idle"
   }
 
-  // Question detection: user sent a message with no subsequent assistant response
-  if ((status === "busy" || status === "idle") && recent?.role === "user") {
-    status = "question"
+  if (status === "idle" || status === "busy" || status === "unknown") {
+    const bgTasks = deriveBackgroundTasks({
+      storage: opts.storage,
+      mainSessionId: opts.sessionId,
+      nowMs,
+    })
+    if (bgTasks.some((t) => t.status === "running" || t.status === "queued")) {
+      status = "running_tool"
+      if (!activeTool) activeTool = { tool: "task", status: "running" }
+    }
   }
 
   return {

@@ -11,6 +11,7 @@ import { listSources, getSourceById } from "../ingest/sources-registry"
 import { getLegacyStorageRootForBackend, type StorageBackend } from "../ingest/storage-backend"
 import { createDashboardStore, type DashboardStore, type DashboardPayload } from "./dashboard"
 import { derivePerSessionTimeSeries } from "../ingest/per-session-timeseries"
+import { getGitUncommittedCount } from "../ingest/git-status"
 
 // ---------------------------------------------------------------------------
 // Helpers: transform DashboardPayload → ProjectSnapshot
@@ -122,7 +123,7 @@ export function createMultiProjectService(opts: {
   storageRoot: string
   storageBackend: StorageBackend
   pollIntervalMs?: number
-}): { getMultiProjectPayload: () => DashboardMultiProjectPayload } {
+}): { getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload> } {
   const pollIntervalMs = opts.pollIntervalMs ?? 2000
   const storeBySourceId = new Map<string, DashboardStore>()
   const storeByProjectRoot = new Map<string, DashboardStore>()
@@ -150,7 +151,7 @@ export function createMultiProjectService(opts: {
     return created
   }
 
-  function getMultiProjectPayload(): DashboardMultiProjectPayload {
+  async function getMultiProjectPayload(): Promise<DashboardMultiProjectPayload> {
     const nowMs = Date.now()
     const sources = listSources(opts.storageRoot)
     const projects: ProjectSnapshot[] = []
@@ -165,6 +166,7 @@ export function createMultiProjectService(opts: {
         const label = source.label ?? entry.projectRoot
         const sqlitePath = opts.storageBackend.kind === "sqlite" ? opts.storageBackend.sqlitePath : undefined
         const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, nowMs, sqlitePath)
+        snapshot.gitUncommittedCount = await getGitUncommittedCount(entry.projectRoot)
         projects.push(snapshot)
       } catch {
         // Per-source error isolation: if one source fails, others still return

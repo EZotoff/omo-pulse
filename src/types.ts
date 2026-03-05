@@ -105,8 +105,10 @@ export type ProjectSnapshot = {
   timeSeries: TimeSeriesPayload
   backgroundTasks: BackgroundTaskSummary[]
   sessionTimeSeries: SessionTimeSeriesPayload
-  tokenUsage?: TokenUsageSummary
-  lastUpdatedMs: number
+   tokenUsage?: TokenUsageSummary
+   /** Uncommitted git changes count (staged + unstaged + untracked). undefined = not available */
+   gitUncommittedCount?: number
+   lastUpdatedMs: number
 }
 
 /** Multi-project dashboard payload combining all project snapshots */

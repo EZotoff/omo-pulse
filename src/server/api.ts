@@ -82,17 +82,17 @@ export function createApi(opts: {
   // ---------------------------------------------------------------------------
   // GET /projects — all projects with snapshots
   // ---------------------------------------------------------------------------
-  api.get("/projects", (c) => {
-    const payload = multiProjectService.getMultiProjectPayload()
+  api.get("/projects", async (c) => {
+    const payload = await multiProjectService.getMultiProjectPayload()
     return c.json(payload)
   })
 
   // ---------------------------------------------------------------------------
   // GET /projects/:sourceId — single project detail
   // ---------------------------------------------------------------------------
-  api.get("/projects/:sourceId", (c) => {
+  api.get("/projects/:sourceId", async (c) => {
     const sourceId = c.req.param("sourceId")
-    const payload = multiProjectService.getMultiProjectPayload()
+    const payload = await multiProjectService.getMultiProjectPayload()
     const project = payload.projects.find((p) => p.sourceId === sourceId)
     if (!project) {
       return c.json({ ok: false, error: "Source not found", sourceId }, 404)

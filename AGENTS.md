@@ -168,10 +168,10 @@ docs/                     → Screenshots, documentation
 
 ## Environment Variables
 
-| Variable           | Default | Description                      |
-|--------------------|---------|----------------------------------|
-| `EZ_DASH_UI_PORT`  | 4300    | Vite dev server / production port |
-| `EZ_DASH_API_PORT` | 4301    | API server port (dev only)       |
+| Variable             | Default | Description                      |
+|----------------------|---------|----------------------------------|
+| `OMO_PULSE_PORT`     | 4300    | Vite dev server / production port |
+| `OMO_PULSE_API_PORT` | 4301    | API server port (dev only)       |
 
 ## API Routes
 

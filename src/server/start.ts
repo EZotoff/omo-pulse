@@ -11,7 +11,7 @@ const APP_VERSION: string = pkg.version ?? "0.0.0";
 
 const app = new Hono();
 
-const port = parseInt(process.env.EZ_DASH_API_PORT || "51244", 10);
+const port = parseInt(process.env.OMO_PULSE_PORT || "4300", 10);
 const distRoot = join(import.meta.dir, "../../dist");
 
 

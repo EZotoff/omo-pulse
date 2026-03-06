@@ -9,7 +9,7 @@ const here = dirname(new URL(import.meta.url).pathname);
 const pkg = JSON.parse(readFileSync(resolve(here, "../../package.json"), "utf8"));
 const APP_VERSION: string = pkg.version ?? "0.0.0";
 
-const port = parseInt(process.env.EZ_DASH_API_PORT || "51244", 10);
+const port = parseInt(process.env.OMO_PULSE_API_PORT || "51244", 10);
 
 const app = new Hono();
 

@@ -18,7 +18,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: `http://127.0.0.1:${process.env.EZ_DASH_API_PORT ?? "51244"}`,
+        target: `http://127.0.0.1:${process.env.OMO_PULSE_API_PORT ?? "51244"}`,
         changeOrigin: true,
       },
     },

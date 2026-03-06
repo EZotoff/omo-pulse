@@ -335,21 +335,23 @@ export function getMainSessionView(opts: {
     }
   }
 
-  // If the last activity is older than 2 min, a "running" tool or incomplete
-  // assistant message is almost certainly a stale leftover from a crashed process.
-  const ACTIVE_STALE_MS = 300_000
+  // Staleness threshold for detecting crashed/inactive sessions.
+  // Extended to 10 minutes to accommodate long-running processes.
+  const ACTIVE_STALE_MS = 600_000
   const isStaleActivity = typeof lastUpdated === "number" && nowMs - lastUpdated > ACTIVE_STALE_MS
 
   let status: MainSessionView["status"] = "unknown"
-  if (!isStaleActivity && (activeTool?.status === "pending" || activeTool?.status === "running")) {
+  // Running tools are always active, regardless of staleness - the tool is executing.
+  if (activeTool?.status === "pending" || activeTool?.status === "running") {
     status = activeTool.tool === "question" ? "question" : "running_tool"
    } else if (!isStaleActivity && hasErrorTool) {
      status = "error"
-  } else if (!isStaleActivity && recent?.role === "assistant" && typeof recent?.time?.created === "number" && typeof recent?.time?.completed !== "number") {
-    status = "thinking"
-  } else if (typeof lastUpdated === "number") {
-    status = nowMs - lastUpdated <= 15_000 ? "busy" : "idle"
-  }
+   } else if (!isStaleActivity && recent?.role === "assistant" && typeof recent?.time?.created === "number" && typeof recent?.time?.completed !== "number") {
+     status = "thinking"
+   } else if (typeof lastUpdated === "number") {
+     // Extended to 60 seconds to reduce false "idle" states during long operations
+     status = nowMs - lastUpdated <= 60_000 ? "busy" : "idle"
+   }
 
   if (status === "idle" || status === "busy" || status === "unknown") {
     const bgTasks = deriveBackgroundTasks({

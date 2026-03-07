@@ -4,6 +4,8 @@ import { pickLatestModelString } from "./model"
 import { getOpenCodeStorageDir, realpathSafe } from "./paths"
 import { deriveBackgroundTasks } from "./background-tasks"
 
+const QUESTION_TOOL_NAMES = new Set(["question", "AskUserQuestion", "ask_user_question", "askuserquestion", "mcp_question"])
+
 export type SessionMetadata = {
   id: string
   projectID: string
@@ -343,7 +345,7 @@ export function getMainSessionView(opts: {
   let status: MainSessionView["status"] = "unknown"
   // Running tools are always active, regardless of staleness - the tool is executing.
   if (activeTool?.status === "pending" || activeTool?.status === "running") {
-    status = activeTool.tool === "question" ? "question" : "running_tool"
+    status = QUESTION_TOOL_NAMES.has(activeTool.tool) ? "question" : "running_tool"
    } else if (!isStaleActivity && hasErrorTool) {
      status = "error"
    } else if (!isStaleActivity && recent?.role === "assistant" && typeof recent?.time?.created === "number" && typeof recent?.time?.completed !== "number") {

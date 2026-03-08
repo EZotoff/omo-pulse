@@ -13,13 +13,13 @@ import {
 } from "./storage-backend"
 import { aggregateTokenUsage } from "./token-usage-core"
 import { MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS, type ToolCallSummaryResult } from "./tool-calls"
+import { QUESTION_TOOL_NAMES, TASK_TOOL_NAMES } from "./tool-names"
 import type { TimeSeriesPayload, TimeSeriesSeries } from "./timeseries"
 
 type SqliteDeriveResult<T> =
   | { ok: true; value: T }
   | { ok: false; reason: SqliteReadFailureReason }
 
-const TASK_TOOL_NAMES = new Set(["delegate_task", "task", "call_omo_agent", "background_task"])
 const DESCRIPTION_MAX = 120
 const AGENT_MAX = 30
 const SESSION_ID_MAX = 200
@@ -402,7 +402,7 @@ export function getMainSessionViewSqlite(opts: {
   let status: MainSessionView["status"] = "unknown"
   // Running tools are always active, regardless of staleness - the tool is executing.
   if (activeTool?.status === "pending" || activeTool?.status === "running") {
-    status = activeTool.tool === "question" ? "question" : "running_tool"
+    status = QUESTION_TOOL_NAMES.has(activeTool.tool) ? "question" : "running_tool"
    } else if (!isStaleActivity && hasErrorTool) {
      status = "error"
    } else if (!isStaleActivity && recent?.role === "assistant" && typeof recent.time?.created === "number" && typeof recent.time?.completed !== "number") {

@@ -66,13 +66,16 @@ function buildEmptySessionTimeSeries(nowMs: number): SessionTimeSeriesPayload {
   }
 }
 
+export const SESSION_TIMESERIES_CACHE_TTL_MS = 5_000
+export const MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS = 5_000
+
 function transformPayloadToSnapshot(
   sourceId: string,
   label: string,
   projectRoot: string,
   payload: DashboardPayload,
   nowMs: number,
-  sqlitePath?: string,
+  sessionTimeSeries: SessionTimeSeriesPayload,
 ): ProjectSnapshot {
   return {
     sourceId,
@@ -99,17 +102,7 @@ function transformPayloadToSnapshot(
     },
     timeSeries: payload.timeSeries,
     backgroundTasks: mapBackgroundTasks(payload),
-    sessionTimeSeries: (() => {
-      if (sqlitePath) {
-        try {
-          const result = derivePerSessionTimeSeries({ sqlitePath, projectRoot, nowMs })
-          if (result.ok) return result.value
-        } catch {
-          // Per-source error isolation: fall back to empty on unexpected errors
-        }
-      }
-      return buildEmptySessionTimeSeries(nowMs)
-    })(),
+    sessionTimeSeries,
     tokenUsage: mapTokenUsage(payload),
     lastUpdatedMs: nowMs,
   }
@@ -127,8 +120,38 @@ export function createMultiProjectService(opts: {
   const pollIntervalMs = opts.pollIntervalMs ?? 2000
   const storeBySourceId = new Map<string, DashboardStore>()
   const storeByProjectRoot = new Map<string, DashboardStore>()
+  const sessionTimeSeriesByProjectRoot = new Map<string, { value: SessionTimeSeriesPayload; fetchedAt: number }>()
+  let cachedPayload: DashboardMultiProjectPayload | null = null
+  let cachedPayloadAt = 0
 
   const legacyStorageRoot = getLegacyStorageRootForBackend(opts.storageBackend)
+
+  function getCachedSessionTimeSeries(projectRoot: string, sqlitePath: string | undefined, nowMs: number): SessionTimeSeriesPayload {
+    const cached = sessionTimeSeriesByProjectRoot.get(projectRoot)
+    if (cached && nowMs - cached.fetchedAt < SESSION_TIMESERIES_CACHE_TTL_MS) {
+      return cached.value
+    }
+
+    if (!sqlitePath) {
+      const empty = buildEmptySessionTimeSeries(nowMs)
+      sessionTimeSeriesByProjectRoot.set(projectRoot, { value: empty, fetchedAt: nowMs })
+      return empty
+    }
+
+    try {
+      const result = derivePerSessionTimeSeries({ sqlitePath, projectRoot, nowMs })
+      if (result.ok) {
+        sessionTimeSeriesByProjectRoot.set(projectRoot, { value: result.value, fetchedAt: nowMs })
+        return result.value
+      }
+    } catch {
+      // Per-source error isolation: fall back to empty on unexpected errors
+    }
+
+    const empty = buildEmptySessionTimeSeries(nowMs)
+    sessionTimeSeriesByProjectRoot.set(projectRoot, { value: empty, fetchedAt: nowMs })
+    return empty
+  }
 
   function getOrCreateStore(sourceId: string, projectRoot: string): DashboardStore {
     const existing = storeBySourceId.get(sourceId)
@@ -152,6 +175,11 @@ export function createMultiProjectService(opts: {
   }
 
   async function getMultiProjectPayload(): Promise<DashboardMultiProjectPayload> {
+    const cachedNowMs = Date.now()
+    if (cachedPayload && cachedNowMs - cachedPayloadAt < MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS) {
+      return cachedPayload
+    }
+
     const nowMs = Date.now()
     const sources = listSources(opts.storageRoot)
     const projects: ProjectSnapshot[] = []
@@ -165,7 +193,8 @@ export function createMultiProjectService(opts: {
         const payload = store.getSnapshot()
         const label = source.label ?? entry.projectRoot
         const sqlitePath = opts.storageBackend.kind === "sqlite" ? opts.storageBackend.sqlitePath : undefined
-        const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, nowMs, sqlitePath)
+        const sessionTimeSeries = getCachedSessionTimeSeries(entry.projectRoot, sqlitePath, nowMs)
+        const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, nowMs, sessionTimeSeries)
         snapshot.gitUncommittedCount = await getGitUncommittedCount(entry.projectRoot)
         projects.push(snapshot)
       } catch {
@@ -174,11 +203,15 @@ export function createMultiProjectService(opts: {
       }
     }
 
-    return {
+    const payload = {
       projects,
-      serverNowMs: nowMs,
+      serverNowMs: Date.now(),
       pollIntervalMs,
     }
+
+    cachedPayload = payload
+    cachedPayloadAt = Date.now()
+    return payload
   }
 
   return { getMultiProjectPayload }

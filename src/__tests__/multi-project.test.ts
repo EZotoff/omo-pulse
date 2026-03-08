@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import type { DashboardPayload } from "../server/dashboard"
 
 // ---------------------------------------------------------------------------
@@ -26,10 +26,22 @@ vi.mock("../ingest/git-status", () => ({
   getGitUncommittedCount: vi.fn(() => Promise.resolve(undefined)),
 }))
 
+const { mockDerivePerSessionTimeSeries } = vi.hoisted(() => ({
+  mockDerivePerSessionTimeSeries: vi.fn(),
+}))
+
+vi.mock("../ingest/per-session-timeseries", () => ({
+  derivePerSessionTimeSeries: mockDerivePerSessionTimeSeries,
+}))
+
 // ---------------------------------------------------------------------------
 // Import AFTER mocking
 // ---------------------------------------------------------------------------
-import { createMultiProjectService } from "../server/multi-project"
+import {
+  createMultiProjectService,
+  MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS,
+  SESSION_TIMESERIES_CACHE_TTL_MS,
+} from "../server/multi-project"
 import { listSources, getSourceById } from "../ingest/sources-registry"
 
 // ---------------------------------------------------------------------------
@@ -73,9 +85,26 @@ function makeDashboardPayload(overrides: Partial<DashboardPayload> = {}): Dashbo
   }
 }
 
+function makeSessionTimeSeriesPayload(nowMs = 1_000_000) {
+  return {
+    windowMs: 300000,
+    bucketMs: 2000,
+    buckets: 150,
+    anchorMs: Math.floor(nowMs / 2_000) * 2_000,
+    serverNowMs: nowMs,
+    sessions: [],
+  }
+}
+
 describe("createMultiProjectService", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useFakeTimers()
+    mockDerivePerSessionTimeSeries.mockReturnValue({ ok: true, value: makeSessionTimeSeriesPayload() })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it("returns empty projects when no sources are registered", async () => {
@@ -187,5 +216,63 @@ describe("createMultiProjectService", () => {
       const payload = await service.getMultiProjectPayload()
       expect(payload.projects[0].mainSession.status).toBe(tc.expected)
     }
+  })
+
+  it("caches per-session time series across repeated polls", async () => {
+    vi.mocked(listSources).mockReturnValue([
+      { id: "src-1", label: "My App", updatedAt: 1000 },
+    ])
+    vi.mocked(getSourceById).mockReturnValue({
+      id: "src-1",
+      projectRoot: "/home/user/my-app",
+      label: "My App",
+      createdAt: 500,
+      updatedAt: 1000,
+    })
+    mockGetSnapshot.mockReturnValue(makeDashboardPayload())
+
+    const service = createMultiProjectService({
+      storageRoot: "/tmp/test",
+      storageBackend: { kind: "sqlite", dataDir: "/tmp", sqlitePath: "/tmp/test.db" },
+    })
+
+    await service.getMultiProjectPayload()
+    await service.getMultiProjectPayload()
+
+    expect(mockDerivePerSessionTimeSeries).toHaveBeenCalledTimes(1)
+
+    vi.advanceTimersByTime(SESSION_TIMESERIES_CACHE_TTL_MS + 1)
+    await service.getMultiProjectPayload()
+
+    expect(mockDerivePerSessionTimeSeries).toHaveBeenCalledTimes(2)
+  })
+
+  it("caches the full multi-project payload across rapid polls", async () => {
+    vi.mocked(listSources).mockReturnValue([
+      { id: "src-1", label: "My App", updatedAt: 1000 },
+    ])
+    vi.mocked(getSourceById).mockReturnValue({
+      id: "src-1",
+      projectRoot: "/home/user/my-app",
+      label: "My App",
+      createdAt: 500,
+      updatedAt: 1000,
+    })
+    mockGetSnapshot.mockReturnValue(makeDashboardPayload())
+
+    const service = createMultiProjectService({
+      storageRoot: "/tmp/test",
+      storageBackend: { kind: "sqlite", dataDir: "/tmp", sqlitePath: "/tmp/test.db" },
+    })
+
+    await service.getMultiProjectPayload()
+    await service.getMultiProjectPayload()
+
+    expect(mockGetSnapshot).toHaveBeenCalledTimes(1)
+
+    vi.advanceTimersByTime(MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS + 1)
+    await service.getMultiProjectPayload()
+
+    expect(mockGetSnapshot).toHaveBeenCalledTimes(2)
   })
 })

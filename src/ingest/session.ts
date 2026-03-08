@@ -1,5 +1,11 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
+import {
+  ACTIVE_BUSY_WINDOW_MS,
+  hasFreshMainSessionActivity,
+  resolveLastUpdatedTime,
+  shouldSuppressStaleToolActivity,
+} from "./activity-status"
 import { pickLatestModelString } from "./model"
 import { getOpenCodeStorageDir, realpathSafe } from "./paths"
 import { deriveBackgroundTasks } from "./background-tasks"
@@ -308,7 +314,7 @@ export function getMainSessionView(opts: {
   const messageDir = getMessageDir(opts.storage.message, opts.sessionId)
   const recent = readMostRecentMessageMeta(messageDir, 200)
 
-  const lastUpdated = recent?.time?.created ?? null
+  const lastUpdated = resolveLastUpdatedTime(recent?.time?.created ?? null, opts.sessionMeta?.time.updated ?? null)
   const sessionLabel = opts.sessionMeta?.title ?? opts.sessionId
   const agent = recent?.agent ?? "unknown"
 
@@ -336,23 +342,25 @@ export function getMainSessionView(opts: {
     }
   }
 
-  // Staleness threshold for detecting crashed/inactive sessions.
-  // Extended to 10 minutes to accommodate long-running processes.
-  const ACTIVE_STALE_MS = 600_000
-  const isStaleActivity = typeof lastUpdated === "number" && nowMs - lastUpdated > ACTIVE_STALE_MS
+  const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
+  const isStaleActivity = typeof lastUpdated === "number" && !hasFreshActivity
 
   let status: MainSessionView["status"] = "unknown"
-  // Running tools are always active, regardless of staleness - the tool is executing.
   if (activeTool?.status === "pending" || activeTool?.status === "running") {
-    status = QUESTION_TOOL_NAMES.has(activeTool.tool) ? "question" : "running_tool"
-   } else if (!isStaleActivity && hasErrorTool) {
-     status = "error"
-   } else if (!isStaleActivity && recent?.role === "assistant" && typeof recent?.time?.created === "number" && typeof recent?.time?.completed !== "number") {
-     status = "thinking"
-   } else if (typeof lastUpdated === "number") {
-     // Extended to 60 seconds to reduce false "idle" states during long operations
-     status = nowMs - lastUpdated <= 60_000 ? "busy" : "idle"
-   }
+    if (shouldSuppressStaleToolActivity(activeTool.tool, hasFreshActivity)) {
+      activeTool = null
+    } else {
+      status = QUESTION_TOOL_NAMES.has(activeTool.tool) ? "question" : "running_tool"
+    }
+  }
+
+  if (status === "unknown" && !isStaleActivity && hasErrorTool) {
+    status = "error"
+  } else if (status === "unknown" && !isStaleActivity && recent?.role === "assistant" && typeof recent?.time?.created === "number" && typeof recent?.time?.completed !== "number") {
+    status = "thinking"
+  } else if (status === "unknown" && typeof lastUpdated === "number") {
+    status = nowMs - lastUpdated <= ACTIVE_BUSY_WINDOW_MS ? "busy" : "idle"
+  }
 
   if (status === "idle" || status === "busy" || status === "unknown") {
     const bgTasks = deriveBackgroundTasks({

@@ -1,5 +1,6 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
+import { BACKGROUND_RUNNING_WINDOW_MS, shouldKeepQueuedBackgroundTaskActive } from "./activity-status"
 import type { OpenCodeStorageRoots, SessionMetadata, StoredMessageMeta, StoredToolPart } from "./session"
 import { getMessageDir } from "./session"
 import { pickLatestModelString } from "./model"
@@ -489,8 +490,10 @@ export function deriveBackgroundTasks(opts: {
       // Best-effort status: if background session exists and has any tool calls, treat as running unless idle.
       let status: BackgroundTaskRow["status"] = "unknown"
       if (!backgroundSessionId) {
-        status = "queued"
-      } else if (stats.lastUpdateAt && nowMs - stats.lastUpdateAt <= 15_000) {
+        status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
+      } else if (stats.toolCalls === 0 && stats.lastUpdateAt === null) {
+        status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
+      } else if (stats.lastUpdateAt && nowMs - stats.lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) {
         status = "running"
       } else if (stats.toolCalls > 0) {
         status = "completed"

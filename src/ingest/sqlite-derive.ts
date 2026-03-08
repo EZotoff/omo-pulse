@@ -1,3 +1,11 @@
+import {
+  ACTIVE_BUSY_WINDOW_MS,
+  BACKGROUND_RUNNING_WINDOW_MS,
+  hasFreshMainSessionActivity,
+  resolveLastUpdatedTime,
+  shouldSuppressStaleToolActivity,
+  shouldKeepQueuedBackgroundTaskActive,
+} from "./activity-status"
 import type { BackgroundTaskRow } from "./background-tasks"
 import { pickLatestModelString } from "./model"
 import type { MainSessionView, SessionMetadata, StoredMessageMeta, StoredToolPart } from "./session"
@@ -364,7 +372,7 @@ export function getMainSessionViewSqlite(opts: {
   if (!session.ok) return session
 
   const recent = session.value.metas[0] ?? null
-  const lastUpdated = recent?.time?.created ?? null
+  const lastUpdated = resolveLastUpdatedTime(recent?.time?.created ?? null, opts.sessionMeta?.time.updated ?? null)
   const sessionLabel = opts.sessionMeta?.title ?? opts.sessionId
   const agent = recent?.agent ?? "unknown"
   const currentModel = pickLatestModelString(session.value.metas)
@@ -394,23 +402,25 @@ export function getMainSessionViewSqlite(opts: {
     }
   }
 
-  // Staleness threshold for detecting crashed/inactive sessions.
-  // Extended to 10 minutes to accommodate long-running processes.
-  const ACTIVE_STALE_MS = 600_000
-  const isStaleActivity = typeof lastUpdated === "number" && nowMs - lastUpdated > ACTIVE_STALE_MS
+  const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
+  const isStaleActivity = typeof lastUpdated === "number" && !hasFreshActivity
 
   let status: MainSessionView["status"] = "unknown"
-  // Running tools are always active, regardless of staleness - the tool is executing.
   if (activeTool?.status === "pending" || activeTool?.status === "running") {
-    status = QUESTION_TOOL_NAMES.has(activeTool.tool) ? "question" : "running_tool"
-   } else if (!isStaleActivity && hasErrorTool) {
-     status = "error"
-   } else if (!isStaleActivity && recent?.role === "assistant" && typeof recent.time?.created === "number" && typeof recent.time?.completed !== "number") {
-     status = "thinking"
-   } else if (typeof lastUpdated === "number") {
-     // Extended to 60 seconds to reduce false "idle" states during long operations
-     status = nowMs - lastUpdated <= 60_000 ? "busy" : "idle"
-   }
+    if (shouldSuppressStaleToolActivity(activeTool.tool, hasFreshActivity)) {
+      activeTool = null
+    } else {
+      status = QUESTION_TOOL_NAMES.has(activeTool.tool) ? "question" : "running_tool"
+    }
+  }
+
+  if (status === "unknown" && !isStaleActivity && hasErrorTool) {
+    status = "error"
+  } else if (status === "unknown" && !isStaleActivity && recent?.role === "assistant" && typeof recent.time?.created === "number" && typeof recent.time?.completed !== "number") {
+    status = "thinking"
+  } else if (status === "unknown" && typeof lastUpdated === "number") {
+    status = nowMs - lastUpdated <= ACTIVE_BUSY_WINDOW_MS ? "busy" : "idle"
+  }
 
   if (status === "idle" || status === "busy" || status === "unknown") {
     const bgResult = deriveBackgroundTasksSqlite({
@@ -583,8 +593,10 @@ export function deriveBackgroundTasksSqlite(opts: {
       const lastModel = backgroundMetas.length > 0 ? pickLatestModelString(backgroundMetas) : null
       let status: BackgroundTaskRow["status"] = "unknown"
       if (!backgroundSessionId) {
-        status = "queued"
-      } else if (lastUpdateAt && nowMs - lastUpdateAt <= 15_000) {
+        status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
+      } else if (toolCalls === 0 && lastUpdateAt === null) {
+        status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
+      } else if (lastUpdateAt && nowMs - lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) {
         status = "running"
       } else if (toolCalls > 0) {
         status = "completed"

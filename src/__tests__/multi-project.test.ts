@@ -218,7 +218,7 @@ describe("createMultiProjectService", () => {
     }
   })
 
-  it("caches per-session time series across repeated polls", async () => {
+  it("caches per-session time series across payload cache refreshes", async () => {
     vi.mocked(listSources).mockReturnValue([
       { id: "src-1", label: "My App", updatedAt: 1000 },
     ])
@@ -237,13 +237,19 @@ describe("createMultiProjectService", () => {
     })
 
     await service.getMultiProjectPayload()
+    expect(mockGetSnapshot).toHaveBeenCalledTimes(1)
+    expect(mockDerivePerSessionTimeSeries).toHaveBeenCalledTimes(1)
+
+    vi.advanceTimersByTime(MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS + 1)
     await service.getMultiProjectPayload()
 
+    expect(mockGetSnapshot).toHaveBeenCalledTimes(2)
     expect(mockDerivePerSessionTimeSeries).toHaveBeenCalledTimes(1)
 
     vi.advanceTimersByTime(SESSION_TIMESERIES_CACHE_TTL_MS + 1)
     await service.getMultiProjectPayload()
 
+    expect(mockGetSnapshot).toHaveBeenCalledTimes(3)
     expect(mockDerivePerSessionTimeSeries).toHaveBeenCalledTimes(2)
   })
 

@@ -66,8 +66,8 @@ function buildEmptySessionTimeSeries(nowMs: number): SessionTimeSeriesPayload {
   }
 }
 
-export const SESSION_TIMESERIES_CACHE_TTL_MS = 5_000
 export const MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS = 5_000
+export const SESSION_TIMESERIES_CACHE_TTL_MS = 15_000
 
 function transformPayloadToSnapshot(
   sourceId: string,

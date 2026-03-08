@@ -18,6 +18,10 @@ describe("activity-status helpers", () => {
     expect(hasFreshMainSessionActivity(1_000, 1_000 + ACTIVE_STALE_MS + 1)).toBe(false)
   })
 
+  it("treats missing main session activity as inactive", () => {
+    expect(hasFreshMainSessionActivity(null, 10_000)).toBe(false)
+  })
+
   it("keeps recently queued background tasks active", () => {
     expect(shouldKeepQueuedBackgroundTaskActive(5_000, 5_000 + BACKGROUND_QUEUE_STALE_MS - 1)).toBe(true)
   })

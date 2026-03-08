@@ -3,8 +3,7 @@ import * as path from "node:path"
 import { pickLatestModelString } from "./model"
 import { getOpenCodeStorageDir, realpathSafe } from "./paths"
 import { deriveBackgroundTasks } from "./background-tasks"
-
-const QUESTION_TOOL_NAMES = new Set(["question", "AskUserQuestion", "ask_user_question", "askuserquestion", "mcp_question"])
+import { QUESTION_TOOL_NAMES } from "./tool-names"
 
 export type SessionMetadata = {
   id: string

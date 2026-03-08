@@ -13,14 +13,13 @@ import {
 } from "./storage-backend"
 import { aggregateTokenUsage } from "./token-usage-core"
 import { MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS, type ToolCallSummaryResult } from "./tool-calls"
+import { QUESTION_TOOL_NAMES, TASK_TOOL_NAMES } from "./tool-names"
 import type { TimeSeriesPayload, TimeSeriesSeries } from "./timeseries"
 
 type SqliteDeriveResult<T> =
   | { ok: true; value: T }
   | { ok: false; reason: SqliteReadFailureReason }
 
-const TASK_TOOL_NAMES = new Set(["delegate_task", "task", "call_omo_agent", "background_task"])
-const QUESTION_TOOL_NAMES = new Set(["question", "AskUserQuestion", "ask_user_question", "askuserquestion", "mcp_question"])
 const DESCRIPTION_MAX = 120
 const AGENT_MAX = 30
 const SESSION_ID_MAX = 200

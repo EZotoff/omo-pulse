@@ -24,7 +24,7 @@ vi.mock("../ingest/sources-registry", () => ({
 
 vi.mock("../server/multi-project", () => ({
   createMultiProjectService: vi.fn(() => ({
-    getMultiProjectPayload: vi.fn((): DashboardMultiProjectPayload => ({
+    getMultiProjectPayload: vi.fn(async (): Promise<DashboardMultiProjectPayload> => ({
       projects: [],
       serverNowMs: Date.now(),
       pollIntervalMs: 2000,

@@ -175,12 +175,14 @@ export function createMultiProjectService(opts: {
   }
 
   async function getMultiProjectPayload(): Promise<DashboardMultiProjectPayload> {
-    const cachedNowMs = Date.now()
-    if (cachedPayload && cachedNowMs - cachedPayloadAt < MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS) {
-      return cachedPayload
+    const nowMs = Date.now()
+    if (cachedPayload && nowMs - cachedPayloadAt < MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS) {
+      return {
+        ...cachedPayload,
+        serverNowMs: nowMs,
+      }
     }
 
-    const nowMs = Date.now()
     const sources = listSources(opts.storageRoot)
     const projects: ProjectSnapshot[] = []
 
@@ -205,12 +207,12 @@ export function createMultiProjectService(opts: {
 
     const payload = {
       projects,
-      serverNowMs: Date.now(),
+      serverNowMs: nowMs,
       pollIntervalMs,
     }
 
     cachedPayload = payload
-    cachedPayloadAt = Date.now()
+    cachedPayloadAt = nowMs
     return payload
   }
 

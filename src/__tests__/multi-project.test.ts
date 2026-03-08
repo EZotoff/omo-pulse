@@ -275,4 +275,30 @@ describe("createMultiProjectService", () => {
 
     expect(mockGetSnapshot).toHaveBeenCalledTimes(2)
   })
+
+  it("refreshes serverNowMs even when returning a cached payload", async () => {
+    vi.mocked(listSources).mockReturnValue([
+      { id: "src-1", label: "My App", updatedAt: 1000 },
+    ])
+    vi.mocked(getSourceById).mockReturnValue({
+      id: "src-1",
+      projectRoot: "/home/user/my-app",
+      label: "My App",
+      createdAt: 500,
+      updatedAt: 1000,
+    })
+    mockGetSnapshot.mockReturnValue(makeDashboardPayload())
+
+    const service = createMultiProjectService({
+      storageRoot: "/tmp/test",
+      storageBackend: { kind: "sqlite", dataDir: "/tmp", sqlitePath: "/tmp/test.db" },
+    })
+
+    const first = await service.getMultiProjectPayload()
+    vi.advanceTimersByTime(1_500)
+    const second = await service.getMultiProjectPayload()
+
+    expect(mockGetSnapshot).toHaveBeenCalledTimes(1)
+    expect(second.serverNowMs).toBeGreaterThan(first.serverNowMs)
+  })
 })

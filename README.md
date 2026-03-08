@@ -43,12 +43,18 @@ Run it as a persistent service alongside your development workflow and always kn
 
 <table>
   <tr>
-    <td><img src="docs/screenshots/1col.png" alt="Single column — full detail view" width="270"/></td>
+    <td colspan="3" align="center"><img src="docs/screenshots/details-expanded.png" alt="Full detail view with expanded panes" width="560"/></td>
+  </tr>
+  <tr>
+    <td colspan="3" align="center"><em>Full detail — expanded panes with session info</em></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/1col.png" alt="One column — collapsed view" width="270"/></td>
     <td><img src="docs/screenshots/2col.png" alt="Two-column grid" width="270"/></td>
     <td><img src="docs/screenshots/ultra-compact.png" alt="Ultra-compact view" width="270"/></td>
   </tr>
   <tr>
-    <td align="center"><em>Full detail</em></td>
+    <td align="center"><em>One column</em></td>
     <td align="center"><em>Two columns</em></td>
     <td align="center"><em>Ultra-compact</em></td>
   </tr>

@@ -122,7 +122,7 @@ describe("API routes", () => {
     vi.clearAllMocks()
 
     const mockService = {
-      getMultiProjectPayload: vi.fn((): DashboardMultiProjectPayload => ({
+      getMultiProjectPayload: vi.fn(async (): Promise<DashboardMultiProjectPayload> => ({
         projects: [makeProjectSnapshot()],
         serverNowMs: Date.now(),
         pollIntervalMs: 2000,

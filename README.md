@@ -66,12 +66,12 @@ Hear when your agents need attention. Custom synthesized sounds — no generic n
 
 | Event | Sound | Description |
 |-------|-------|-------------|
-| Session idle | [▶ Play](docs/sounds/idle.wav) | Soft double-tap — agent finished, waiting for you |
-| Plan complete | [▶ Play](docs/sounds/plan-complete.wav) | Ascending arpeggio — victory fanfare (sort of) |
-| Error/Attention | [▶ Play](docs/sounds/error.wav) | Dramatic sweep — something went sideways |
-| Question pending | [▶ Play](docs/sounds/question.wav) | Rising "whaaa?" — agent needs your input |
+| Session idle | [▶ Play](https://cdn.jsdelivr.net/gh/EZotoff/omo-pulse@master/docs/sounds/idle.wav) | Soft double-tap — agent finished, waiting for you |
+| Plan complete | [▶ Play](https://cdn.jsdelivr.net/gh/EZotoff/omo-pulse@master/docs/sounds/plan-complete.wav) | Ascending arpeggio — victory fanfare (sort of) |
+| Error/Attention | [▶ Play](https://cdn.jsdelivr.net/gh/EZotoff/omo-pulse@master/docs/sounds/error.wav) | Dramatic sweep — something went sideways |
+| Question pending | [▶ Play](https://cdn.jsdelivr.net/gh/EZotoff/omo-pulse@master/docs/sounds/question.wav) | Rising "whaaa?" — agent needs your input |
 
-All sounds are synthesized in real-time using the Web Audio API (no external files needed). Adjust volume per-event in settings.
+All sounds are synthesized in real-time using the Web Audio API (no external files needed). The links above open directly to browser-playable audio instead of a GitHub file page. Adjust volume per-event in settings.
 
 ## Quick Start
 

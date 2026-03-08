@@ -66,10 +66,10 @@ Hear when your agents need attention. Custom synthesized sounds — no generic n
 
 | Event | Sound | Description |
 |-------|-------|-------------|
-| Session idle | <audio controls src="docs/sounds/idle.wav"></audio> | Soft double-tap — agent finished, waiting for you |
-| Plan complete | <audio controls src="docs/sounds/plan-complete.wav"></audio> | Ascending arpeggio — victory fanfare (sort of) |
-| Error/Attention | <audio controls src="docs/sounds/error.wav"></audio> | Dramatic sweep — something went sideways |
-| Question pending | <audio controls src="docs/sounds/question.wav"></audio> | Rising "whaaa?" — agent needs your input |
+| Session idle | [▶ Play](docs/sounds/idle.wav) | Soft double-tap — agent finished, waiting for you |
+| Plan complete | [▶ Play](docs/sounds/plan-complete.wav) | Ascending arpeggio — victory fanfare (sort of) |
+| Error/Attention | [▶ Play](docs/sounds/error.wav) | Dramatic sweep — something went sideways |
+| Question pending | [▶ Play](docs/sounds/question.wav) | Rising "whaaa?" — agent needs your input |
 
 All sounds are synthesized in real-time using the Web Audio API (no external files needed). Adjust volume per-event in settings.
 

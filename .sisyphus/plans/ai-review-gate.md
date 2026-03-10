@@ -9,7 +9,8 @@
 > - New `src/review/policy.ts` module for score normalization, threshold policy, and decision derivation
 > - New `src/review/types.ts` module defining the scorecard/result contract
 > - New `src/__tests__/review-policy.test.ts` unit coverage for threshold and edge-case behavior
-> - Updated `.github/workflows/ci.yml` to run the gate on pull requests behind an explicit enable flag using a required-status-check-first model
+> - Added `.github/workflows/ai-review-gate.yml` as a reusable workflow that evaluates trusted caller-supplied scorecard input
+> - Kept `.github/workflows/ci.yml` focused on build/test so the trust boundary stays explicit
 >
 > **Estimated Effort**: Short
 > **Parallel Execution**: NO — small sequential implementation is lower-risk than splitting a new policy surface
@@ -56,15 +57,15 @@ Implement an executable AI review gate that converts structured review evidence 
   - block/fix/auto-approve threshold coverage
   - hard-gate cases for security/safety
   - disallowed auto-approval for high-risk change classes
-- `.github/workflows/ci.yml`
-  - add opt-in `review_gate` job on PRs
+- `.github/workflows/ai-review-gate.yml`
+  - reusable workflow with explicit trusted inputs for scorecard JSON and optional auto-approval
   - keep merge enforcement on status checks, not branch-protection bypasses
 
 ### Definition of Done
 - [ ] `bun run build` succeeds
 - [ ] `bun run test` passes with new review-policy tests
 - [ ] `bun run scripts/ai-review-gate.ts --input <scorecard.json>` returns deterministic policy JSON
-- [ ] PR workflow runs the gate job on pull requests
+- [ ] Trusted caller workflows can invoke the reusable AI gate workflow with explicit scorecard input
 - [ ] Gate fails on blocked PRs, stays pending/fails for fix-required PRs, and succeeds only for auto-approve-eligible PRs
 
 ### Must Have
@@ -132,15 +133,15 @@ Implement an executable AI review gate that converts structured review evidence 
 - Cover threshold boundaries and high-risk override behavior
 
 ### Task 5 — Integrate workflow
-- Update `.github/workflows/ci.yml`
-- Add opt-in PR-only `review_gate` job after install/setup
-- Accept scorecard input only from trusted runtime data such as a prior protected workflow step or environment injected by trusted automation
-- Fail closed when trusted input is missing while the gate is enabled
-- Keep permissions minimal unless later PR-review automation is explicitly added
+- Add `.github/workflows/ai-review-gate.yml`
+- Accept scorecard input only from a trusted caller via `workflow_call` or manual `workflow_dispatch`
+- Fail closed when trusted input is missing
+- Keep the auto-approval path in a separate job with `pull-requests: write`
+- Keep `.github/workflows/ci.yml` limited to build/test so default PR checks stay stable
 
 ---
 
 ## Notes
 
 - This implementation intentionally stops at **policy enforcement**. It does not try to generate the AI review itself inside the repo.
-- Optional bot approval can sit on top of the gate outputs, but the merge-critical mechanism should remain the required status check.
+- Optional bot approval can sit on top of the gate outputs, but the merge-critical mechanism should remain the required status check after a trusted caller workflow is wired into live branch protection.

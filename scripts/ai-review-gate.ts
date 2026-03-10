@@ -35,6 +35,10 @@ function formatBoolean(value: boolean): string {
   return value ? "true" : "false"
 }
 
+function createHeredocDelimiter(): string {
+  return `__OMO_${globalThis.crypto.randomUUID().replace(/-/g, "")}_EOF__`
+}
+
 function writeOutput(name: string, value: string): void {
   const outputPath = process.env.GITHUB_OUTPUT
   if (!outputPath) {
@@ -42,7 +46,11 @@ function writeOutput(name: string, value: string): void {
   }
 
   const encodedValue = value.includes("\n")
-    ? `${name}<<__OMO_EOF__\n${value}\n__OMO_EOF__\n`
+    ? (() => {
+        const delimiter = createHeredocDelimiter()
+
+        return `${name}<<${delimiter}\n${value}\n${delimiter}\n`
+      })()
     : `${name}=${value}\n`
 
   fs.appendFileSync(outputPath, encodedValue)
@@ -83,6 +91,15 @@ function writeGitHubOutputs(result: ReviewPolicyResult): void {
   writeOutput("auto_approve", formatBoolean(result.autoApprove))
 }
 
+function writeFailureOutputs(message: string): void {
+  writeOutput("decision", "block")
+  writeOutput("summary", `Decision: block. Unable to evaluate AI review gate input. Primary reason: ${message}.`)
+  writeOutput("reasons_json", JSON.stringify([message]))
+  writeOutput("composite_score", "")
+  writeOutput("blocked", "true")
+  writeOutput("auto_approve", "false")
+}
+
 function main(): void {
   try {
     const inputPath = getInputPath(process.argv.slice(2))
@@ -96,8 +113,7 @@ function main(): void {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown review gate failure"
     console.error(message)
-    writeOutput("decision", "invalid_input")
-    writeOutput("summary", message)
+    writeFailureOutputs(message)
     process.exit(2)
   }
 }

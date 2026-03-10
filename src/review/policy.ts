@@ -64,7 +64,7 @@ function readNumber(value: unknown, fieldName: string): number {
     throw new Error(`${fieldName} must be between 0 and 5`)
   }
 
-  return roundScore(value)
+  return value
 }
 
 function parseReviewScores(value: unknown): ReviewScores {
@@ -155,7 +155,13 @@ export function calculateCompositeScore(scores: ReviewScores): number {
 }
 
 function formatScore(score: number): string {
-  return score.toFixed(2)
+  const roundedToTwoDecimals = Number(score.toFixed(2))
+
+  if (Math.abs(score - roundedToTwoDecimals) < Number.EPSILON) {
+    return score.toFixed(2)
+  }
+
+  return score.toString()
 }
 
 function isBlockingCriticalFinding(finding: ReviewFinding): boolean {

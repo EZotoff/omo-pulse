@@ -1,0 +1,121 @@
+name: AI Review Gate
+
+on:
+  workflow_call:
+    inputs:
+      scorecard_json:
+        description: Trusted AI review scorecard JSON for the current pull request
+        required: true
+        type: string
+      enable_auto_approve:
+        description: Submit a PR approval when the gate marks the PR as auto-approve eligible
+        required: false
+        default: false
+        type: boolean
+      pull_request_url:
+        description: Pull request URL used when auto-approval is enabled
+        required: false
+        default: ""
+        type: string
+    outputs:
+      decision:
+        description: Review gate decision
+        value: ${{ jobs.review_gate.outputs.decision }}
+      summary:
+        description: Human-readable review gate summary
+        value: ${{ jobs.review_gate.outputs.summary }}
+      blocked:
+        description: Whether the gate blocked the change
+        value: ${{ jobs.review_gate.outputs.blocked }}
+      auto_approve:
+        description: Whether the change is eligible for auto-approval
+        value: ${{ jobs.review_gate.outputs.auto_approve }}
+  workflow_dispatch:
+    inputs:
+      scorecard_json:
+        description: Trusted AI review scorecard JSON for manual gate evaluation
+        required: true
+        type: string
+      enable_auto_approve:
+        description: Submit a PR approval when the gate marks the PR as auto-approve eligible
+        required: false
+        default: false
+        type: boolean
+      pull_request_url:
+        description: Pull request URL used when auto-approval is enabled
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  review_gate:
+    runs-on: ubuntu-latest
+    outputs:
+      decision: ${{ steps.gate.outputs.decision }}
+      summary: ${{ steps.gate.outputs.summary }}
+      blocked: ${{ steps.gate.outputs.blocked }}
+      auto_approve: ${{ steps.gate.outputs.auto_approve }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Require trusted AI review scorecard input
+        env:
+          AI_REVIEW_SCORECARD_JSON: ${{ inputs.scorecard_json }}
+        run: |
+          if [ -z "${AI_REVIEW_SCORECARD_JSON}" ]; then
+            echo "scorecard_json is required."
+            echo "Provide the scorecard from a trusted caller workflow or workflow_dispatch input."
+            exit 1
+          fi
+
+      - name: Write AI review scorecard
+        env:
+          AI_REVIEW_SCORECARD_JSON: ${{ inputs.scorecard_json }}
+        run: |
+          mkdir -p .ai-review
+          printf '%s' "$AI_REVIEW_SCORECARD_JSON" > .ai-review/scorecard.json
+
+      - name: Evaluate AI review gate
+        id: gate
+        run: bun run scripts/ai-review-gate.ts --input .ai-review/scorecard.json
+
+      - name: Require pull request URL for auto-approval
+        if: steps.gate.outputs.auto_approve == 'true' && inputs.enable_auto_approve == true && inputs.pull_request_url == ''
+        run: |
+          echo "pull_request_url is required when enable_auto_approve is true and the gate returns auto_approve."
+          exit 1
+
+      - name: Explain auto-approval prerequisites
+        if: steps.gate.outputs.auto_approve == 'true' && inputs.enable_auto_approve != true
+        run: |
+          printf '%s\n' 'Auto-approval eligibility detected, but enable_auto_approve was not set.' >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' 'The gate passed. Configure the trusted caller workflow to opt into bot approval if desired.' >> "$GITHUB_STEP_SUMMARY"
+
+  auto_approve:
+    if: needs.review_gate.outputs.auto_approve == 'true' && inputs.enable_auto_approve == true && inputs.pull_request_url != ''
+    needs: review_gate
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Auto-approve eligible PR
+        id: submit_review
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ inputs.pull_request_url }}
+        run: gh pr review --approve "$PR_URL" --body "AI review gate marked this PR auto-approve eligible."
+
+      - name: Record auto-approval failure
+        if: steps.submit_review.outcome == 'failure'
+        run: |
+          printf '%s\n' 'Bot approval failed. Check repository settings that allow GitHub Actions to approve pull requests.' >> "$GITHUB_STEP_SUMMARY"

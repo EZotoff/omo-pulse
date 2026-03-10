@@ -60,6 +60,23 @@ describe("parseReviewScorecard", () => {
 })
 
 describe("evaluateReviewScorecard", () => {
+  it("blocks when a raw security score stays below the blocking threshold", () => {
+    const result = evaluateReviewScorecard(
+      makeScorecard({
+        scores: {
+          security: 1.999,
+          safety: 4.9,
+          performance: 4.7,
+          featureQuality: 4.9,
+          confidence: 4.6,
+        },
+      }),
+    )
+
+    expect(result.decision).toBe("block")
+    expect(result.reasons[0]).toContain("1.999")
+  })
+
   it("blocks when security score is too low", () => {
     const result = evaluateReviewScorecard(
       makeScorecard({
@@ -98,6 +115,23 @@ describe("evaluateReviewScorecard", () => {
     expect(result.reasons[0]).toContain("Critical security finding")
   })
 
+  it("does not block when a raw security score is above the blocking threshold", () => {
+    const result = evaluateReviewScorecard(
+      makeScorecard({
+        scores: {
+          security: 2.001,
+          safety: 4.9,
+          performance: 4.7,
+          featureQuality: 4.9,
+          confidence: 4.6,
+        },
+      }),
+    )
+
+    expect(result.decision).toBe("request_fixes")
+    expect(result.blocked).toBe(false)
+  })
+
   it("requests fixes when scores miss the auto-approval threshold", () => {
     const result = evaluateReviewScorecard(
       makeScorecard({
@@ -114,6 +148,23 @@ describe("evaluateReviewScorecard", () => {
     expect(result.decision).toBe("request_fixes")
     expect(result.blocked).toBe(false)
     expect(result.reasons.some((reason) => reason.includes("performance score 4.20"))).toBe(true)
+  })
+
+  it("requests fixes when a raw dimension score stays below the auto-approval threshold", () => {
+    const result = evaluateReviewScorecard(
+      makeScorecard({
+        scores: {
+          security: 4.8,
+          safety: 4.8,
+          performance: 4.499,
+          featureQuality: 4.9,
+          confidence: 4.6,
+        },
+      }),
+    )
+
+    expect(result.decision).toBe("request_fixes")
+    expect(result.reasons.some((reason) => reason.includes("4.499"))).toBe(true)
   })
 
   it("requests fixes when risk is not low", () => {
@@ -145,6 +196,22 @@ describe("evaluateReviewScorecard", () => {
     expect(result.decision).toBe("auto_approve")
     expect(result.autoApprove).toBe(true)
     expect(result.blocked).toBe(false)
-    expect(result.compositeScore).toBe(4.82)
+    expect(result.compositeScore).toBeCloseTo(4.82, 2)
+  })
+
+  it("auto-approves when a raw dimension score exceeds the threshold", () => {
+    const result = evaluateReviewScorecard(
+      makeScorecard({
+        scores: {
+          security: 4.8,
+          safety: 4.8,
+          performance: 4.501,
+          featureQuality: 4.9,
+          confidence: 4.6,
+        },
+      }),
+    )
+
+    expect(result.decision).toBe("auto_approve")
   })
 })

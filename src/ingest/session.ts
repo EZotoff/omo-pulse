@@ -368,7 +368,11 @@ export function getMainSessionView(opts: {
       mainSessionId: opts.sessionId,
       nowMs,
     })
-    if (bgTasks.some((t) => t.status === "running" || t.status === "queued")) {
+    const questionTask = bgTasks.find((t) => t.status === "question")
+    if (questionTask) {
+      status = "question"
+      if (!activeTool) activeTool = { tool: questionTask.lastTool ?? "question", status: "running" }
+    } else if (bgTasks.some((t) => t.status === "running" || t.status === "queued")) {
       status = "running_tool"
       if (!activeTool) activeTool = { tool: "task", status: "running" }
     }

@@ -183,6 +183,7 @@ describe("createMultiProjectService", () => {
   it("maps statusPill values correctly to SessionStatus", async () => {
     const testCases: Array<{ pill: string; expected: string }> = [
       { pill: "running tool", expected: "running_tool" },
+      { pill: "question", expected: "question" },
       { pill: "thinking", expected: "thinking" },
       { pill: "busy", expected: "busy" },
       { pill: "idle", expected: "idle" },

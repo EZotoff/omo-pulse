@@ -78,7 +78,7 @@ describe("buildReviewScorecardFromChecks", () => {
     expect(scorecard.scores.safety).toBe(4.8)
     expect(scorecard.scores.performance).toBe(4)
     expect(scorecard.scores.featureQuality).toBe(4.1)
-    expect(scorecard.scores.confidence).toBe(3.8)
+    expect(scorecard.scores.confidence).toBe(4.2)
     expect(scorecard.risk).toBe("low")
     expect(result.decision).toBe("request_fixes")
     expect(result.blocked).toBe(false)

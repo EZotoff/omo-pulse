@@ -34,7 +34,7 @@ const PARTIAL_SIGNAL_SCORE = 3.2
 const FAILING_REQUIRED_SCORE = 1.5
 const PERFORMANCE_PROXY_SCORE = 4.0
 const FEATURE_QUALITY_PROXY_SCORE = 4.1
-const LIMITED_CONFIDENCE_SCORE = 3.8
+const HEALTHY_CONFIDENCE_SCORE = 4.2
 const PARTIAL_CONFIDENCE_SCORE = 3.2
 const HIGH_CONFIDENCE_SCORE = 4.4
 
@@ -253,7 +253,7 @@ export function buildReviewScorecardFromChecks(
 
   const performanceScore = buildState === "pass" ? PERFORMANCE_PROXY_SCORE : PARTIAL_SIGNAL_SCORE
   const featureQualityScore = testState === "pass" ? FEATURE_QUALITY_PROXY_SCORE : PARTIAL_SIGNAL_SCORE
-  const confidenceScore = safetyFailed || securityFailed ? HIGH_CONFIDENCE_SCORE : allCoreChecksPassed ? LIMITED_CONFIDENCE_SCORE : PARTIAL_CONFIDENCE_SCORE
+  const confidenceScore = safetyFailed || securityFailed ? HIGH_CONFIDENCE_SCORE : allCoreChecksPassed ? HEALTHY_CONFIDENCE_SCORE : PARTIAL_CONFIDENCE_SCORE
 
   const risk: ReviewRiskLevel = safetyFailed || securityFailed ? "high" : allCoreChecksPassed ? "low" : "medium"
 

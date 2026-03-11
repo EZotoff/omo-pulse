@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { mergeScorecards } from "../review/merge-scorecards"
+import { evaluateReviewScorecard } from "../review/policy"
 import type { ReviewScorecard } from "../review/types"
 
 function makeScorecard(overrides: Partial<ReviewScorecard> = {}): ReviewScorecard {
@@ -479,5 +480,67 @@ describe("mergeScorecards", () => {
         "LLM finding 2",
       ])
     })
+  })
+})
+
+describe("Confidence contradiction regression", () => {
+  it("deterministic-only path still produces request_fixes due to performance/featureQuality caps", () => {
+    // Simulates a healthy PR: all checks pass, but no LLM analysis
+    const healthyDeterministic = makeScorecard({
+      scores: {
+        security: 4.9,
+        safety: 4.8,
+        performance: 4.0, // Capped proxy for build
+        featureQuality: 4.1, // Capped proxy for test
+        confidence: 4.2, // Healthy deterministic confidence (was 3.8)
+      },
+      risk: "low",
+      autoApproveAllowed: true,
+    })
+
+    const result = evaluateReviewScorecard(healthyDeterministic)
+
+    // Deterministic alone should still request_fixes due to perf/quality caps
+    expect(result.decision).toBe("request_fixes")
+    expect(result.reasons.some((reason) => reason.includes("performance"))).toBe(true)
+  })
+
+  it("merged path with strong LLM scores and healthy deterministic confidence can auto_approve", () => {
+    // Simulates a healthy PR with strong LLM analysis
+    const healthyDeterministic = makeScorecard({
+      scores: {
+        security: 4.9,
+        safety: 4.8,
+        performance: 4.0,
+        featureQuality: 4.1,
+        confidence: 4.2, // Healthy deterministic confidence (>= 4.0 for auto-approve)
+      },
+      risk: "low",
+      autoApproveAllowed: true,
+    })
+
+    const strongLLM = makeScorecard({
+      scores: {
+        security: 4.8, // LLM security/safety ignored, check-run takes precedence
+        safety: 4.9,
+        performance: 4.8, // Strong LLM performance
+        featureQuality: 4.9, // Strong LLM quality
+        confidence: 4.6, // LLM confidence (min will be 4.2)
+      },
+      risk: "low",
+      autoApproveAllowed: true,
+    })
+
+    const merged = mergeScorecards(healthyDeterministic, strongLLM)
+    const result = evaluateReviewScorecard(merged)
+
+    // Merged with strong LLM should auto_approve now
+    expect(merged.scores.security).toBe(4.9) // From check-run
+    expect(merged.scores.safety).toBe(4.8) // From check-run
+    expect(merged.scores.performance).toBe(4.8) // From LLM
+    expect(merged.scores.featureQuality).toBe(4.9) // From LLM
+    expect(merged.scores.confidence).toBe(4.2) // Minimum of 4.2 and 4.6
+    expect(result.decision).toBe("auto_approve") // Can now reach auto_approve!
+    expect(result.autoApprove).toBe(true)
   })
 })

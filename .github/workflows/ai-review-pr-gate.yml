@@ -1,0 +1,144 @@
+name: AI Review PR Gate
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: Pull request number to evaluate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  checks: read
+  pull-requests: write
+
+jobs:
+  prepare_scorecard:
+    name: prepare-scorecard
+    runs-on: ubuntu-latest
+    outputs:
+      scorecard_json: ${{ steps.expose.outputs.scorecard_json }}
+      pull_request_url: ${{ steps.expose.outputs.pull_request_url }}
+      enable_auto_approve: ${{ steps.expose.outputs.enable_auto_approve }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Resolve workflow dispatch pull request context
+        if: github.event_name == 'workflow_dispatch'
+        id: dispatch_context
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST_NUMBER: ${{ inputs.pull_request_number }}
+        run: |
+          HEAD_SHA="$(gh api "repos/$REPOSITORY/pulls/$PULL_REQUEST_NUMBER" --jq '.head.sha')"
+          PULL_REQUEST_URL="$(gh api "repos/$REPOSITORY/pulls/$PULL_REQUEST_NUMBER" --jq '.html_url')"
+          HEAD_REPO="$(gh api "repos/$REPOSITORY/pulls/$PULL_REQUEST_NUMBER" --jq '.head.repo.full_name // ""')"
+          IS_DRAFT="$(gh api "repos/$REPOSITORY/pulls/$PULL_REQUEST_NUMBER" --jq '.draft')"
+
+          if [ "$IS_DRAFT" = "false" ] && [ "$HEAD_REPO" = "$REPOSITORY" ]; then
+            ENABLE_AUTO_APPROVE="true"
+          else
+            ENABLE_AUTO_APPROVE="false"
+          fi
+
+          {
+            echo "head_sha=$HEAD_SHA"
+            echo "pull_request_url=$PULL_REQUEST_URL"
+            echo "enable_auto_approve=$ENABLE_AUTO_APPROVE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Normalize pull request context
+        id: pr_context
+        env:
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || steps.dispatch_context.outputs.head_sha }}
+          PULL_REQUEST_URL: ${{ github.event_name == 'pull_request' && github.event.pull_request.html_url || steps.dispatch_context.outputs.pull_request_url }}
+          ENABLE_AUTO_APPROVE: ${{ github.event_name == 'pull_request' && (github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository) || steps.dispatch_context.outputs.enable_auto_approve }}
+        run: |
+          {
+            echo "head_sha=$HEAD_SHA"
+            echo "pull_request_url=$PULL_REQUEST_URL"
+            echo "enable_auto_approve=$ENABLE_AUTO_APPROVE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Generate review scorecard from pull request checks
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.pr_context.outputs.head_sha }}
+          PULL_REQUEST_URL: ${{ steps.pr_context.outputs.pull_request_url }}
+          ENABLE_AUTO_APPROVE: ${{ steps.pr_context.outputs.enable_auto_approve }}
+        run: |
+          mkdir -p .ai-review
+          bun run scripts/generate-review-scorecard.ts \
+            --repository "$GITHUB_REPOSITORY" \
+            --head-sha "$HEAD_SHA" \
+            --pull-request-url "$PULL_REQUEST_URL" \
+            --auto-approve-allowed "$ENABLE_AUTO_APPROVE" \
+            --output .ai-review/scorecard.json
+
+      - name: Publish derived scorecard summary
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          with open('.ai-review/scorecard.json', 'r', encoding='utf-8') as fh:
+              scorecard = json.load(fh)
+
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as fh:
+              fh.write('## Derived Review Scorecard\n\n')
+              fh.write(f"- Source: `{scorecard.get('source', 'unknown')}`\n")
+              fh.write(f"- Risk: `{scorecard['risk']}`\n")
+              fh.write(f"- Auto-approve allowed: `{scorecard['autoApproveAllowed']}`\n\n")
+              fh.write('| Dimension | Score |\n')
+              fh.write('| --- | ---: |\n')
+              for key, value in scorecard['scores'].items():
+                  fh.write(f'| {key} | {value:.2f} |\n')
+              fh.write('\n')
+              if scorecard.get('summary'):
+                  fh.write(f"{scorecard['summary']}\n\n")
+              if scorecard['findings']:
+                  fh.write('### Findings\n\n')
+                  for finding in scorecard['findings']:
+                      fh.write(
+                          f"- **{finding['dimension']}** `{finding['severity']}` / `{finding['confidence']}` — {finding['summary']}\n"
+                      )
+          PY
+
+      - name: Expose scorecard JSON to downstream gate
+        id: expose
+        env:
+          PULL_REQUEST_URL: ${{ steps.pr_context.outputs.pull_request_url }}
+          ENABLE_AUTO_APPROVE: ${{ steps.pr_context.outputs.enable_auto_approve }}
+        run: |
+          {
+            echo 'scorecard_json<<EOF'
+            cat .ai-review/scorecard.json
+            echo 'EOF'
+            echo "pull_request_url=$PULL_REQUEST_URL"
+            echo "enable_auto_approve=$ENABLE_AUTO_APPROVE"
+          } >> "$GITHUB_OUTPUT"
+
+  ai_review_gate:
+    name: ai-review-gate
+    needs: prepare_scorecard
+    uses: ./.github/workflows/ai-review-gate.yml
+    permissions:
+      contents: read
+      pull-requests: write
+    with:
+      scorecard_json: ${{ needs.prepare_scorecard.outputs.scorecard_json }}
+      enable_auto_approve: ${{ needs.prepare_scorecard.outputs.enable_auto_approve == 'true' }}
+      pull_request_url: ${{ needs.prepare_scorecard.outputs.pull_request_url }}

@@ -185,7 +185,7 @@ jobs:
     needs: prepare_scorecard
     uses: ./.github/workflows/ai-review-gate.yml
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     with:
       scorecard_json: ${{ needs.prepare_scorecard.outputs.scorecard_json }}

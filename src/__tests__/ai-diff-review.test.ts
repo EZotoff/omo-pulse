@@ -4,9 +4,8 @@ import * as path from "node:path"
 import { spawnSync } from "node:child_process"
 
 import { afterEach, describe, expect, it } from "vitest"
-import { createEmptyDiffScorecard, normalizeModelScorecard } from "../../scripts/ai-diff-review"
+import { buildReviewScorecardSchema, createEmptyDiffScorecard, normalizeModelScorecard } from "../../scripts/ai-diff-review"
 import { parseReviewScorecard } from "../review/policy"
-import type { ReviewScorecard } from "../review/types"
 
 type DiffReviewRunResult = {
   exitCode: number
@@ -182,6 +181,81 @@ describe("createEmptyDiffScorecard", () => {
 })
 
 describe("normalizeModelScorecard", () => {
+  it("accepts nullable optional fields from strict model schema and omits them before parsing", () => {
+    const rawResponse = {
+      summary: null,
+      source: null,
+      scores: {
+        security: 4.5,
+        safety: 4.4,
+        performance: 4.3,
+        featureQuality: 4.2,
+        confidence: 4.1,
+      },
+      risk: "low",
+      autoApproveAllowed: false,
+      findings: [
+        {
+          dimension: "security",
+          severity: "info",
+          confidence: "medium",
+          summary: "No issue confirmed",
+          file: null,
+          line: null,
+          suggestion: null,
+        },
+      ],
+    }
+
+    const normalized = normalizeModelScorecard(rawResponse, "gpt-4o-mini")
+
+    expect(normalized.summary).toBeUndefined()
+    expect(normalized.source).toBe("llm-gpt-4o-mini")
+    expect(normalized.findings).toEqual([
+      {
+        dimension: "security",
+        severity: "info",
+        confidence: "medium",
+        summary: "No issue confirmed",
+        file: undefined,
+        line: undefined,
+        suggestion: undefined,
+      },
+    ])
+    expect(() => parseReviewScorecard(normalized)).not.toThrow()
+  })
+
+  it("rejects nullable line fields that are not positive integers", () => {
+    const rawResponse = {
+      summary: "Review",
+      source: null,
+      scores: {
+        security: 4.5,
+        safety: 4.5,
+        performance: 4.5,
+        featureQuality: 4.5,
+        confidence: 4.5,
+      },
+      risk: "low",
+      autoApproveAllowed: false,
+      findings: [
+        {
+          dimension: "security",
+          severity: "info",
+          confidence: "medium",
+          summary: "Invalid line",
+          file: null,
+          line: 0,
+          suggestion: null,
+        },
+      ],
+    }
+
+    expect(() => normalizeModelScorecard(rawResponse, "gpt-4o-mini")).toThrow(
+      "findings[0].line must be a positive integer or null",
+    )
+  })
+
   it("rejects non-object responses", () => {
     expect(() => normalizeModelScorecard(null, "gpt-4o-mini")).toThrow(
       "GitHub Models response must be a JSON object",
@@ -289,5 +363,30 @@ describe("normalizeModelScorecard", () => {
       risk: "low",
       autoApproveAllowed: true,
     })
+  })
+})
+
+describe("buildReviewScorecardSchema", () => {
+  it("requires every finding property under strict schema and allows nullable optional fields", () => {
+    const schema = buildReviewScorecardSchema()
+    const findings = schema.properties.findings as {
+      items: {
+        properties: Record<string, unknown>
+        required: string[]
+      }
+    }
+
+    expect(findings.items.required).toEqual([
+      "dimension",
+      "severity",
+      "confidence",
+      "summary",
+      "file",
+      "line",
+      "suggestion",
+    ])
+    expect(findings.items.properties.file).toEqual({ type: "string", nullable: true })
+    expect(findings.items.properties.line).toEqual({ type: "integer", nullable: true })
+    expect(findings.items.properties.suggestion).toEqual({ type: "string", nullable: true })
   })
 })

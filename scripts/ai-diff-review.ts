@@ -288,13 +288,31 @@ function createEmptyDiffScorecard(): ReviewScorecard {
   }
 }
 
+function nullableStringSchema(): { type: "string"; nullable: true } {
+  return { type: "string", nullable: true }
+}
+
+function nullableIntegerSchema(): { type: "integer"; nullable: true } {
+  return { type: "integer", nullable: true }
+}
+
+const FINDING_ITEM_REQUIRED_FIELDS = [
+  "dimension",
+  "severity",
+  "confidence",
+  "summary",
+  "file",
+  "line",
+  "suggestion",
+] as const
+
 function buildReviewScorecardSchema(): JsonSchema {
   return {
     type: "object",
     additionalProperties: false,
     properties: {
-      summary: { type: "string" },
-      source: { type: "string" },
+      summary: nullableStringSchema(),
+      source: nullableStringSchema(),
       scores: {
         type: "object",
         additionalProperties: false,
@@ -331,15 +349,15 @@ function buildReviewScorecardSchema(): JsonSchema {
               enum: ["low", "medium", "high"],
             },
             summary: { type: "string" },
-            file: { type: "string" },
-            line: { type: "integer" },
-            suggestion: { type: "string" },
+            file: nullableStringSchema(),
+            line: nullableIntegerSchema(),
+            suggestion: nullableStringSchema(),
           },
-          required: ["dimension", "severity", "confidence", "summary"],
+          required: [...FINDING_ITEM_REQUIRED_FIELDS],
         },
       },
     },
-    required: ["scores", "risk", "autoApproveAllowed", "findings"],
+    required: ["summary", "source", "scores", "risk", "autoApproveAllowed", "findings"],
   }
 }
 
@@ -448,6 +466,48 @@ function readOptionalString(value: unknown): string | undefined {
   return value
 }
 
+function readNullableOptionalString(value: unknown): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined
+  }
+
+  return readOptionalString(value)
+}
+
+function readNullablePositiveInteger(value: unknown, fieldName: string): number | undefined {
+  if (value === undefined || value === null) {
+    return undefined
+  }
+
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+    throw new Error(`${fieldName} must be a positive integer or null`)
+  }
+
+  return value
+}
+
+function normalizeFindings(value: unknown): unknown[] {
+  if (!Array.isArray(value)) {
+    throw new Error("findings must be an array")
+  }
+
+  return value.map((finding, index) => {
+    if (!isRecord(finding)) {
+      throw new Error(`findings[${index}] must be an object`)
+    }
+
+    return {
+      dimension: finding.dimension,
+      severity: finding.severity,
+      confidence: finding.confidence,
+      summary: finding.summary,
+      file: readNullableOptionalString(finding.file),
+      line: readNullablePositiveInteger(finding.line, `findings[${index}].line`),
+      suggestion: readNullableOptionalString(finding.suggestion),
+    }
+  })
+}
+
 function clampScore(value: unknown, fieldName: string): number {
   if (typeof value !== "number" || Number.isNaN(value)) {
     throw new Error(`${fieldName} must be a number`)
@@ -462,8 +522,8 @@ function normalizeModelScorecard(value: unknown, model: string): ReviewScorecard
   }
 
   const normalized = {
-    summary: readOptionalString(value.summary),
-    source: readOptionalString(value.source) ?? createModelSource(model),
+    summary: readNullableOptionalString(value.summary),
+    source: readNullableOptionalString(value.source) ?? createModelSource(model),
     scores: {
       security: clampScore(isRecord(value.scores) ? value.scores.security : undefined, "scores.security"),
       safety: clampScore(isRecord(value.scores) ? value.scores.safety : undefined, "scores.safety"),
@@ -473,7 +533,7 @@ function normalizeModelScorecard(value: unknown, model: string): ReviewScorecard
     },
     risk: value.risk,
     autoApproveAllowed: value.autoApproveAllowed,
-    findings: value.findings,
+    findings: normalizeFindings(value.findings),
   }
 
   return parseReviewScorecard(normalized)
@@ -508,7 +568,7 @@ async function main(): Promise<void> {
   await writeOutput(scorecard, args.outputPath)
 }
 
-export { createEmptyDiffScorecard, normalizeModelScorecard }
+export { buildReviewScorecardSchema, createEmptyDiffScorecard, normalizeModelScorecard }
 
 if (import.meta.main) {
   main().catch((error) => {

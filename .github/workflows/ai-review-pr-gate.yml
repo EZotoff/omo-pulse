@@ -134,7 +134,8 @@ jobs:
             }
 
             const merged = mergeScorecards(checkRunScorecard, llmScorecard);
-            writeFileSync('.ai-review/scorecard.json', JSON.stringify(merged, null, 2));
+            // Ensure JSON ends with newline for GitHub Actions heredoc
+            writeFileSync('.ai-review/scorecard.json', JSON.stringify(merged, null, 2) + '\n');
           "
 
       - name: Publish derived scorecard summary

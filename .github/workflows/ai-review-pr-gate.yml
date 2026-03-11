@@ -20,9 +20,11 @@ jobs:
   prepare_scorecard:
     name: prepare-scorecard
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     outputs:
       scorecard_json: ${{ steps.expose.outputs.scorecard_json }}
       pull_request_url: ${{ steps.expose.outputs.pull_request_url }}
+      pull_request_number: ${{ steps.pr_context.outputs.pull_request_number }}
       enable_auto_approve: ${{ steps.expose.outputs.enable_auto_approve }}
 
     steps:
@@ -65,11 +67,13 @@ jobs:
         env:
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || steps.dispatch_context.outputs.head_sha }}
           PULL_REQUEST_URL: ${{ github.event_name == 'pull_request' && github.event.pull_request.html_url || steps.dispatch_context.outputs.pull_request_url }}
+          PULL_REQUEST_NUMBER: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.pull_request_number }}
           ENABLE_AUTO_APPROVE: ${{ github.event_name == 'pull_request' && (github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository) || steps.dispatch_context.outputs.enable_auto_approve }}
         run: |
           {
             echo "head_sha=$HEAD_SHA"
             echo "pull_request_url=$PULL_REQUEST_URL"
+            echo "pull_request_number=$PULL_REQUEST_NUMBER"
             echo "enable_auto_approve=$ENABLE_AUTO_APPROVE"
           } >> "$GITHUB_OUTPUT"
 
@@ -86,7 +90,52 @@ jobs:
             --head-sha "$HEAD_SHA" \
             --pull-request-url "$PULL_REQUEST_URL" \
             --auto-approve-allowed "$ENABLE_AUTO_APPROVE" \
-            --output .ai-review/scorecard.json
+            --output .ai-review/check-run-scorecard.json
+
+      - name: Run LLM diff analysis (graceful degradation)
+        id: llm_analysis
+        timeout-minutes: 20
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PULL_REQUEST_NUMBER: ${{ steps.pr_context.outputs.pull_request_number }}
+        run: |
+          mkdir -p .ai-review
+          bun run scripts/ai-diff-review.ts \
+            --repository "$GITHUB_REPOSITORY" \
+            --pull-number "$PULL_REQUEST_NUMBER" \
+            --output .ai-review/llm-scorecard.json \
+            --model "gpt-4o-mini" \
+            --max-diff-chars 50000
+        if: steps.pr_context.outputs.pull_request_number != ''
+
+      - name: Merge deterministic and LLM scorecards
+        id: merge_scorecards
+        env:
+          PULL_REQUEST_URL: ${{ steps.pr_context.outputs.pull_request_url }}
+          ENABLE_AUTO_APPROVE: ${{ steps.pr_context.outputs.enable_auto_approve }}
+        run: |
+          mkdir -p .ai-review
+          bun --eval "
+            import { mergeScorecards } from './src/review/merge-scorecards.ts';
+            import { readFileSync, writeFileSync } from 'fs';
+
+            const checkRunScorecard = JSON.parse(
+              readFileSync('.ai-review/check-run-scorecard.json', 'utf-8')
+            );
+
+            let llmScorecard = null;
+            try {
+              llmScorecard = JSON.parse(
+                readFileSync('.ai-review/llm-scorecard.json', 'utf-8')
+              );
+            } catch (error) {
+              console.log('LLM scorecard unavailable, merging with null');
+            }
+
+            const merged = mergeScorecards(checkRunScorecard, llmScorecard);
+            writeFileSync('.ai-review/scorecard.json', JSON.stringify(merged, null, 2));
+          "
 
       - name: Publish derived scorecard summary
         run: |

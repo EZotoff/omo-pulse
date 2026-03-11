@@ -147,6 +147,22 @@ function mapToolPartsByMessage(parts: StoredToolPart[]): Map<string, StoredToolP
   return out
 }
 
+function findActiveQuestionTool(
+  metas: StoredMessageMeta[],
+  partsByMessage: Map<string, StoredToolPart[]>,
+): string | null {
+  for (const meta of metas) {
+    const parts = partsByMessage.get(meta.id) ?? []
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const part = parts[i]
+      if ((part.state.status === "pending" || part.state.status === "running") && QUESTION_TOOL_NAMES.has(part.tool)) {
+        return part.tool
+      }
+    }
+  }
+  return null
+}
+
 function readSessionMessagesAndParts(opts: {
   sqlitePath: string
   sessionId: string
@@ -428,9 +444,15 @@ export function getMainSessionViewSqlite(opts: {
       mainSessionId: opts.sessionId,
       nowMs,
     })
-    if (bgResult.ok && bgResult.value.some((t) => t.status === "running" || t.status === "queued")) {
-      status = "running_tool"
-      if (!activeTool) activeTool = { tool: "task", status: "running" }
+    if (bgResult.ok) {
+      const questionTask = bgResult.value.find((t) => t.status === "question")
+      if (questionTask) {
+        status = "question"
+        if (!activeTool) activeTool = { tool: questionTask.lastTool ?? "question", status: "running" }
+      } else if (bgResult.value.some((t) => t.status === "running" || t.status === "queued")) {
+        status = "running_tool"
+        if (!activeTool) activeTool = { tool: "task", status: "running" }
+      }
     }
   }
 
@@ -569,6 +591,7 @@ export function deriveBackgroundTasksSqlite(opts: {
       if (background && !background.ok) return background
       const backgroundMetas = background && background.ok ? background.value.metas : []
       const backgroundPartsByMessage = background && background.ok ? background.value.partsByMessage : new Map<string, StoredToolPart[]>()
+      const activeQuestionTool = findActiveQuestionTool(backgroundMetas, backgroundPartsByMessage)
 
       let toolCalls = 0
       let lastTool: string | null = null
@@ -596,6 +619,8 @@ export function deriveBackgroundTasksSqlite(opts: {
         status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
       } else if (toolCalls === 0 && lastUpdateAt === null) {
         status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
+      } else if (activeQuestionTool) {
+        status = "question"
       } else if (lastUpdateAt && nowMs - lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) {
         status = "running"
       } else if (toolCalls > 0) {
@@ -610,7 +635,7 @@ export function deriveBackgroundTasksSqlite(opts: {
         agent,
         status,
         toolCalls: backgroundSessionId ? toolCalls : null,
-        lastTool,
+        lastTool: activeQuestionTool ?? lastTool,
         lastModel,
         timeline: status === "unknown" ? "" : formatTimeline(startedAt, timelineEndMs),
         sessionId: backgroundSessionId,

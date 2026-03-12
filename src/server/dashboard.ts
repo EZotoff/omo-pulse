@@ -1,6 +1,6 @@
 import * as fs from "node:fs"
 
-import { readBoulderState, readPlanProgress, readPlanSteps, type PlanStep } from "../ingest/boulder"
+import { readBoulderState, readPlanProgress, readPlanSteps, scanUnintiatedPlans, type PlanStep } from "../ingest/boulder"
 import { deriveBackgroundTasks } from "../ingest/background-tasks"
 import { deriveTimeSeriesActivity, type TimeSeriesPayload } from "../ingest/timeseries"
 import {
@@ -15,6 +15,7 @@ import {
 import { deriveToolCalls } from "../ingest/tool-calls"
 import { deriveTokenUsage } from "../ingest/token-usage"
 import type { StorageBackend } from "../ingest/storage-backend"
+import type { UnintiatedPlan } from "../types"
 import {
   deriveBackgroundTasksSqlite,
   deriveTimeSeriesActivitySqlite,
@@ -50,6 +51,7 @@ export type DashboardPayload = {
     planStale: boolean
     planComplete: boolean
   }
+  unintiatedPlans: UnintiatedPlan[]
   backgroundTasks: Array<{
     id: string
     description: string
@@ -232,6 +234,8 @@ function buildDashboardPayloadFiles(opts: {
     backgroundSessionIds: tasks.map((task) => task.sessionId ?? null),
   })
 
+  const unintiatedPlans = scanUnintiatedPlans(opts.projectRoot, boulder?.active_plan ?? null)
+
   const payload: DashboardPayload = {
     mainSession: {
       agent: main.agent,
@@ -254,6 +258,7 @@ function buildDashboardPayloadFiles(opts: {
       planStale: plan.planStale,
       planComplete: plan.planComplete,
     },
+    unintiatedPlans,
     backgroundTasks: tasks.map((t) => ({
       id: t.id,
       description: t.description,
@@ -442,6 +447,8 @@ export function buildDashboardPayload(opts: {
   // Don't fail the entire payload if todos fail, just use empty array
   const todos = todosResult.ok ? todosResult.value : []
 
+  const unintiatedPlans = scanUnintiatedPlans(opts.projectRoot, boulder?.active_plan ?? null)
+
   const payload: DashboardPayload = {
     mainSession: {
       agent: main.agent,
@@ -464,6 +471,7 @@ export function buildDashboardPayload(opts: {
       planStale: plan.planStale,
       planComplete: plan.planComplete,
     },
+    unintiatedPlans,
     backgroundTasks: tasksResult.value.map((t) => ({
       id: t.id,
       description: t.description,

@@ -100,6 +100,7 @@ function transformPayloadToSnapshot(
       planStale: payload.planProgress.planStale,
       planComplete: payload.planProgress.planComplete,
     },
+    unintiatedPlans: payload.unintiatedPlans,
     timeSeries: payload.timeSeries,
     backgroundTasks: mapBackgroundTasks(payload),
     sessionTimeSeries,

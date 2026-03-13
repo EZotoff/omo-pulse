@@ -36,6 +36,7 @@ vi.mock("../ingest/boulder", () => ({
   readPlanProgress: mockReadPlanProgress,
   readPlanSteps: mockReadPlanSteps,
   scanUnintiatedPlans: mockScanUnintiatedPlans,
+  readBoulderHistory: vi.fn(() => []),
 }))
 
 vi.mock("../ingest/sqlite-derive", () => ({

@@ -161,6 +161,7 @@ function buildDashboardPayloadFiles(opts: {
   const planPath = boulder?.active_plan ?? ""
   const plan = boulder ? readPlanProgress(opts.projectRoot, boulder.active_plan, nowMs) : { total: 0, completed: 0, isComplete: false, missing: true, planStale: false, planComplete: false }
   const planSteps = boulder ? readPlanSteps(opts.projectRoot, boulder.active_plan) : { missing: true, steps: [] as PlanStep[] }
+  const unintiatedPlans = scanUnintiatedPlans(opts.projectRoot, boulder?.active_plan ?? null)
 
   const sessionId = pickActiveSessionId({
     projectRoot: opts.projectRoot,
@@ -274,6 +275,7 @@ function buildDashboardPayloadFiles(opts: {
     timeSeries,
     tokenUsage,
     todos: [],
+    unintiatedPlans,
     raw: null,
   }
 
@@ -320,6 +322,7 @@ export function buildDashboardPayload(opts: {
   const planPath = boulder?.active_plan ?? ""
   const plan = boulder ? readPlanProgress(opts.projectRoot, boulder.active_plan, nowMs) : { total: 0, completed: 0, isComplete: false, missing: true, planStale: false, planComplete: false }
   const planSteps = boulder ? readPlanSteps(opts.projectRoot, boulder.active_plan) : { missing: true, steps: [] as PlanStep[] }
+  const unintiatedPlans = scanUnintiatedPlans(opts.projectRoot, boulder?.active_plan ?? null)
 
   const active = pickActiveSessionIdSqlite({
     sqlitePath: backend.sqlitePath,
@@ -487,6 +490,7 @@ export function buildDashboardPayload(opts: {
     timeSeries: timeSeriesResult.value,
     tokenUsage: tokenUsageResult.value,
     todos,
+    unintiatedPlans,
     raw: null,
   }
 

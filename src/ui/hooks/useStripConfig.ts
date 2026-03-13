@@ -15,6 +15,7 @@ const DEFAULT_CONFIG: StripConfigState = {
   showGitWorktrees: true,
   showAvatar: true,
   showProjectName: true,
+  stripDisplayMode: "project",
 }
 
 /** Read persisted strip config from localStorage, returning defaults on failure */

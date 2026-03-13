@@ -8,6 +8,7 @@ import "./ProjectStrip.css"
 /* ── Helpers ── */
 
 const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+const MAX_SESSION_DOTS = 5
 
 /** Format millisecond timestamp to relative time string ("2s ago", "1m ago", "3h ago") */
 export function formatRelativeTime(ms: number): string {
@@ -22,6 +23,27 @@ export function formatRelativeTime(ms: number): string {
   if (hours < 24) return `${hours}h ago`
   const days = Math.floor(hours / 24)
   return `${days}d ago`
+}
+
+export function computeDisplayStatus(
+  aggregateStatus: string,
+  lastUpdatedTime: number,
+  idleTimeoutMs = 300_000,
+  nowMs = Date.now(),
+): string {
+  if (aggregateStatus === "plan_complete") return "idle"
+
+  const demotableStatuses = ["running_tool", "thinking", "busy"]
+  if (!demotableStatuses.includes(aggregateStatus)) return aggregateStatus
+
+  return nowMs - lastUpdatedTime > idleTimeoutMs ? "idle" : aggregateStatus
+}
+
+export function getSessionFamily(status: string): "active" | "attention" | "danger" | "idle" {
+  if (["busy", "thinking", "running_tool"].includes(status)) return "active"
+  if (status === "question") return "attention"
+  if (status === "error") return "danger"
+  return "idle"
 }
 
 /** Format a token count to a compact string (e.g., 1234 → "1.2k") */
@@ -89,24 +111,21 @@ export type ProjectStripProps = {
 function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idleTimeoutMs, children }: ProjectStripProps) {
   const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount, unintiatedPlans } = project
   const sourceId = project.sourceId
+  const aggregateStatus = project.aggregateStatus ?? mainSession.status
   const isStale = (() => {
     const activeStates = ['busy', 'thinking', 'running_tool', 'question', 'error']
-    if (activeStates.includes(mainSession.status)) return false
+    if (activeStates.includes(aggregateStatus)) return false
     if (planProgress?.planStale) return true
     if (!mainSession?.lastUpdated) return true
     const lastUpdatedTime = new Date(mainSession.lastUpdated).getTime()
     return Date.now() - lastUpdatedTime > STALE_THRESHOLD_MS
   })()
 
-  const ACTIVE_OVERRIDE_STATUSES = ['running_tool', 'thinking', 'busy', 'error', 'question']
-  const displayStatus = (() => {
-    if (mainSession.status === 'plan_complete') return 'idle'
-    if (!ACTIVE_OVERRIDE_STATUSES.includes(mainSession.status)) return mainSession.status
-    const timeout = idleTimeoutMs ?? 300_000
-    const updatedTime = mainSession.lastUpdated ? new Date(mainSession.lastUpdated).getTime() : 0
-    const isClientStale = Date.now() - updatedTime > timeout
-    return isClientStale ? "idle" : mainSession.status
-  })()
+  const displayStatus = computeDisplayStatus(
+    aggregateStatus,
+    mainSession.lastUpdated ? new Date(mainSession.lastUpdated).getTime() : 0,
+    idleTimeoutMs ?? 300_000,
+  )
 
   const finalDisplayStatus = sourceId.startsWith('preview-') && mainSession.status === 'plan_complete'
     ? 'plan_complete'
@@ -217,6 +236,22 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
           {stripConfig?.showProjectName !== false && (
             <span className="strip-label truncate">{project.label}</span>
           )}
+          {stripConfig?.stripDisplayMode === "session" && project.sessions && project.sessions.length > 0 && (
+            <div className="session-indicators">
+              {project.sessions.slice(0, MAX_SESSION_DOTS).map((session) => (
+                <span
+                  key={session.sessionId}
+                  className="session-dot"
+                  data-family={getSessionFamily(session.status)}
+                  data-status={session.status}
+                  title={`${session.sessionLabel || session.agent} - ${session.status}`}
+                />
+              ))}
+              {project.sessions.length > MAX_SESSION_DOTS && (
+                <span className="strip-session-overflow">+{project.sessions.length - MAX_SESSION_DOTS}</span>
+              )}
+            </div>
+          )}
           {stripConfig?.showMiniSparkline !== false && <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>}
           {stripConfig?.showAgentBadge !== false && <span className="strip-agent-badge">{mainSession.agent}</span>}
           {gitUncommittedCount != null && gitUncommittedCount > 0 && (
@@ -257,6 +292,22 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
             )}
             {stripConfig?.showProjectName !== false && (
               <span className="strip-label truncate">{project.label}</span>
+            )}
+            {stripConfig?.stripDisplayMode === "session" && project.sessions && project.sessions.length > 0 && (
+              <div className="session-indicators">
+                {project.sessions.slice(0, MAX_SESSION_DOTS).map((session) => (
+                  <span
+                    key={session.sessionId}
+                    className="session-dot"
+                    data-family={getSessionFamily(session.status)}
+                    data-status={session.status}
+                    title={`${session.sessionLabel || session.agent} - ${session.status}`}
+                  />
+                ))}
+                {project.sessions.length > MAX_SESSION_DOTS && (
+                  <span className="strip-session-overflow">+{project.sessions.length - MAX_SESSION_DOTS}</span>
+                )}
+              </div>
             )}
             {stripConfig?.showMiniSparkline !== false && <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>}
             {stripConfig?.showAgentBadge !== false && <span className="strip-agent-badge">{mainSession.agent}</span>}

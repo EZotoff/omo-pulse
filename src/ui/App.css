@@ -252,6 +252,11 @@
   opacity: 0.5;
 }
 
+.dashboard-empty__action {
+  margin-top: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+}
+
 /* ── Loading state ── */
 .dashboard-loading {
   display: flex;

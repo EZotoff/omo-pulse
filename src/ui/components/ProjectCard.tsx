@@ -19,9 +19,9 @@ export function ProjectCard({
   const fallbackLabel = project.projectRoot.split("/").filter(Boolean).pop() || "unknown"
   const label = project.label || fallbackLabel
   const activeAgent = project.mainSession?.agent
-  const isActive = project.mainSession?.status !== "idle" && project.mainSession?.status !== "unknown"
+  const isActive = project.aggregateStatus !== "idle" && project.aggregateStatus !== "unknown"
   const showAgent = activeAgent && isActive
-  const sessionCount = project.sessionTimeSeries?.sessions?.length ?? 0
+  const sessionCount = project.sessions.length
 
   return (
     <div className="project-card">
@@ -36,7 +36,7 @@ export function ProjectCard({
         <div className="project-card__header">
           <span 
             className="strip-status-dot project-card__status" 
-            data-status={project.mainSession?.status || 'unknown'} 
+            data-status={project.aggregateStatus} 
             aria-hidden="true" 
           />
           <span className="project-card__label" title={project.projectRoot}>

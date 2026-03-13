@@ -75,6 +75,13 @@ export function DashboardHeader({
             −
           </button>
 
+          {onManageProjectsOpen && (
+            <button className="header-btn" onClick={onManageProjectsOpen} type="button" title="Manage projects" aria-label="Manage projects">
+              <span style={{ marginRight: 'var(--sp-1)' }}>⊞</span>
+              Manage Projects
+            </button>
+          )}
+
           {onSetColumns && (
             <div className="header-cols">
               <span className="header-cols__label">cols</span>

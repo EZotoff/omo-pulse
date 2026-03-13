@@ -81,7 +81,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
   const { config: soundConfig, setConfig: setSoundConfig, playWaiting, playAllClear, playAttention, playQuestion } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
-  const { config: stripConfig, toggle: toggleStripConfig } = useStripConfig()
+  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode } = useStripConfig()
   const [overlayState, setOverlayState] = useState<'none' | 'settings' | 'projectManagement'>('none')
 
   /* ── Zoom ── */
@@ -426,6 +426,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
       <SettingsPanel
         stripConfig={stripConfig}
         onToggleStrip={toggleStripConfig}
+        onSetStripMode={setStripMode}
         soundConfig={soundConfig}
         onSoundConfigChange={setSoundConfig}
         onTestSound={(event) => {

@@ -47,6 +47,7 @@ function persistConfig(config: StripConfigState): void {
 export function useStripConfig(): {
   config: StripConfigState
   toggle: (key: keyof StripConfigState) => void
+  setMode: (mode: "project" | "session") => void
   reset: () => void
 } {
   const [config, setConfig] = useState<StripConfigState>(() => readPersistedConfig())
@@ -63,9 +64,16 @@ export function useStripConfig(): {
     }))
   }, [])
 
+  const setMode = useCallback((mode: "project" | "session") => {
+    setConfig((prev) => ({
+      ...prev,
+      stripDisplayMode: mode,
+    }))
+  }, [])
+
   const reset = useCallback(() => {
     setConfig(DEFAULT_CONFIG)
   }, [])
 
-  return { config, toggle, reset }
+  return { config, toggle, setMode, reset }
 }

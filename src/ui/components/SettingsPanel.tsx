@@ -37,6 +37,7 @@ function formatTimeout(ms: number): string {
 export type SettingsPanelProps = {
   stripConfig: StripConfigState
   onToggleStrip: (key: keyof StripConfigState) => void
+  onSetStripMode: (mode: "project" | "session") => void
   soundConfig: SoundConfig
   onSoundConfigChange: (config: SoundConfig) => void
   onTestSound: (event: "idle" | "complete" | "error" | "question") => void
@@ -87,6 +88,7 @@ const SOUND_EVENTS: {
 export function SettingsPanel({
   stripConfig,
   onToggleStrip,
+  onSetStripMode,
   soundConfig,
   onSoundConfigChange,
   onTestSound,
@@ -171,6 +173,32 @@ export function SettingsPanel({
           {/* Display Options */}
           <div className="settings-section">
             <h3 className="settings-section__title">Display Options</h3>
+
+            <fieldset className="settings-fieldset">
+              <legend className="settings-section__subtitle">Collapsed Strip View</legend>
+              <div className="settings-segmented-control">
+                <label className="settings-segmented-option">
+                  <input
+                    type="radio"
+                    name="stripDisplayMode"
+                    value="project"
+                    checked={stripConfig.stripDisplayMode === "project"}
+                    onChange={() => onSetStripMode("project")}
+                  />
+                  <span className="settings-segmented-text">Per-Project (aggregated)</span>
+                </label>
+                <label className="settings-segmented-option">
+                  <input
+                    type="radio"
+                    name="stripDisplayMode"
+                    value="session"
+                    checked={stripConfig.stripDisplayMode === "session"}
+                    onChange={() => onSetStripMode("session")}
+                  />
+                  <span className="settings-segmented-text">Per-Session (individual indicators)</span>
+                </label>
+              </div>
+            </fieldset>
 
             <h4 className="settings-section__subtitle">Collapsed View</h4>
             {COLLAPSED_TOGGLES.map(({ key, label }) => (

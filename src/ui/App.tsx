@@ -9,6 +9,8 @@ import { SettingsPanel } from "./components/SettingsPanel"
 import { AddProjectForm } from "./components/AddProjectForm"
 import { ColumnResizeHandle } from "./components/ColumnResizeHandle"
 import { useStripConfig } from "./hooks/useStripConfig"
+import { PreviewNav } from "./components/PreviewNav"
+import type { PreviewMode } from "./types"
 
 import "./App.css"
 import { useExpandState } from "./hooks/useExpandState"
@@ -59,6 +61,7 @@ export type AppProps = {
   data: DashboardMultiProjectPayload | null
   connected: boolean
   lastUpdatedMs: number | null
+  previewMode: PreviewMode | null
 }
 
 /* ── localStorage helpers ── */
@@ -73,7 +76,7 @@ function safeSetItem(key: string, value: string): void {
 
 /* ── Component ── */
 
-export function App({ data, connected, lastUpdatedMs }: AppProps) {
+export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
   const { expandedIds, toggle, expandAll, collapseAll } = useExpandState()
   const { config: soundConfig, setConfig: setSoundConfig, playWaiting, playAllClear, playAttention, playQuestion } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
@@ -275,6 +278,35 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
     return ordered.filter((p) => isVisible(p.sourceId))
   }, [sortedProjects, orderedIds, isVisible])
 
+  const effectiveStripConfig = useMemo(() => {
+    if (!previewMode) return stripConfig
+    return {
+      ...stripConfig,
+      showProjectName: true,
+      showStatusDot: true,
+      showAvatar: true,
+    }
+  }, [previewMode, stripConfig])
+
+  const isPreviewMode = previewMode !== null
+
+  const effectiveExpandedIds = useMemo(() => {
+    if (!isPreviewMode) return expandedIds
+    const previewIds = new Set<string>()
+    if (data) {
+      for (const project of data.projects) {
+        if (project.sourceId.startsWith('preview-')) {
+          previewIds.add(project.sourceId)
+        }
+      }
+    }
+    const filtered = new Set(expandedIds)
+    for (const id of previewIds) {
+      filtered.delete(id)
+    }
+    return filtered
+  }, [isPreviewMode, expandedIds, data])
+
   const projectCount = displayProjects.length
   const density = useDensityMode(projectCount)
 
@@ -329,49 +361,54 @@ export function App({ data, connected, lastUpdatedMs }: AppProps) {
             <span>All projects hidden — adjust visibility in Settings</span>
           </div>
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={orderedIds}
-              strategy={verticalListSortingStrategy}
+          <>
+            {previewMode && (
+              <PreviewNav previewMode={previewMode} />
+            )}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              <div
-                className="project-stack"
-                style={{ gridTemplateColumns: currentWidths.map((w: number) => `${w}fr`).join(' ') }}
+              <SortableContext
+                items={displayProjects.map((project) => project.sourceId)}
+                strategy={verticalListSortingStrategy}
               >
-                {displayProjects.map((project) => {
-                  const expanded = expandedIds.has(project.sourceId)
-                  return (
-                    <SortableProjectStrip
-                      key={project.sourceId}
-                      id={project.sourceId}
-                      project={project}
-                      expanded={expanded}
-                      onToggleExpand={() => toggle(project.sourceId)}
-                      stripConfig={stripConfig}
-                      idleTimeoutMs={idleTimeoutMs}
-                    />
-                  )
-                })}
-                {columns > 1 && currentWidths.slice(0, -1).map((_: number, i: number) => {
-                  const totalFr = currentWidths.reduce((a: number, b: number) => a + b, 0)
-                  const precedingFr = currentWidths.slice(0, i + 1).reduce((a: number, b: number) => a + b, 0)
-                  const leftPercent = (precedingFr / totalFr) * 100
-                  return (
-                    <ColumnResizeHandle
-                      key={`resize-${i}`}
-                      columnIndex={i}
-                      onResize={(delta) => handleColumnResize(i, delta)}
-                      style={{ left: `${leftPercent}%` }}
-                    />
-                  )
-                })}
-              </div>
-            </SortableContext>
-          </DndContext>
+                <div
+                  className="project-stack"
+                  style={{ gridTemplateColumns: currentWidths.map((w: number) => `${w}fr`).join(' ') }}
+                >
+                  {displayProjects.map((project) => {
+                    const expanded = effectiveExpandedIds.has(project.sourceId)
+                    return (
+                      <SortableProjectStrip
+                        key={project.sourceId}
+                        id={project.sourceId}
+                        project={project}
+                        expanded={expanded}
+                        onToggleExpand={() => toggle(project.sourceId)}
+                        stripConfig={effectiveStripConfig}
+                        idleTimeoutMs={idleTimeoutMs}
+                      />
+                    )
+                  })}
+                  {columns > 1 && currentWidths.slice(0, -1).map((_: number, i: number) => {
+                    const totalFr = currentWidths.reduce((a: number, b: number) => a + b, 0)
+                    const precedingFr = currentWidths.slice(0, i + 1).reduce((a: number, b: number) => a + b, 0)
+                    const leftPercent = (precedingFr / totalFr) * 100
+                    return (
+                      <ColumnResizeHandle
+                        key={`resize-${leftPercent}`}
+                        columnIndex={i}
+                        onResize={(delta) => handleColumnResize(i, delta)}
+                        style={{ left: `${leftPercent}%` }}
+                      />
+                    )
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </>
         )}
       </div>
 

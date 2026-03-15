@@ -12,6 +12,7 @@ import { getLegacyStorageRootForBackend, type StorageBackend } from "../ingest/s
 import { createDashboardStore, type DashboardStore, type DashboardPayload } from "./dashboard"
 import { derivePerSessionTimeSeries } from "../ingest/per-session-timeseries"
 import { getGitUncommittedCount } from "../ingest/git-status"
+import { getWorktreeInfo } from "../ingest/git-worktrees"
 
 // ---------------------------------------------------------------------------
 // Helpers: transform DashboardPayload → ProjectSnapshot
@@ -196,9 +197,10 @@ export function createMultiProjectService(opts: {
         const label = source.label ?? entry.projectRoot
         const sqlitePath = opts.storageBackend.kind === "sqlite" ? opts.storageBackend.sqlitePath : undefined
         const sessionTimeSeries = getCachedSessionTimeSeries(entry.projectRoot, sqlitePath, nowMs)
-        const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, nowMs, sessionTimeSeries)
-        snapshot.gitUncommittedCount = await getGitUncommittedCount(entry.projectRoot)
-        projects.push(snapshot)
+         const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, nowMs, sessionTimeSeries)
+         snapshot.gitUncommittedCount = await getGitUncommittedCount(entry.projectRoot)
+         snapshot.worktrees = await getWorktreeInfo(entry.projectRoot)
+         projects.push(snapshot)
       } catch {
         // Per-source error isolation: if one source fails, others still return
         continue

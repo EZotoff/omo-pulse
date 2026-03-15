@@ -6,7 +6,7 @@ import type {
   TimeSeriesSeries,
   SessionStatus,
 } from "../../types"
-import type { PreviewMode } from "../types"
+import { PREVIEW_STATUS_NAMES, type PreviewMode, type PreviewStatusName } from "../types"
 
 const POLL_CONNECTED_MS = 2200
 const POLL_DISCONNECTED_MS = 3600
@@ -40,7 +40,7 @@ type VariantConfig = {
   afterCss?: string;
 };
 
-const STATUS_VARIANTS: Record<string, VariantConfig[]> = {
+const STATUS_VARIANTS: Record<PreviewStatusName, VariantConfig[]> = {
   "question": [
     {},
     {
@@ -98,7 +98,7 @@ const STATUS_VARIANTS: Record<string, VariantConfig[]> = {
     }
   ]
 };
-function buildStatusVariantStyles(statusPublicName: string): string {
+function buildStatusVariantStyles(statusPublicName: PreviewStatusName): string {
   const variants = STATUS_VARIANTS[statusPublicName];
   if (!variants) return "";
 
@@ -106,28 +106,28 @@ function buildStatusVariantStyles(statusPublicName: string): string {
     const sourceId = `preview-status-${statusPublicName}-${index}`;
     let css = "";
     if (variant.stripCss) {
-      css += `\n[data-project-id="${sourceId}"] .project-strip { ${variant.stripCss} }`;
+      css += `\n.project-strip[data-project-id="${sourceId}"] { ${variant.stripCss} }`;
     }
     if (variant.dotCss) {
-      css += `\n[data-project-id="${sourceId}"] .strip-status-dot { ${variant.dotCss} }`;
+      css += `\n.project-strip[data-project-id="${sourceId}"] .strip-status-dot { ${variant.dotCss} }`;
     }
     if (variant.dotAfterCss) {
-      css += `\n[data-project-id="${sourceId}"] .strip-status-dot::after { ${variant.dotAfterCss} }`;
+      css += `\n.project-strip[data-project-id="${sourceId}"] .strip-status-dot::after { ${variant.dotAfterCss} }`;
     }
     if (variant.beforeCss) {
-      css += `\n[data-project-id="${sourceId}"] .project-strip::before { ${variant.beforeCss} }`;
+      css += `\n.project-strip[data-project-id="${sourceId}"]::before { ${variant.beforeCss} }`;
     }
     if (variant.afterCss) {
-      css += `\n[data-project-id="${sourceId}"] .project-strip::after { ${variant.afterCss} }`;
+      css += `\n.project-strip[data-project-id="${sourceId}"]::after { ${variant.afterCss} }`;
     }
     return css;
   }).join("\n");
 }
 
-const PUBLIC_STATUS_ORDER = ["question", "busy", "tool", "thinking", "idle", "unknown", "danger", "plan-complete"]
+const PUBLIC_STATUS_ORDER = PREVIEW_STATUS_NAMES
 
-function publicNameToInternalStatus(publicName: string): SessionStatus | null {
-  const mapping: Record<string, SessionStatus> = {
+function publicNameToInternalStatus(publicName: PreviewStatusName): SessionStatus {
+  const mapping: Record<PreviewStatusName, SessionStatus> = {
     "question": "question",
     "busy": "busy",
     "tool": "running_tool",
@@ -137,7 +137,7 @@ function publicNameToInternalStatus(publicName: string): SessionStatus | null {
     "danger": "error",
     "plan-complete": "plan_complete",
   }
-  return mapping[publicName] ?? null
+  return mapping[publicName]
 }
 
 function buildWave(args: { base: number; variance: number; phase: number }): number[] {
@@ -257,9 +257,8 @@ function buildPreviewStyles(): string {
 `).join("\n")
 }
 
-function createAllStatusesProject(publicName: string, index: number, nowMs: number): ProjectSnapshot {
+function createAllStatusesProject(publicName: PreviewStatusName, index: number, nowMs: number): ProjectSnapshot {
   const internalStatus = publicNameToInternalStatus(publicName)
-  if (!internalStatus) throw new Error(`Invalid status name: ${publicName}`)
 
   const session: PreviewSession = {
     sessionId: `preview-all-${publicName}-${index}`,
@@ -334,9 +333,8 @@ function createAllStatusesPreviewPayload(nowMs: number): DashboardMultiProjectPa
   }
 }
 
-function createStatusVariantProject(statusPublicName: string, variantIndex: number, nowMs: number): ProjectSnapshot {
+function createStatusVariantProject(statusPublicName: PreviewStatusName, variantIndex: number, nowMs: number): ProjectSnapshot {
   const internalStatus = publicNameToInternalStatus(statusPublicName)
-  if (!internalStatus) throw new Error(`Invalid status name: ${statusPublicName}`)
 
   const isCurrentVariant = variantIndex === 0
   const variantConfig = STATUS_VARIANTS[statusPublicName]?.[variantIndex]
@@ -344,7 +342,7 @@ function createStatusVariantProject(statusPublicName: string, variantIndex: numb
 
   const session: PreviewSession = {
     sessionId: `preview-status-${statusPublicName}-${variantIndex}`,
-    sessionLabel: label.toLowerCase().replace(" ", "-"),
+    sessionLabel: label.toLowerCase().replace(/\s+/g, "-"),
     agent: "atlas",
     status: internalStatus,
     currentModel: "preview-model",
@@ -407,7 +405,7 @@ function createStatusVariantProject(statusPublicName: string, variantIndex: numb
   }
 }
 
-function createSingleStatusPreviewPayload(statusPublicName: string, nowMs: number): DashboardMultiProjectPayload {
+function createSingleStatusPreviewPayload(statusPublicName: PreviewStatusName, nowMs: number): DashboardMultiProjectPayload {
   const projects: ProjectSnapshot[] = []
   const variants = STATUS_VARIANTS[statusPublicName] || []
   const count = variants.length

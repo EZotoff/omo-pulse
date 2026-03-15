@@ -75,9 +75,8 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
     ? 'plan_complete'
     : displayStatus
 
-  const isAllStatusesPreview = sourceId.startsWith('preview-all-')
-  const previewPublicNameMatch = isAllStatusesPreview ? sourceId.match(/^preview-all-(.+)-\d+$/) : null
-  const previewPublicName = previewPublicNameMatch ? previewPublicNameMatch[1] : ''
+  const previewPublicNameMatch = sourceId.startsWith('preview-all-') ? sourceId.match(/^preview-all-(.+)-\d+$/) : null
+  const previewPublicName = previewPublicNameMatch?.[1] ?? null
 
   /* ── Pane height management ── */
   const { setHeight, releaseHeight, isReleased, getHeight } = useProjectPaneHeights()
@@ -148,9 +147,9 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
     : {}
 
   return (
-    <div className="project-strip" data-expanded={expanded} data-stale={isStale} data-status={finalDisplayStatus}>
+    <div className="project-strip" data-project-id={sourceId} data-expanded={expanded} data-stale={isStale} data-status={finalDisplayStatus}>
       {/* Collapsed header — always visible */}
-      {isAllStatusesPreview ? (
+      {previewPublicName ? (
         <a
           className="strip-header"
           href={`?preview=status:${previewPublicName}`}

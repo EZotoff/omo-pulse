@@ -278,6 +278,11 @@ export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
     return ordered.filter((p) => isVisible(p.sourceId))
   }, [sortedProjects, orderedIds, isVisible])
 
+  const resizeHandleIds = useMemo(
+    () => Array.from({ length: Math.max(columns - 1, 0) }, (_, handleIndex) => `column-resize-handle-${handleIndex + 1}`),
+    [columns],
+  )
+
   const effectiveStripConfig = useMemo(() => {
     if (!previewMode) return stripConfig
     return {
@@ -392,13 +397,13 @@ export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
                       />
                     )
                   })}
-                  {columns > 1 && currentWidths.slice(0, -1).map((_: number, i: number) => {
+                  {columns > 1 && resizeHandleIds.map((handleId, i: number) => {
                     const totalFr = currentWidths.reduce((a: number, b: number) => a + b, 0)
                     const precedingFr = currentWidths.slice(0, i + 1).reduce((a: number, b: number) => a + b, 0)
                     const leftPercent = (precedingFr / totalFr) * 100
                     return (
                       <ColumnResizeHandle
-                        key={`resize-${leftPercent}`}
+                        key={handleId}
                         columnIndex={i}
                         onResize={(delta) => handleColumnResize(i, delta)}
                         style={{ left: `${leftPercent}%` }}

@@ -1,16 +1,7 @@
-import type { PreviewMode } from "../types"
+import { PREVIEW_STATUS_NAMES, type PreviewMode } from "../types"
 import "./PreviewNav.css"
 
-const STATUS_ORDER = [
-  "question",
-  "busy",
-  "tool",
-  "thinking",
-  "idle",
-  "unknown",
-  "danger",
-  "plan-complete"
-]
+const STATUS_ORDER = PREVIEW_STATUS_NAMES
 
 export function PreviewNav({ previewMode }: { previewMode: PreviewMode }) {
   if (previewMode.kind === 'attention-colors') return null

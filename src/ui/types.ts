@@ -4,7 +4,15 @@ export type AgentTone = "teal" | "red" | "green" | "sand"
 export type PreviewMode =
   | { kind: "attention-colors" }
   | { kind: "all-statuses" }
-  | { kind: "status"; statusName: string }
+  | { kind: "status"; statusName: PreviewStatusName }
+
+export const PREVIEW_STATUS_NAMES = ["question", "busy", "tool", "thinking", "idle", "unknown", "danger", "plan-complete"] as const
+
+export type PreviewStatusName = (typeof PREVIEW_STATUS_NAMES)[number]
+
+export function isPreviewStatusName(value: string): value is PreviewStatusName {
+  return PREVIEW_STATUS_NAMES.includes(value as PreviewStatusName)
+}
 
 export function parsePreviewMode(search: string): PreviewMode | null {
   if (!search) return null
@@ -22,8 +30,7 @@ export function parsePreviewMode(search: string): PreviewMode | null {
 
   if (previewVal.startsWith("status:")) {
     const statusName = previewVal.slice(7)
-    const validNames = ["question", "busy", "tool", "thinking", "idle", "unknown", "danger", "plan-complete"]
-    if (validNames.includes(statusName)) {
+    if (isPreviewStatusName(statusName)) {
       return { kind: "status", statusName }
     }
   }

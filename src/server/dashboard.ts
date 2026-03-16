@@ -93,11 +93,11 @@ export type DashboardStore = {
 // ---------------------------------------------------------------------------
 
 function formatIso(ts: number | null): string {
-  if (!ts) return "never"
+  if (ts == null || !Number.isFinite(ts) || ts <= 0) return ""
   try {
     return new Date(ts).toISOString()
   } catch {
-    return "never"
+    return ""
   }
 }
 

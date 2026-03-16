@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { DashboardPayload } from "../server/dashboard"
 
 // ---------------------------------------------------------------------------
@@ -38,6 +38,7 @@ vi.mock("../ingest/per-session-timeseries", () => ({
   derivePerSessionTimeSeries: mockDerivePerSessionTimeSeries,
 }))
 
+import { getSourceById, listSources } from "../ingest/sources-registry"
 // ---------------------------------------------------------------------------
 // Import AFTER mocking
 // ---------------------------------------------------------------------------
@@ -46,7 +47,6 @@ import {
   MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS,
   SESSION_TIMESERIES_CACHE_TTL_MS,
 } from "../server/multi-project"
-import { listSources, getSourceById } from "../ingest/sources-registry"
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
@@ -72,7 +72,11 @@ function makeDashboardPayload(overrides: Partial<DashboardPayload> = {}): Dashbo
       steps: [],
       planStale: false,
       planComplete: false,
+      boulderStatus: undefined,
+      completedAt: undefined,
     },
+    unintiatedPlans: [],
+    planHistory: undefined,
     backgroundTasks: [],
     mainSessionTasks: [],
     timeSeries: {
@@ -311,5 +315,78 @@ describe("createMultiProjectService", () => {
 
     expect(mockGetSnapshot).toHaveBeenCalledTimes(1)
     expect(second.serverNowMs).toBeGreaterThan(first.serverNowMs)
+  })
+
+  it("maps lifecycle plan fields when present", async () => {
+    vi.mocked(listSources).mockReturnValue([
+      { id: "src-1", label: "My App", updatedAt: 1000 },
+    ])
+    vi.mocked(getSourceById).mockReturnValue({
+      id: "src-1",
+      projectRoot: "/home/user/my-app",
+      label: "My App",
+      createdAt: 500,
+      updatedAt: 1000,
+    })
+
+    const payload = makeDashboardPayload()
+    payload.planProgress.boulderStatus = "completed"
+    payload.planProgress.completedAt = "2025-01-01T12:00:00Z"
+    payload.planHistory = {
+      entries: [{
+        plan_name: "test-history-plan",
+        plan_path: "/test-history-plan",
+        archived_path: "/archive",
+        started_at: "2025-01-01T00:00:00Z",
+        completed_at: "2025-01-01T01:00:00Z",
+        session_ids: [],
+        total_tasks: 10,
+        completed_tasks: 10,
+      }],
+      totalCompleted: 1,
+    }
+
+    mockGetSnapshot.mockReturnValue(payload)
+
+    const service = createMultiProjectService({
+      storageRoot: "/tmp/test",
+      storageBackend: { kind: "sqlite", dataDir: "/tmp", sqlitePath: "/tmp/test.db" },
+    })
+
+    const result = await service.getMultiProjectPayload()
+    const project = result.projects[0]
+
+    expect(project.planProgress.boulderStatus).toBe("completed")
+    expect(project.planProgress.completedAt).toBe("2025-01-01T12:00:00Z")
+    expect(project.planHistory).toBeDefined()
+    expect(project.planHistory?.totalCompleted).toBe(1)
+    expect(project.planHistory?.entries[0].plan_name).toBe("test-history-plan")
+  })
+
+  it("leaves lifecycle plan fields undefined when absent", async () => {
+    vi.mocked(listSources).mockReturnValue([
+      { id: "src-1", label: "My App", updatedAt: 1000 },
+    ])
+    vi.mocked(getSourceById).mockReturnValue({
+      id: "src-1",
+      projectRoot: "/home/user/my-app",
+      label: "My App",
+      createdAt: 500,
+      updatedAt: 1000,
+    })
+
+    mockGetSnapshot.mockReturnValue(makeDashboardPayload())
+
+    const service = createMultiProjectService({
+      storageRoot: "/tmp/test",
+      storageBackend: { kind: "sqlite", dataDir: "/tmp", sqlitePath: "/tmp/test.db" },
+    })
+
+    const result = await service.getMultiProjectPayload()
+    const project = result.projects[0]
+
+    expect(project.planProgress.boulderStatus).toBeUndefined()
+    expect(project.planProgress.completedAt).toBeUndefined()
+    expect(project.planHistory).toBeUndefined()
   })
 })

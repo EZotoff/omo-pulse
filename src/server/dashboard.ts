@@ -1,21 +1,16 @@
 import * as fs from "node:fs"
-
-import { readBoulderState, readPlanProgress, readPlanSteps, scanUnintiatedPlans, type PlanStep } from "../ingest/boulder"
 import { deriveBackgroundTasks } from "../ingest/background-tasks"
-import { deriveTimeSeriesActivity, type TimeSeriesPayload } from "../ingest/timeseries"
+import * as boulderModule from "../ingest/boulder"
+import { type PlanStep, readBoulderState, readPlanProgress, readPlanSteps, scanUnintiatedPlans } from "../ingest/boulder"
 import {
   getMainSessionView,
   getStorageRoots,
-  pickActiveSessionId,
-  readMainSessionMetas,
   type MainSessionView,
   type OpenCodeStorageRoots,
+  pickActiveSessionId,
+  readMainSessionMetas,
   type SessionMetadata,
 } from "../ingest/session"
-import { deriveToolCalls } from "../ingest/tool-calls"
-import { deriveTokenUsage } from "../ingest/token-usage"
-import type { StorageBackend } from "../ingest/storage-backend"
-import type { UnintiatedPlan } from "../types"
 import {
   deriveBackgroundTasksSqlite,
   deriveTimeSeriesActivitySqlite,
@@ -25,7 +20,12 @@ import {
   getMainSessionViewSqlite,
   pickActiveSessionIdSqlite,
 } from "../ingest/sqlite-derive"
+import type { StorageBackend } from "../ingest/storage-backend"
 import { readMainSessionMetasSqlite } from "../ingest/storage-backend"
+import { deriveTimeSeriesActivity, type TimeSeriesPayload } from "../ingest/timeseries"
+import { deriveTokenUsage } from "../ingest/token-usage"
+import { deriveToolCalls } from "../ingest/tool-calls"
+import type { PlanHistory, UnintiatedPlan } from "../types"
 
 // ---------------------------------------------------------------------------
 // Payload types
@@ -50,8 +50,11 @@ export type DashboardPayload = {
     steps: PlanStep[]
     planStale: boolean
     planComplete: boolean
+    boulderStatus?: string
+    completedAt?: string
   }
   unintiatedPlans: UnintiatedPlan[]
+  planHistory?: PlanHistory
   backgroundTasks: Array<{
     id: string
     description: string
@@ -84,6 +87,14 @@ export type DashboardPayload = {
     position: number
   }>
   raw: unknown
+}
+
+function readBoulderHistorySafe(projectRoot: string): PlanHistory {
+  const historyReader = Reflect.has(boulderModule, "readBoulderHistory")
+    ? Reflect.get(boulderModule, "readBoulderHistory") as ((root: string) => PlanHistory["entries"])
+    : null
+  const entries = historyReader ? historyReader(projectRoot) : []
+  return { entries, totalCompleted: entries.length }
 }
 
 export type DashboardStore = {
@@ -162,6 +173,7 @@ function buildDashboardPayloadFiles(opts: {
   const plan = boulder ? readPlanProgress(opts.projectRoot, boulder.active_plan, nowMs) : { total: 0, completed: 0, isComplete: false, missing: true, planStale: false, planComplete: false }
   const planSteps = boulder ? readPlanSteps(opts.projectRoot, boulder.active_plan) : { missing: true, steps: [] as PlanStep[] }
   const unintiatedPlans = scanUnintiatedPlans(opts.projectRoot, boulder?.active_plan ?? null)
+  const planHistory = readBoulderHistorySafe(opts.projectRoot)
 
   const sessionId = pickActiveSessionId({
     projectRoot: opts.projectRoot,
@@ -256,8 +268,11 @@ function buildDashboardPayloadFiles(opts: {
       steps: planSteps.missing ? [] : planSteps.steps,
       planStale: plan.planStale,
       planComplete: plan.planComplete,
+      boulderStatus: boulder?.status,
+      completedAt: boulder?.completed_at,
     },
     unintiatedPlans,
+    planHistory,
     backgroundTasks: tasks.map((t) => ({
       id: t.id,
       description: t.description,
@@ -320,6 +335,7 @@ export function buildDashboardPayload(opts: {
   const plan = boulder ? readPlanProgress(opts.projectRoot, boulder.active_plan, nowMs) : { total: 0, completed: 0, isComplete: false, missing: true, planStale: false, planComplete: false }
   const planSteps = boulder ? readPlanSteps(opts.projectRoot, boulder.active_plan) : { missing: true, steps: [] as PlanStep[] }
   const unintiatedPlans = scanUnintiatedPlans(opts.projectRoot, boulder?.active_plan ?? null)
+  const planHistory = readBoulderHistorySafe(opts.projectRoot)
 
   const active = pickActiveSessionIdSqlite({
     sqlitePath: backend.sqlitePath,
@@ -468,8 +484,11 @@ export function buildDashboardPayload(opts: {
       steps: planSteps.missing ? [] : planSteps.steps,
       planStale: plan.planStale,
       planComplete: plan.planComplete,
+      boulderStatus: boulder?.status,
+      completedAt: boulder?.completed_at,
     },
     unintiatedPlans,
+    planHistory,
     backgroundTasks: tasksResult.value.map((t) => ({
       id: t.id,
       description: t.description,

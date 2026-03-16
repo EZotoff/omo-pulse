@@ -1,18 +1,18 @@
-import type {
-  DashboardMultiProjectPayload,
-  ProjectSnapshot,
-  SessionStatus,
-  PlanStatus,
-  BackgroundTaskSummary,
-  TokenUsageSummary,
-  SessionTimeSeriesPayload,
-} from "../types"
-import { listSources, getSourceById } from "../ingest/sources-registry"
-import { getLegacyStorageRootForBackend, type StorageBackend } from "../ingest/storage-backend"
-import { createDashboardStore, type DashboardStore, type DashboardPayload } from "./dashboard"
-import { derivePerSessionTimeSeries } from "../ingest/per-session-timeseries"
 import { getGitUncommittedCount } from "../ingest/git-status"
 import { getWorktreeInfo } from "../ingest/git-worktrees"
+import { derivePerSessionTimeSeries } from "../ingest/per-session-timeseries"
+import { getSourceById, listSources } from "../ingest/sources-registry"
+import { getLegacyStorageRootForBackend, type StorageBackend } from "../ingest/storage-backend"
+import type {
+  BackgroundTaskSummary,
+  DashboardMultiProjectPayload,
+  PlanStatus,
+  ProjectSnapshot,
+  SessionStatus,
+  SessionTimeSeriesPayload,
+  TokenUsageSummary,
+} from "../types"
+import { createDashboardStore, type DashboardPayload, type DashboardStore } from "./dashboard"
 
 // ---------------------------------------------------------------------------
 // Helpers: transform DashboardPayload → ProjectSnapshot
@@ -100,8 +100,11 @@ function transformPayloadToSnapshot(
       steps: payload.planProgress.steps,
       planStale: payload.planProgress.planStale,
       planComplete: payload.planProgress.planComplete,
+      boulderStatus: payload.planProgress.boulderStatus,
+      completedAt: payload.planProgress.completedAt,
     },
     unintiatedPlans: payload.unintiatedPlans,
+    planHistory: payload.planHistory,
     timeSeries: payload.timeSeries,
     backgroundTasks: mapBackgroundTasks(payload),
     sessionTimeSeries,
@@ -204,7 +207,6 @@ export function createMultiProjectService(opts: {
          projects.push(snapshot)
       } catch {
         // Per-source error isolation: if one source fails, others still return
-        continue
       }
     }
 

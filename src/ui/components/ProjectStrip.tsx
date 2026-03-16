@@ -272,18 +272,11 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
                   const hiddenCount = plan.steps.length - 10
 
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={plan.path}
                       className={`uninitiated-plan-item${isExpanded ? ' uninitiated-plan-item--expanded' : ''}`}
                       onClick={(e) => toggleUninitiatedPlan(plan.path, e)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          toggleUninitiatedPlan(plan.path, e as unknown as React.MouseEvent)
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
                       aria-expanded={isExpanded}
                     >
                       <div className="truncate">
@@ -292,8 +285,8 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
                       
                       {isExpanded && plan.steps.length > 0 && (
                         <div className="uninitiated-plan-steps">
-                          {visibleSteps.map((step, idx) => (
-                            <div key={`${idx}-_-${step.text}`} className="truncate">
+                          {visibleSteps.map((step) => (
+                            <div key={`${plan.path}-${step.checked ? 'done' : 'todo'}-${step.text}`} className="truncate">
                               [{'\u00A0'}] {step.text || '(empty)'}
                             </div>
                           ))}
@@ -304,7 +297,7 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
                           )}
                         </div>
                       )}
-                    </div>
+                    </button>
                   )
                 })}
               </div>

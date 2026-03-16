@@ -235,8 +235,6 @@ function buildDashboardPayloadFiles(opts: {
     backgroundSessionIds: tasks.map((task) => task.sessionId ?? null),
   })
 
-  const unintiatedPlans = scanUnintiatedPlans(opts.projectRoot, boulder?.active_plan ?? null)
-
   const payload: DashboardPayload = {
     mainSession: {
       agent: main.agent,
@@ -275,7 +273,6 @@ function buildDashboardPayloadFiles(opts: {
     timeSeries,
     tokenUsage,
     todos: [],
-    unintiatedPlans,
     raw: null,
   }
 
@@ -450,8 +447,6 @@ export function buildDashboardPayload(opts: {
   // Don't fail the entire payload if todos fail, just use empty array
   const todos = todosResult.ok ? todosResult.value : []
 
-  const unintiatedPlans = scanUnintiatedPlans(opts.projectRoot, boulder?.active_plan ?? null)
-
   const payload: DashboardPayload = {
     mainSession: {
       agent: main.agent,
@@ -490,7 +485,6 @@ export function buildDashboardPayload(opts: {
     timeSeries: timeSeriesResult.value,
     tokenUsage: tokenUsageResult.value,
     todos,
-    unintiatedPlans,
     raw: null,
   }
 

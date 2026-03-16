@@ -31,6 +31,42 @@ function formatTokenCount(n: number): string {
   return `${(n / 1_000_000).toFixed(2)}M`
 }
 
+
+function formatDuration(startedAt: string, completedAt: string): string {
+  try {
+    const startMs = new Date(startedAt).getTime()
+    const endMs = new Date(completedAt).getTime()
+    if (Number.isNaN(startMs) || Number.isNaN(endMs)) return ""
+    const ms = Math.max(0, endMs - startMs)
+
+    const totalSeconds = Math.floor(ms / 1000)
+    const seconds = totalSeconds % 60
+    const totalMinutes = Math.floor(totalSeconds / 60)
+    const minutes = totalMinutes % 60
+    const totalHours = Math.floor(totalMinutes / 60)
+    const hours = totalHours % 24
+    const days = Math.floor(totalHours / 24)
+
+    if (days > 0) return hours > 0 ? `${days}d ${hours}h` : `${days}d`
+    if (totalHours > 0) return minutes > 0 ? `${totalHours}h ${minutes}m` : `${totalHours}h`
+    if (totalMinutes > 0) return seconds > 0 ? `${totalMinutes}m ${seconds}s` : `${totalMinutes}m`
+    return `${seconds}s`
+  } catch {
+    return ""
+  }
+}
+
+function formatCompletionDate(completedAt: string): string {
+  try {
+    const d = new Date(completedAt)
+    if (Number.isNaN(d.getTime())) return "Unknown"
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  } catch {
+    return "Unknown"
+  }
+}
+
+
 /* ── Props ── */
 
 export type ProjectStripProps = {
@@ -284,6 +320,29 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
             <span className="strip-section-label">Plan — {planProgress.name || "unnamed"}</span>
             <div className="plan-slot plan-slot--full">{children?.fullPlan}</div>
           </div>
+
+          {project.planHistory && project.planHistory.entries.length > 0 && (
+            <div className="strip-section plan-history-section">
+              <span className="strip-section-label">Plan History</span>
+              <div className="plan-history-list">
+                {project.planHistory.entries.map((entry) => {
+                  const duration = formatDuration(entry.started_at, entry.completed_at)
+                  return (
+                    <div key={`${entry.archived_path}-${entry.started_at}-${entry.completed_at}-${entry.completed_tasks}-${entry.total_tasks}`} className="plan-history-item">
+                      <div className="plan-history-header">
+                        <span className="plan-history-name truncate">{entry.plan_name || entry.plan_path}</span>
+                        <span className="plan-history-date">{formatCompletionDate(entry.completed_at)}</span>
+                      </div>
+                      <div className="plan-history-stats">
+                        <span className="plan-history-tasks">{entry.completed_tasks}/{entry.total_tasks} tasks</span>
+                        {duration && <span className="plan-history-duration">({duration})</span>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {unintiatedPlans && unintiatedPlans.length > 0 && (
             <div className="strip-section">

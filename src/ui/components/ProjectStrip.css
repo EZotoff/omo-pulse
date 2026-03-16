@@ -1089,6 +1089,7 @@
 .plan-history-stats {
   display: flex;
   gap: var(--sp-2);
+  align-items: center;
   color: var(--text-secondary);
 }
 

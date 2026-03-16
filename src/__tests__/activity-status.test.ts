@@ -38,6 +38,15 @@ describe("activity-status helpers", () => {
     expect(resolveLastUpdatedTime(null, 456)).toBe(456)
   })
 
+  it("falls back when primary timestamp is NaN", () => {
+    expect(resolveLastUpdatedTime(Number.NaN, 456)).toBe(456)
+  })
+
+  it("returns null when both timestamps are invalid", () => {
+    expect(resolveLastUpdatedTime(Number.NaN, Number.NaN)).toBeNull()
+    expect(resolveLastUpdatedTime(0, -1)).toBeNull()
+  })
+
   it("suppresses stale task-tool activity", () => {
     expect(shouldSuppressStaleToolActivity("task", false)).toBe(true)
   })

@@ -26,6 +26,10 @@ vi.mock("../ingest/git-status", () => ({
   getGitUncommittedCount: vi.fn(() => Promise.resolve(undefined)),
 }))
 
+vi.mock("../ingest/git-worktrees", () => ({
+  getWorktreeInfo: vi.fn(() => Promise.resolve(undefined)),
+}))
+
 const { mockDerivePerSessionTimeSeries } = vi.hoisted(() => ({
   mockDerivePerSessionTimeSeries: vi.fn(),
 }))

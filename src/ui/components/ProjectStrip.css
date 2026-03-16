@@ -1095,3 +1095,102 @@
 .plan-history-duration {
   color: var(--text-muted);
 }
+
+/* ── Worktrees ── */
+.strip-worktrees-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--border-secondary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.strip-worktree-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--bg-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  min-height: 24px;
+}
+
+.strip-worktree-row--hot {
+  background: color-mix(in srgb, var(--accent-warning) 10%, var(--bg-secondary));
+  border-left: 2px solid var(--accent-warning);
+  padding-left: calc(var(--sp-2) - 2px);
+}
+
+.strip-worktree-branch {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-primary);
+  font-weight: 600;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.strip-worktree-indicator {
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  padding: 0 var(--sp-1);
+  border-radius: 2px;
+  font-weight: 700;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.strip-worktree-indicator--locked {
+  background: var(--status-danger);
+  color: var(--bg-primary);
+  box-shadow: 0 0 4px var(--status-danger);
+}
+
+.strip-worktree-indicator--prunable {
+  background: var(--accent-warning);
+  color: var(--bg-primary);
+  box-shadow: 0 0 4px var(--accent-warning);
+}
+
+.strip-worktree-hot-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--accent-warning);
+  box-shadow: 0 0 4px var(--accent-warning);
+  flex-shrink: 0;
+}
+
+.strip-worktree-badge .strip-worktree-hot-dot {
+  margin-right: var(--sp-1);
+}
+
+.strip-worktree-commits {
+  color: var(--accent-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.strip-worktree-diff {
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.strip-worktree-badge {
+  background: color-mix(in srgb, var(--accent-primary) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
+  color: var(--accent-primary);
+}
+
+.strip-worktree-badge--hot {
+  background: color-mix(in srgb, var(--accent-warning) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent-warning) 40%, transparent);
+  color: var(--accent-warning);
+}

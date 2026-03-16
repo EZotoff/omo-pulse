@@ -60,6 +60,26 @@ export type SessionTimeSeriesPayload = {
   sessions: SessionTimeSeriesEntry[]
 }
 
+/** Summary of a single git worktree */
+export type WorktreeSummary = {
+  path: string
+  branch: string | null
+  commitHash: string
+  isMainWorktree: boolean
+  commitsAhead: number
+  diffStat: { filesChanged: number; insertions: number; deletions: number } | null
+  isLocked: boolean
+  isPrunable: boolean
+}
+
+/** Aggregated git worktree information */
+export type WorktreeInfo = {
+  totalCount: number
+  activeCount: number
+  hotCount: number
+  worktrees: WorktreeSummary[]
+}
+
 /** Summary of a background task for dashboard display */
 export type BackgroundTaskSummary = {
   taskId: string
@@ -108,6 +128,7 @@ export type ProjectSnapshot = {
    tokenUsage?: TokenUsageSummary
    /** Uncommitted git changes count (staged + unstaged + untracked). undefined = not available */
    gitUncommittedCount?: number
+   worktrees?: WorktreeInfo
    lastUpdatedMs: number
 }
 

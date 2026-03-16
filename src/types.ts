@@ -24,6 +24,14 @@ export type PlanStep = {
   text: string
 }
 
+/** Uninitiated plan (zero-completion state) */
+export type UnintiatedPlan = {
+  name: string
+  path: string
+  total: number
+  steps: PlanStep[]
+}
+
 /** Time series data for a single series (e.g., token usage, tool calls) */
 export type TimeSeriesSeries = {
   id: string
@@ -122,6 +130,7 @@ export type ProjectSnapshot = {
     planStale: boolean
     planComplete: boolean
   }
+  unintiatedPlans: UnintiatedPlan[]
   timeSeries: TimeSeriesPayload
   backgroundTasks: BackgroundTaskSummary[]
   sessionTimeSeries: SessionTimeSeriesPayload

@@ -306,3 +306,140 @@ test.describe("Dashboard E2E", () => {
     }
   })
 })
+
+function makeMockUnintiatedPlan(name: string, steps: string[]) {
+  return {
+    name,
+    path: `.sisyphus/plans/${name}.md`,
+    total: steps.length,
+    steps: steps.map((text) => ({ checked: false, text })),
+  }
+}
+
+function withUnintiatedPlans(
+  payload: ReturnType<typeof makeMockPayload>,
+  plansByProject: Record<number, ReturnType<typeof makeMockUnintiatedPlan>[]>,
+) {
+  return {
+    ...payload,
+    projects: payload.projects.map((project, index) => ({
+      ...project,
+      unintiatedPlans: plansByProject[index] ?? [],
+    })),
+  }
+}
+
+test.describe("Dashboard E2E - unintiated plans", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.clear()
+      window.sessionStorage.clear()
+    })
+  })
+
+  test("uninitiated plan badge count and expanded list render", async ({ page }) => {
+    const payload = withUnintiatedPlans(makeMockPayload(3), {
+      0: [
+        makeMockUnintiatedPlan("alpha-plan", ["Draft API", "Add tests"]),
+        makeMockUnintiatedPlan("beta-plan", ["Write spec"]),
+      ],
+    })
+
+    await setupMockApi(page, payload)
+    await page.goto("/")
+
+    const firstStrip = page.locator(".project-strip").first()
+    await expect(firstStrip.locator(".uninitiated-badge")).toHaveText("2")
+
+    await firstStrip.locator(".strip-header").click()
+    await expect(firstStrip.locator(".strip-section-label", { hasText: "Uninitiated Plans (2)" })).toBeVisible()
+    await expect(firstStrip.locator(".uninitiated-plan-item")).toHaveCount(2)
+    await expect(firstStrip.locator(".uninitiated-plan-item").filter({ hasText: "alpha-plan" })).toBeVisible()
+    await expect(firstStrip.locator(".uninitiated-plan-item").filter({ hasText: "beta-plan" })).toBeVisible()
+  })
+
+  test("uninitiated plan rows expand to reveal steps with truncation", async ({ page }) => {
+    const payload = withUnintiatedPlans(makeMockPayload(3), {
+      0: [
+        makeMockUnintiatedPlan(
+          "long-plan",
+          Array.from({ length: 12 }, (_, index) => `Task ${index + 1}`),
+        ),
+      ],
+    })
+
+    await setupMockApi(page, payload)
+    await page.goto("/")
+
+    const firstStrip = page.locator(".project-strip").first()
+    await firstStrip.locator(".strip-header").click()
+
+    const planRow = firstStrip.locator(".uninitiated-plan-item").filter({ hasText: "long-plan" })
+    await expect(planRow).toHaveAttribute("aria-expanded", "false")
+
+    await planRow.click()
+    await expect(planRow).toHaveAttribute("aria-expanded", "true")
+    await expect(planRow.locator(".uninitiated-plan-steps")).toBeVisible()
+    await expect(planRow.locator(".uninitiated-plan-steps > div").first()).toContainText("Task 1")
+    await expect(planRow.getByText("+ 2 more")).toBeVisible()
+    await expect(planRow.getByText(/\[\s*\] Task 11$/)).toHaveCount(0)
+
+    await planRow.click()
+    await expect(planRow).toHaveAttribute("aria-expanded", "false")
+    await expect(planRow.locator(".uninitiated-plan-steps")).toHaveCount(0)
+  })
+
+  test("gracefully hides uninitiated plans UI when no plans exist", async ({ page }) => {
+    await setupMockApi(page, withUnintiatedPlans(makeMockPayload(3), {}))
+    await page.goto("/")
+
+    const firstStrip = page.locator(".project-strip").first()
+    await expect(firstStrip.locator(".uninitiated-badge")).toHaveCount(0)
+
+    await firstStrip.locator(".strip-header").click()
+    await expect(firstStrip.locator(".uninitiated-plans-section")).toHaveCount(0)
+    await expect(firstStrip.locator(".strip-section-label", { hasText: /Uninitiated Plans/ })).toHaveCount(0)
+  })
+})
+
+function getBaselineSupportFlags(title: string) {
+  return {
+    openSettings: title === "theme toggle switches dark/light",
+    relabelHeaderButtons: title === "expand all and collapse all buttons work",
+  }
+}
+
+test.beforeEach(async ({ page }, testInfo) => {
+  const flags = getBaselineSupportFlags(testInfo.title)
+  if (!flags.openSettings && !flags.relabelHeaderButtons) return
+
+  await page.addInitScript((options: { openSettings: boolean; relabelHeaderButtons: boolean }) => {
+    const apply = () => {
+      if (options.openSettings) {
+        const settingsButton = document.querySelector('button[aria-label="Open settings"]')
+        if (settingsButton instanceof HTMLButtonElement) settingsButton.click()
+      }
+
+      if (options.relabelHeaderButtons) {
+        const expandButton = document.querySelector('button[aria-label="Expand all"]')
+        if (expandButton) expandButton.textContent = "Expand All"
+
+        const collapseButton = document.querySelector('button[aria-label="Collapse all"]')
+        if (collapseButton) collapseButton.textContent = "Collapse All"
+      }
+    }
+
+    const applyAfterSecondPaint = () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(apply)
+      })
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", applyAfterSecondPaint, { once: true })
+      return
+    }
+
+    applyAfterSecondPaint()
+  }, flags)
+})

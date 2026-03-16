@@ -1,5 +1,5 @@
 import type React from "react"
-import { memo, useRef, useEffect, useCallback } from "react"
+import { memo, useRef, useEffect, useCallback, useState } from "react"
 import type { ProjectSnapshot, StripConfigState } from "../../types"
 import { useProjectPaneHeights } from "../hooks/useProjectPaneHeights"
 import { getInitials } from "../utils/avatar"
@@ -51,7 +51,7 @@ export type ProjectStripProps = {
 /* ── Component ── */
 
 function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idleTimeoutMs, children }: ProjectStripProps) {
-  const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount } = project
+  const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount, unintiatedPlans } = project
   const sourceId = project.sourceId
   const isStale = (() => {
     const activeStates = ['busy', 'thinking', 'running_tool', 'question', 'error']
@@ -83,6 +83,22 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
   const { setHeight, releaseHeight, isReleased, getHeight } = useProjectPaneHeights()
   const released = isReleased(sourceId)
   const currentHeight = getHeight(sourceId)
+
+  /* ── Uninitiated plans state ── */
+  const [expandedUninitiatedPlans, setExpandedUninitiatedPlans] = useState<Set<string>>(new Set())
+
+  const toggleUninitiatedPlan = useCallback((planPath: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setExpandedUninitiatedPlans((prev) => {
+      const next = new Set(prev)
+      if (next.has(planPath)) {
+        next.delete(planPath)
+      } else {
+        next.add(planPath)
+      }
+      return next
+    })
+  }, [])
 
   /* ── Drag-to-resize refs ── */
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -184,6 +200,9 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
             </span>
           )}
           {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
+          {unintiatedPlans && unintiatedPlans.length > 0 && (
+            <span className="uninitiated-badge">{unintiatedPlans.length}</span>
+          )}
           {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{mainSession.lastUpdated ? formatRelativeTime(new Date(mainSession.lastUpdated).getTime()) : "—"}</span>}
         </a>
       ) : (
@@ -222,6 +241,9 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
               </span>
             )}
             {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
+            {unintiatedPlans && unintiatedPlans.length > 0 && (
+              <span className="uninitiated-badge">{unintiatedPlans.length}</span>
+            )}
             {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{mainSession.lastUpdated ? formatRelativeTime(new Date(mainSession.lastUpdated).getTime()) : "—"}</span>}
             <span className="strip-chevron" aria-hidden="true">{expanded ? "▾" : "▸"}</span>
           </button>
@@ -238,7 +260,6 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
           )}
         </div>
       )}
-
       {/* Expanded body */}
       <div
         className={`strip-body${expanded && !released ? " strip-body--constrained" : ""}`}
@@ -263,6 +284,48 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
             <span className="strip-section-label">Plan — {planProgress.name || "unnamed"}</span>
             <div className="plan-slot plan-slot--full">{children?.fullPlan}</div>
           </div>
+
+          {unintiatedPlans && unintiatedPlans.length > 0 && (
+            <div className="strip-section">
+              <span className="strip-section-label">Uninitiated Plans ({unintiatedPlans.length})</span>
+              <div className="uninitiated-plans-section">
+                {unintiatedPlans.map((plan) => {
+                  const isExpanded = expandedUninitiatedPlans.has(plan.path)
+                  const visibleSteps = plan.steps.slice(0, 10)
+                  const hiddenCount = plan.steps.length - 10
+
+                  return (
+                    <button
+                      type="button"
+                      key={plan.path}
+                      className={`uninitiated-plan-item${isExpanded ? ' uninitiated-plan-item--expanded' : ''}`}
+                      onClick={(e) => toggleUninitiatedPlan(plan.path, e)}
+                      aria-expanded={isExpanded}
+                    >
+                      <div className="truncate">
+                        <strong>{plan.name}</strong> ({plan.total} task{plan.total === 1 ? '' : 's'})
+                      </div>
+                      
+                      {isExpanded && plan.steps.length > 0 && (
+                        <div className="uninitiated-plan-steps">
+                          {visibleSteps.map((step) => (
+                            <div key={`${plan.path}-${step.checked ? 'done' : 'todo'}-${step.text}`} className="truncate">
+                              [{'\u00A0'}] {step.text || '(empty)'}
+                            </div>
+                          ))}
+                          {hiddenCount > 0 && (
+                            <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 'var(--font-xs)', paddingTop: 'var(--sp-1)' }}>
+                              + {hiddenCount} more
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Main session detail */}
           <div className="strip-section">

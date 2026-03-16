@@ -1,6 +1,7 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
 import { assertAllowedPath } from "./paths"
+import type { UnintiatedPlan } from "~/types"
 
 export type BoulderState = {
   active_plan: string
@@ -133,4 +134,69 @@ export function readPlanSteps(projectRoot: string, planPath: string): { missing:
   } catch {
     return { missing: true, steps: [] }
   }
+}
+
+export function scanUnintiatedPlans(projectRoot: string, activePlanPath: string | null): UnintiatedPlan[] {
+  const plansDir = path.join(projectRoot, ".sisyphus", "plans")
+
+  if (!fs.existsSync(plansDir)) {
+    return []
+  }
+
+  let activePlanNorm: string | null = null
+  if (activePlanPath) {
+    try {
+      const activePlanAbs = path.resolve(projectRoot, activePlanPath)
+      activePlanNorm = activePlanAbs
+    } catch {
+      // If normalization fails, just skip active plan filtering
+    }
+  }
+
+  const results: UnintiatedPlan[] = []
+
+  try {
+    const files = fs.readdirSync(plansDir)
+
+    for (const file of files) {
+      if (!file.endsWith(".md")) continue
+
+      const filePath = path.join(plansDir, file)
+      const filePathAbs = path.resolve(filePath)
+
+      if (activePlanNorm && filePathAbs === activePlanNorm) {
+        continue
+      }
+
+      try {
+        assertAllowedPath({
+          candidatePath: filePath,
+          allowedRoots: [projectRoot],
+        })
+
+        const content = fs.readFileSync(filePath, "utf8")
+        const progress = getPlanProgressFromMarkdown(content)
+        const steps = getPlanStepsFromMarkdown(content)
+
+        if (progress.total > 0 && progress.completed === 0) {
+          const planName = file.replace(/\.md$/, "")
+          const relativePath = path.relative(projectRoot, filePath)
+          results.push({
+            name: planName,
+            path: relativePath,
+            total: progress.total,
+            steps,
+          })
+        }
+      } catch {
+        continue
+      }
+    }
+  } catch {
+    return []
+  }
+
+  results.sort((a, b) => a.name.localeCompare(b.name))
+
+  return results
 }

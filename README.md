@@ -41,6 +41,12 @@ Run it as a persistent service alongside your development workflow and always kn
 - **Resizable columns** — drag handles to adjust column widths
 - **Dark mode** — because light mode is for people who don't code at 2 AM
 
+<p align="center">
+  <img src="docs/screenshots/status-visuals.png" alt="Status visual palette showing danger, question, thinking, plan-complete, busy, idle, tool, and unknown indicators" width="820"/>
+</p>
+
+<p align="center"><em>Refined status language — distinct glass and lamp-style indicators for danger, questions, active work, completion, idle, and unknown states.</em></p>
+
 <table>
   <tr>
     <td colspan="3" align="center"><img src="docs/screenshots/details-expanded.png" alt="Full detail view with expanded panes" width="560"/></td>

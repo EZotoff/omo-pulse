@@ -71,6 +71,13 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
     return isClientStale ? "idle" : mainSession.status
   })()
 
+  const finalDisplayStatus = sourceId.startsWith('preview-') && mainSession.status === 'plan_complete'
+    ? 'plan_complete'
+    : displayStatus
+
+  const previewPublicNameMatch = sourceId.startsWith('preview-all-') ? sourceId.match(/^preview-all-(.+)-\d+$/) : null
+  const previewPublicName = previewPublicNameMatch?.[1] ?? null
+
   /* ── Pane height management ── */
   const { setHeight, releaseHeight, isReleased, getHeight } = useProjectPaneHeights()
   const released = isReleased(sourceId)
@@ -140,38 +147,74 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
     : {}
 
   return (
-    <div className="project-strip" data-expanded={expanded} data-stale={isStale} data-status={displayStatus}>
+    <div className="project-strip" data-project-id={sourceId} data-expanded={expanded} data-stale={isStale} data-status={finalDisplayStatus}>
       {/* Collapsed header — always visible */}
-      <div className="strip-header" onClick={onToggleExpand} role="button" tabIndex={0} aria-expanded={expanded} aria-label={`${project.label} — ${displayStatus}`} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggleExpand() } }}>
-        {stripConfig?.showStatusDot !== false && (
-          <span className="strip-status-dot" data-status={displayStatus} data-stale={isStale} data-avatar={stripConfig?.showAvatar !== false ? "true" : undefined} aria-hidden="true">
-            {stripConfig?.showAvatar !== false ? getInitials(project.label) : null}
-          </span>
-        )}
-        {stripConfig?.showProjectName !== false && (
-          <span className="strip-label truncate">{project.label}</span>
-        )}
-        {stripConfig?.showMiniSparkline !== false && <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>}
-        {stripConfig?.showAgentBadge !== false && <span className="strip-agent-badge">{mainSession.agent}</span>}
-        {gitUncommittedCount != null && gitUncommittedCount > 0 && (
-          <span className="strip-git-badge" title={`${gitUncommittedCount} uncommitted change${gitUncommittedCount === 1 ? '' : 's'}`}>
-            {gitUncommittedCount > 999 ? '999+' : gitUncommittedCount}
-          </span>
-        )}
-        {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
-        {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{mainSession.lastUpdated ? formatRelativeTime(new Date(mainSession.lastUpdated).getTime()) : "—"}</span>}
-        {expanded && (
+      {previewPublicName ? (
+        <a
+          className="strip-header"
+          href={`?preview=status:${previewPublicName}`}
+          aria-label={`View variants for ${previewPublicName}`}
+          style={{ textDecoration: 'none', color: 'inherit', display: 'flex' }}
+        >
+          {stripConfig?.showStatusDot !== false && (
+            <span className="strip-status-dot" data-status={finalDisplayStatus} data-stale={isStale} data-avatar={stripConfig?.showAvatar !== false ? "true" : undefined} aria-hidden="true">
+              {stripConfig?.showAvatar !== false ? getInitials(project.label) : null}
+            </span>
+          )}
+          {stripConfig?.showProjectName !== false && (
+            <span className="strip-label truncate">{project.label}</span>
+          )}
+          {stripConfig?.showMiniSparkline !== false && <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>}
+          {stripConfig?.showAgentBadge !== false && <span className="strip-agent-badge">{mainSession.agent}</span>}
+          {gitUncommittedCount != null && gitUncommittedCount > 0 && (
+            <span className="strip-git-badge" title={`${gitUncommittedCount} uncommitted change${gitUncommittedCount === 1 ? '' : 's'}`}>
+              {gitUncommittedCount > 999 ? '999+' : gitUncommittedCount}
+            </span>
+          )}
+          {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
+          {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{mainSession.lastUpdated ? formatRelativeTime(new Date(mainSession.lastUpdated).getTime()) : "—"}</span>}
+        </a>
+      ) : (
+        <div className="strip-header-row">
           <button
-            className="release-btn"
-            onClick={handleReleaseToggle}
-            title={released ? "Constrain height" : "Release height"}
-            aria-label={released ? "Constrain pane height" : "Release pane height"}
+            type="button"
+            className="strip-header strip-header-button"
+            onClick={onToggleExpand}
+            aria-expanded={expanded}
+            aria-label={`${project.label} — ${finalDisplayStatus}`}
           >
-            {released ? "⊟" : "⤢"}
+            {stripConfig?.showStatusDot !== false && (
+              <span className="strip-status-dot" data-status={finalDisplayStatus} data-stale={isStale} data-avatar={stripConfig?.showAvatar !== false ? "true" : undefined} aria-hidden="true">
+                {stripConfig?.showAvatar !== false ? getInitials(project.label) : null}
+              </span>
+            )}
+            {stripConfig?.showProjectName !== false && (
+              <span className="strip-label truncate">{project.label}</span>
+            )}
+            {stripConfig?.showMiniSparkline !== false && <div className="sparkline-slot sparkline-slot--mini">{children?.miniSparkline}</div>}
+            {stripConfig?.showAgentBadge !== false && <span className="strip-agent-badge">{mainSession.agent}</span>}
+            {gitUncommittedCount != null && gitUncommittedCount > 0 && (
+              <span className="strip-git-badge" title={`${gitUncommittedCount} uncommitted change${gitUncommittedCount === 1 ? '' : 's'}`}>
+                {gitUncommittedCount > 999 ? '999+' : gitUncommittedCount}
+              </span>
+            )}
+            {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
+            {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{mainSession.lastUpdated ? formatRelativeTime(new Date(mainSession.lastUpdated).getTime()) : "—"}</span>}
+            <span className="strip-chevron" aria-hidden="true">{expanded ? "▾" : "▸"}</span>
           </button>
-        )}
-        <span className="strip-chevron" aria-hidden="true">{expanded ? "▾" : "▸"}</span>
-      </div>
+          {expanded && (
+            <button
+              type="button"
+              className="release-btn"
+              onClick={handleReleaseToggle}
+              title={released ? "Constrain height" : "Release height"}
+              aria-label={released ? "Constrain pane height" : "Release pane height"}
+            >
+              {released ? "⊟" : "⤢"}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Expanded body */}
       <div
@@ -273,7 +316,7 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
         </div>
         {/* Resize handle — only visible when constrained */}
         {expanded && !released && (
-          <div className="resize-handle" onMouseDown={handleResizeMouseDown} />
+          <button type="button" className="resize-handle" onMouseDown={handleResizeMouseDown} aria-label="Resize project pane" />
         )}
       </div>
     </div>

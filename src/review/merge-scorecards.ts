@@ -1,56 +1,56 @@
 import type { ReviewFinding, ReviewRiskLevel, ReviewScorecard } from "./types"
 
 /**
- * Merges a check-run scorecard with an optional LLM scorecard following these rules:
+ * Merges a check-run scorecard with an optional Copilot scorecard following these rules:
  *
- * - `security` and `safety`: Always from check-run (LLM cannot override)
- * - `performance` and `featureQuality`: From LLM if present, else from check-run
+ * - `security` and `safety`: Always from check-run (Copilot cannot override)
+ * - `performance` and `featureQuality`: From Copilot if present, else from check-run
  * - `confidence`: Minimum of available scorecards
  * - `risk`: Most-severe ordering (high > medium > low)
  * - `findings`: Concatenated from both, with source attribution
- * - `summary`: Combined from both with source attribution; null LLM uses informational degradation message
+ * - `summary`: Combined from both with source attribution; null Copilot uses informational degradation message
  * - `autoApproveAllowed`: Logical AND of both
- * - `source`: "merged:check-run+llm" for normal case, "check-run-only:llm-unavailable" when LLM is null
+ * - `source`: "merged:check-run+copilot" for normal case, "check-run-only:copilot-unavailable" when Copilot is null
  *
- * When LLM is null, an informational finding is added with the summary:
- * "LLM analysis unavailable — using check-run proxy scores only"
+ * When Copilot is null, an informational finding is added with the summary:
+ * "Copilot review unavailable — using check-run proxy scores only"
  */
 export function mergeScorecards(
   checkRunScorecard: ReviewScorecard,
-  llmScorecard: ReviewScorecard | null,
+  copilotScorecard: ReviewScorecard | null,
 ): ReviewScorecard {
   // Extract scores: security and safety always from check-run
   const security = checkRunScorecard.scores.security
   const safety = checkRunScorecard.scores.safety
 
-  // Performance and featureQuality from LLM if present, else check-run
-  const performance = llmScorecard?.scores.performance ?? checkRunScorecard.scores.performance
-  const featureQuality = llmScorecard?.scores.featureQuality ?? checkRunScorecard.scores.featureQuality
+  // Performance and featureQuality from Copilot if present, else check-run
+  const performance = copilotScorecard?.scores.performance ?? checkRunScorecard.scores.performance
+  const featureQuality = copilotScorecard?.scores.featureQuality ?? checkRunScorecard.scores.featureQuality
 
   // Confidence is the minimum of available scorecards
   const checkRunConfidence = checkRunScorecard.scores.confidence
-  const llmConfidence = llmScorecard?.scores.confidence ?? checkRunConfidence
-  const confidence = Math.min(checkRunConfidence, llmConfidence)
+  const copilotConfidence = copilotScorecard?.scores.confidence ?? checkRunConfidence
+  const confidence = Math.min(checkRunConfidence, copilotConfidence)
 
   // Risk: most-severe ordering (high > medium > low)
   const riskOrdering: { [key in ReviewRiskLevel]: number } = { high: 3, medium: 2, low: 1 }
   const checkRunRiskValue = riskOrdering[checkRunScorecard.risk]
-  const llmRiskValue = llmScorecard ? riskOrdering[llmScorecard.risk] : 0
-  const mergedRiskValue = Math.max(checkRunRiskValue, llmRiskValue)
+  const copilotRiskValue = copilotScorecard ? riskOrdering[copilotScorecard.risk] : 0
+  const mergedRiskValue = Math.max(checkRunRiskValue, copilotRiskValue)
   const riskLevels: ReviewRiskLevel[] = ["low", "medium", "high"]
   const risk = riskLevels[mergedRiskValue - 1] ?? "low"
 
   // Findings: concatenate from both
   const findings: ReviewFinding[] = [...checkRunScorecard.findings]
-  if (llmScorecard) {
-    findings.push(...llmScorecard.findings)
+  if (copilotScorecard) {
+    findings.push(...copilotScorecard.findings)
   } else {
-    // Add informational degradation finding when LLM is unavailable
+    // Add informational degradation finding when Copilot is unavailable
     findings.push({
       dimension: "performance",
       severity: "info",
       confidence: "low",
-      summary: "LLM analysis unavailable — using check-run proxy scores only",
+      summary: "Copilot review unavailable — using check-run proxy scores only",
     })
   }
 
@@ -59,17 +59,17 @@ export function mergeScorecards(
   if (checkRunScorecard.summary) {
     summaryParts.push(`[check-run] ${checkRunScorecard.summary}`)
   }
-  if (llmScorecard?.summary) {
-    summaryParts.push(`[llm] ${llmScorecard.summary}`)
+  if (copilotScorecard?.summary) {
+    summaryParts.push(`[copilot] ${copilotScorecard.summary}`)
   }
   const summary = summaryParts.join(" ")
 
   // autoApproveAllowed: logical AND
   const autoApproveAllowed =
-    checkRunScorecard.autoApproveAllowed && (llmScorecard?.autoApproveAllowed ?? true)
+    checkRunScorecard.autoApproveAllowed && (copilotScorecard?.autoApproveAllowed ?? true)
 
-  // Source: normal case vs null LLM case
-  const source = llmScorecard ? "merged:check-run+llm" : "check-run-only:llm-unavailable"
+  // Source: normal case vs null Copilot case
+  const source = copilotScorecard ? "merged:check-run+copilot" : "check-run-only:copilot-unavailable"
 
   return {
     summary: summary || undefined,

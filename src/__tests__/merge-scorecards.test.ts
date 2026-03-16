@@ -22,8 +22,8 @@ function makeScorecard(overrides: Partial<ReviewScorecard> = {}): ReviewScorecar
 }
 
 describe("mergeScorecards", () => {
-  describe("Normal LLM-present path", () => {
-    it("takes security and safety always from check-run, never from LLM", () => {
+  describe("Normal Copilot-present path", () => {
+    it("takes security and safety always from check-run, never from Copilot", () => {
       const checkRun = makeScorecard({
         scores: {
           security: 3.5,
@@ -33,7 +33,7 @@ describe("mergeScorecards", () => {
           confidence: 4.2,
         },
       })
-      const llm = makeScorecard({
+      const copilot = makeScorecard({
         scores: {
           security: 4.9,
           safety: 4.95,
@@ -43,14 +43,14 @@ describe("mergeScorecards", () => {
         },
       })
 
-      const merged = mergeScorecards(checkRun, llm)
+      const merged = mergeScorecards(checkRun, copilot)
 
       // Security and safety come from check-run only
       expect(merged.scores.security).toBe(3.5)
       expect(merged.scores.safety).toBe(2.8)
     })
 
-    it("takes performance and featureQuality from LLM when present", () => {
+    it("takes performance and featureQuality from Copilot when present", () => {
       const checkRun = makeScorecard({
         scores: {
           security: 4.8,
@@ -60,7 +60,7 @@ describe("mergeScorecards", () => {
           confidence: 4.6,
         },
       })
-      const llm = makeScorecard({
+      const copilot = makeScorecard({
         scores: {
           security: 4.0,
           safety: 4.0,
@@ -70,14 +70,14 @@ describe("mergeScorecards", () => {
         },
       })
 
-      const merged = mergeScorecards(checkRun, llm)
+      const merged = mergeScorecards(checkRun, copilot)
 
-      // Performance and featureQuality come from LLM
+      // Performance and featureQuality come from Copilot
       expect(merged.scores.performance).toBe(4.7)
       expect(merged.scores.featureQuality).toBe(4.9)
     })
 
-    it("computes confidence as minimum of check-run and LLM", () => {
+    it("computes confidence as minimum of check-run and Copilot", () => {
       const checkRun = makeScorecard({
         scores: {
           security: 4.8,
@@ -87,7 +87,7 @@ describe("mergeScorecards", () => {
           confidence: 4.2,
         },
       })
-      const llm = makeScorecard({
+      const copilot = makeScorecard({
         scores: {
           security: 4.8,
           safety: 4.9,
@@ -97,7 +97,7 @@ describe("mergeScorecards", () => {
         },
       })
 
-      const merged = mergeScorecards(checkRun, llm)
+      const merged = mergeScorecards(checkRun, copilot)
 
       // Confidence is minimum
       expect(merged.scores.confidence).toBe(4.2)
@@ -107,11 +107,11 @@ describe("mergeScorecards", () => {
       const checkRun = makeScorecard({
         risk: "low",
       })
-      const llm = makeScorecard({
+      const copilot = makeScorecard({
         risk: "high",
       })
 
-      const merged = mergeScorecards(checkRun, llm)
+      const merged = mergeScorecards(checkRun, copilot)
 
       expect(merged.risk).toBe("high")
     })
@@ -120,11 +120,11 @@ describe("mergeScorecards", () => {
       const checkRun = makeScorecard({
         risk: "medium",
       })
-      const llm = makeScorecard({
+      const copilot = makeScorecard({
         risk: "low",
       })
 
-      const merged = mergeScorecards(checkRun, llm)
+      const merged = mergeScorecards(checkRun, copilot)
 
       expect(merged.risk).toBe("medium")
     })
@@ -140,59 +140,59 @@ describe("mergeScorecards", () => {
           },
         ],
       })
-      const llm = makeScorecard({
+      const copilot = makeScorecard({
         findings: [
           {
             dimension: "performance",
             severity: "info",
             confidence: "medium",
-            summary: "LLM finding",
+            summary: "Copilot finding",
           },
         ],
       })
 
-      const merged = mergeScorecards(checkRun, llm)
+      const merged = mergeScorecards(checkRun, copilot)
 
       expect(merged.findings).toHaveLength(2)
       expect(merged.findings[0].summary).toBe("Check-run finding")
-      expect(merged.findings[1].summary).toBe("LLM finding")
+      expect(merged.findings[1].summary).toBe("Copilot finding")
     })
 
     it("combines summaries with source attribution", () => {
       const checkRun = makeScorecard({
         summary: "Check-run analysis",
       })
-      const llm = makeScorecard({
-        summary: "LLM review",
+      const copilot = makeScorecard({
+        summary: "Copilot review",
       })
 
-      const merged = mergeScorecards(checkRun, llm)
+      const merged = mergeScorecards(checkRun, copilot)
 
-      expect(merged.summary).toBe("[check-run] Check-run analysis [llm] LLM review")
+      expect(merged.summary).toBe("[check-run] Check-run analysis [copilot] Copilot review")
     })
 
     it("omits check-run summary attribution when summary is empty", () => {
       const checkRun = makeScorecard({
         summary: undefined,
       })
-      const llm = makeScorecard({
-        summary: "LLM review",
+      const copilot = makeScorecard({
+        summary: "Copilot review",
       })
 
-      const merged = mergeScorecards(checkRun, llm)
+      const merged = mergeScorecards(checkRun, copilot)
 
-      expect(merged.summary).toBe("[llm] LLM review")
+      expect(merged.summary).toBe("[copilot] Copilot review")
     })
 
-    it("omits LLM summary attribution when LLM summary is empty", () => {
+    it("omits Copilot summary attribution when Copilot summary is empty", () => {
       const checkRun = makeScorecard({
         summary: "Check-run analysis",
       })
-      const llm = makeScorecard({
+      const copilot = makeScorecard({
         summary: undefined,
       })
 
-      const merged = mergeScorecards(checkRun, llm)
+      const merged = mergeScorecards(checkRun, copilot)
 
       expect(merged.summary).toBe("[check-run] Check-run analysis")
     })
@@ -201,11 +201,11 @@ describe("mergeScorecards", () => {
       const checkRun = makeScorecard({
         autoApproveAllowed: true,
       })
-      const llm = makeScorecard({
+      const copilot = makeScorecard({
         autoApproveAllowed: true,
       })
 
-      let merged = mergeScorecards(checkRun, llm)
+      let merged = mergeScorecards(checkRun, copilot)
       expect(merged.autoApproveAllowed).toBe(true)
 
       // One false blocks approval
@@ -223,18 +223,18 @@ describe("mergeScorecards", () => {
       expect(merged.autoApproveAllowed).toBe(false)
     })
 
-    it("sets source to 'merged:check-run+llm' when LLM is present", () => {
+    it("sets source to 'merged:check-run+copilot' when Copilot is present", () => {
       const checkRun = makeScorecard()
-      const llm = makeScorecard()
+      const copilot = makeScorecard()
 
-      const merged = mergeScorecards(checkRun, llm)
+      const merged = mergeScorecards(checkRun, copilot)
 
-      expect(merged.source).toBe("merged:check-run+llm")
+      expect(merged.source).toBe("merged:check-run+copilot")
     })
   })
 
-  describe("Null-LLM degradation path", () => {
-    it("uses check-run fallback for performance when LLM is null", () => {
+  describe("Null-Copilot degradation path", () => {
+    it("uses check-run fallback for performance when Copilot is null", () => {
       const checkRun = makeScorecard({
         scores: {
           security: 4.8,
@@ -247,12 +247,12 @@ describe("mergeScorecards", () => {
 
       const merged = mergeScorecards(checkRun, null)
 
-      // Fallback to check-run when LLM is null
+      // Fallback to check-run when Copilot is null
       expect(merged.scores.performance).toBe(4.3)
       expect(merged.scores.featureQuality).toBe(4.2)
     })
 
-    it("uses check-run confidence when LLM is null", () => {
+    it("uses check-run confidence when Copilot is null", () => {
       const checkRun = makeScorecard({
         scores: {
           security: 4.8,
@@ -268,7 +268,7 @@ describe("mergeScorecards", () => {
       expect(merged.scores.confidence).toBe(4.6)
     })
 
-    it("respects check-run risk level when LLM is null", () => {
+    it("respects check-run risk level when Copilot is null", () => {
       const checkRun = makeScorecard({
         risk: "medium",
       })
@@ -278,7 +278,7 @@ describe("mergeScorecards", () => {
       expect(merged.risk).toBe("medium")
     })
 
-    it("uses only check-run findings when LLM is null", () => {
+    it("uses only check-run findings when Copilot is null", () => {
       const checkRun = makeScorecard({
         findings: [
           {
@@ -297,7 +297,7 @@ describe("mergeScorecards", () => {
       expect(merged.findings[0].summary).toBe("Check-run finding")
     })
 
-    it("adds informational degradation finding when LLM is null", () => {
+    it("adds informational degradation finding when Copilot is null", () => {
       const checkRun = makeScorecard({
         findings: [],
       })
@@ -309,10 +309,10 @@ describe("mergeScorecards", () => {
       expect(degradationFinding.dimension).toBe("performance")
       expect(degradationFinding.severity).toBe("info")
       expect(degradationFinding.confidence).toBe("low")
-      expect(degradationFinding.summary).toBe("LLM analysis unavailable — using check-run proxy scores only")
+      expect(degradationFinding.summary).toBe("Copilot review unavailable — using check-run proxy scores only")
     })
 
-    it("degrades autoApproveAllowed when check-run disallows approval and LLM is null", () => {
+    it("degrades autoApproveAllowed when check-run disallows approval and Copilot is null", () => {
       const checkRun = makeScorecard({
         autoApproveAllowed: false,
       })
@@ -322,7 +322,7 @@ describe("mergeScorecards", () => {
       expect(merged.autoApproveAllowed).toBe(false)
     })
 
-    it("allows approval when check-run allows and LLM is null", () => {
+    it("allows approval when check-run allows and Copilot is null", () => {
       const checkRun = makeScorecard({
         autoApproveAllowed: true,
       })
@@ -332,7 +332,7 @@ describe("mergeScorecards", () => {
       expect(merged.autoApproveAllowed).toBe(true)
     })
 
-    it("uses only check-run summary when LLM is null", () => {
+    it("uses only check-run summary when Copilot is null", () => {
       const checkRun = makeScorecard({
         summary: "Check-run analysis",
       })
@@ -342,7 +342,7 @@ describe("mergeScorecards", () => {
       expect(merged.summary).toBe("[check-run] Check-run analysis")
     })
 
-    it("handles empty check-run summary when LLM is null", () => {
+    it("handles empty check-run summary when Copilot is null", () => {
       const checkRun = makeScorecard({
         summary: undefined,
       })
@@ -354,12 +354,12 @@ describe("mergeScorecards", () => {
       expect(merged.findings.some((f) => f.summary.includes("unavailable"))).toBe(true)
     })
 
-    it("sets source to 'check-run-only:llm-unavailable' when LLM is null", () => {
+    it("sets source to 'check-run-only:copilot-unavailable' when Copilot is null", () => {
       const checkRun = makeScorecard()
 
       const merged = mergeScorecards(checkRun, null)
 
-      expect(merged.source).toBe("check-run-only:llm-unavailable")
+      expect(merged.source).toBe("check-run-only:copilot-unavailable")
     })
   })
 
@@ -374,7 +374,7 @@ describe("mergeScorecards", () => {
           confidence: 3.4,
         },
       })
-      const llm = makeScorecard({
+      const copilot = makeScorecard({
         scores: {
           security: 5.0,
           safety: 5.0,
@@ -384,7 +384,7 @@ describe("mergeScorecards", () => {
         },
       })
 
-      const merged = mergeScorecards(checkRun, llm)
+      const merged = mergeScorecards(checkRun, copilot)
 
       // All dimensions preserved as per merge rules
       expect(merged.scores.security).toBe(3.0)
@@ -396,10 +396,10 @@ describe("mergeScorecards", () => {
 
     it("produces deterministic output given same input", () => {
       const checkRun = makeScorecard()
-      const llm = makeScorecard()
+      const copilot = makeScorecard()
 
-      const merged1 = mergeScorecards(checkRun, llm)
-      const merged2 = mergeScorecards(checkRun, llm)
+      const merged1 = mergeScorecards(checkRun, copilot)
+      const merged2 = mergeScorecards(checkRun, copilot)
 
       expect(JSON.stringify(merged1)).toBe(JSON.stringify(merged2))
     })
@@ -415,25 +415,25 @@ describe("mergeScorecards", () => {
           },
         ],
       })
-      const llm = makeScorecard({
+      const copilot = makeScorecard({
         findings: [
           {
             dimension: "performance",
             severity: "info",
             confidence: "medium",
-            summary: "LLM finding",
+            summary: "Copilot finding",
           },
         ],
       })
 
       const checkRunFindingsLength = checkRun.findings.length
-      const llmFindingsLength = llm.findings.length
+      const copilotFindingsLength = copilot.findings.length
 
-      mergeScorecards(checkRun, llm)
+      mergeScorecards(checkRun, copilot)
 
       // Input arrays remain unchanged
       expect(checkRun.findings).toHaveLength(checkRunFindingsLength)
-      expect(llm.findings).toHaveLength(llmFindingsLength)
+      expect(copilot.findings).toHaveLength(copilotFindingsLength)
     })
 
     it("handles multiple findings from each scorecard", () => {
@@ -453,31 +453,31 @@ describe("mergeScorecards", () => {
           },
         ],
       })
-      const llm = makeScorecard({
+      const copilot = makeScorecard({
         findings: [
           {
             dimension: "performance",
             severity: "info",
             confidence: "medium",
-            summary: "LLM finding 1",
+            summary: "Copilot finding 1",
           },
           {
             dimension: "featureQuality",
             severity: "warning",
             confidence: "high",
-            summary: "LLM finding 2",
+            summary: "Copilot finding 2",
           },
         ],
       })
 
-      const merged = mergeScorecards(checkRun, llm)
+      const merged = mergeScorecards(checkRun, copilot)
 
       expect(merged.findings).toHaveLength(4)
       expect(merged.findings.map((f) => f.summary)).toEqual([
         "Check-run finding 1",
         "Check-run finding 2",
-        "LLM finding 1",
-        "LLM finding 2",
+        "Copilot finding 1",
+        "Copilot finding 2",
       ])
     })
   })
@@ -485,7 +485,7 @@ describe("mergeScorecards", () => {
 
 describe("Confidence contradiction regression", () => {
   it("deterministic-only path still produces request_fixes due to performance/featureQuality caps", () => {
-    // Simulates a healthy PR: all checks pass, but no LLM analysis
+    // Simulates a healthy PR: all checks pass, but no Copilot analysis
     const healthyDeterministic = makeScorecard({
       scores: {
         security: 4.9,
@@ -505,8 +505,8 @@ describe("Confidence contradiction regression", () => {
     expect(result.reasons.some((reason) => reason.includes("performance"))).toBe(true)
   })
 
-  it("merged path with strong LLM scores and healthy deterministic confidence can auto_approve", () => {
-    // Simulates a healthy PR with strong LLM analysis
+  it("merged path with strong Copilot scores and healthy deterministic confidence can auto_approve", () => {
+    // Simulates a healthy PR with strong Copilot analysis
     const healthyDeterministic = makeScorecard({
       scores: {
         security: 4.9,
@@ -519,26 +519,26 @@ describe("Confidence contradiction regression", () => {
       autoApproveAllowed: true,
     })
 
-    const strongLLM = makeScorecard({
+    const strongCopilot = makeScorecard({
       scores: {
-        security: 4.8, // LLM security/safety ignored, check-run takes precedence
+        security: 4.8, // Copilot security/safety ignored, check-run takes precedence
         safety: 4.9,
-        performance: 4.8, // Strong LLM performance
-        featureQuality: 4.9, // Strong LLM quality
-        confidence: 4.6, // LLM confidence (min will be 4.2)
+        performance: 4.8, // Strong Copilot performance
+        featureQuality: 4.9, // Strong Copilot quality
+        confidence: 4.6, // Copilot confidence (min will be 4.2)
       },
       risk: "low",
       autoApproveAllowed: true,
     })
 
-    const merged = mergeScorecards(healthyDeterministic, strongLLM)
+    const merged = mergeScorecards(healthyDeterministic, strongCopilot)
     const result = evaluateReviewScorecard(merged)
 
-    // Merged with strong LLM should auto_approve now
+    // Merged with strong Copilot should auto_approve now
     expect(merged.scores.security).toBe(4.9) // From check-run
     expect(merged.scores.safety).toBe(4.8) // From check-run
-    expect(merged.scores.performance).toBe(4.8) // From LLM
-    expect(merged.scores.featureQuality).toBe(4.9) // From LLM
+    expect(merged.scores.performance).toBe(4.8) // From Copilot
+    expect(merged.scores.featureQuality).toBe(4.9) // From Copilot
     expect(merged.scores.confidence).toBe(4.2) // Minimum of 4.2 and 4.6
     expect(result.decision).toBe("auto_approve") // Can now reach auto_approve!
     expect(result.autoApprove).toBe(true)

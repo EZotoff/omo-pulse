@@ -1,14 +1,9 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
+import type { BoulderHistoryEntry, BoulderState, UnintiatedPlan } from "~/types"
 import { assertAllowedPath } from "./paths"
-import type { UnintiatedPlan } from "~/types"
 
-export type BoulderState = {
-  active_plan: string
-  started_at: string
-  session_ids: string[]
-  plan_name: string
-}
+export type { BoulderState }
 
 export type PlanProgress = {
   total: number
@@ -37,6 +32,40 @@ export function readBoulderState(projectRoot: string): BoulderState | null {
     return JSON.parse(content) as BoulderState
   } catch {
     return null
+  }
+}
+
+export function readBoulderHistory(projectRoot: string): BoulderHistoryEntry[] {
+  const filePath = assertAllowedPath({
+    candidatePath: path.join(projectRoot, ".sisyphus", "boulder-history.jsonl"),
+    allowedRoots: [projectRoot],
+  })
+
+  if (!fs.existsSync(filePath)) return []
+
+  try {
+    const content = fs.readFileSync(filePath, "utf8")
+    const entries: BoulderHistoryEntry[] = []
+
+    for (const rawLine of content.split(/\r?\n/)) {
+      const line = rawLine.trim()
+      if (!line) continue
+
+      try {
+        entries.push(JSON.parse(line) as BoulderHistoryEntry)
+      } catch {
+      }
+    }
+
+    entries.sort((left, right) => {
+      const leftTime = Date.parse(left.completed_at)
+      const rightTime = Date.parse(right.completed_at)
+      return (Number.isFinite(rightTime) ? rightTime : 0) - (Number.isFinite(leftTime) ? leftTime : 0)
+    })
+
+    return entries
+  } catch {
+    return []
   }
 }
 
@@ -156,12 +185,15 @@ export function scanUnintiatedPlans(projectRoot: string, activePlanPath: string 
   const results: UnintiatedPlan[] = []
 
   try {
-    const files = fs.readdirSync(plansDir)
+    const files = fs.readdirSync(plansDir, { withFileTypes: true })
 
     for (const file of files) {
-      if (!file.endsWith(".md")) continue
+      if (file.isDirectory() && file.name === "_archive") continue
+      if (!file.isFile()) continue
+      if (!file.name.endsWith(".md")) continue
+      if (file.name.startsWith("_archive_")) continue
 
-      const filePath = path.join(plansDir, file)
+      const filePath = path.join(plansDir, file.name)
       const filePathAbs = path.resolve(filePath)
 
       if (activePlanNorm && filePathAbs === activePlanNorm) {
@@ -179,7 +211,7 @@ export function scanUnintiatedPlans(projectRoot: string, activePlanPath: string 
         const steps = getPlanStepsFromMarkdown(content)
 
         if (progress.total > 0 && progress.completed === 0) {
-          const planName = file.replace(/\.md$/, "")
+          const planName = file.name.replace(/\.md$/, "")
           const relativePath = path.relative(projectRoot, filePath)
           results.push({
             name: planName,
@@ -189,7 +221,6 @@ export function scanUnintiatedPlans(projectRoot: string, activePlanPath: string 
           })
         }
       } catch {
-        continue
       }
     }
   } catch {

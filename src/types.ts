@@ -32,6 +32,32 @@ export type UnintiatedPlan = {
   steps: PlanStep[]
 }
 
+export type BoulderState = {
+  active_plan: string
+  started_at: string
+  session_ids: string[]
+  plan_name: string
+  status?: string
+  completed_at?: string
+}
+
+export type BoulderHistoryEntry = {
+  plan_name: string
+  plan_path: string
+  archived_path: string
+  started_at: string
+  completed_at: string
+  session_ids: string[]
+  total_tasks: number
+  completed_tasks: number
+  agent?: string
+}
+
+export type PlanHistory = {
+  entries: BoulderHistoryEntry[]
+  totalCompleted: number
+}
+
 /** Time series data for a single series (e.g., token usage, tool calls) */
 export type TimeSeriesSeries = {
   id: string
@@ -129,8 +155,11 @@ export type ProjectSnapshot = {
     steps: PlanStep[]
     planStale: boolean
     planComplete: boolean
+    boulderStatus?: string
+    completedAt?: string
   }
   unintiatedPlans: UnintiatedPlan[]
+  planHistory?: PlanHistory
   timeSeries: TimeSeriesPayload
   backgroundTasks: BackgroundTaskSummary[]
   sessionTimeSeries: SessionTimeSeriesPayload

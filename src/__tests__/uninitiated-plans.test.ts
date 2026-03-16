@@ -116,4 +116,25 @@ describe("scanUnintiatedPlans", () => {
       total: 1,
     } satisfies Pick<UnintiatedPlan, "name" | "path" | "total">)
   })
+
+  it("excludes _archive-prefixed markdown files", () => {
+    const projectRoot = createProjectRoot()
+
+    writePlan(projectRoot, "active-plan.md", "- [ ] Keep me")
+    writePlan(projectRoot, "_archive_old-plan.md", "- [ ] Ignore me")
+
+    expect(scanUnintiatedPlans(projectRoot, null).map((plan) => plan.name)).toEqual(["active-plan"])
+  })
+
+  it("excludes the _archive directory", () => {
+    const projectRoot = createProjectRoot()
+    const plansDir = ensurePlansDir(projectRoot)
+
+    writePlan(projectRoot, "main-plan.md", "- [ ] Visible task")
+    const archiveDir = path.join(plansDir, "_archive")
+    fs.mkdirSync(archiveDir, { recursive: true })
+    fs.writeFileSync(path.join(archiveDir, "archived-plan.md"), "- [ ] Hidden task")
+
+    expect(scanUnintiatedPlans(projectRoot, null).map((plan) => plan.name)).toEqual(["main-plan"])
+  })
 })

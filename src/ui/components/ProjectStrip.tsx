@@ -11,6 +11,7 @@ const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 
 /** Format millisecond timestamp to relative time string ("2s ago", "1m ago", "3h ago") */
 export function formatRelativeTime(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return "—"
   const now = Date.now()
   const delta = Math.max(0, now - ms)
   const seconds = Math.floor(delta / 1_000)
@@ -171,6 +172,17 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
               {gitUncommittedCount > 999 ? '999+' : gitUncommittedCount}
             </span>
           )}
+          {stripConfig?.showGitWorktrees !== false && project.worktrees && project.worktrees.activeCount > 0 && (
+            <span
+              className={`strip-git-badge strip-worktree-badge ${project.worktrees.hotCount > 0 ? "strip-worktree-badge--hot" : ""}`}
+              title={project.worktrees.hotCount > 0
+                ? `${project.worktrees.hotCount} hot worktree${project.worktrees.hotCount === 1 ? "" : "s"}`
+                : `${project.worktrees.activeCount} active worktree${project.worktrees.activeCount === 1 ? "" : "s"}`}
+            >
+              {project.worktrees.hotCount > 0 && <span className="strip-worktree-hot-dot" aria-hidden="true" />}
+              {project.worktrees.hotCount > 0 ? `${project.worktrees.hotCount} wt` : `${project.worktrees.activeCount} wt`}
+            </span>
+          )}
           {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
           {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{mainSession.lastUpdated ? formatRelativeTime(new Date(mainSession.lastUpdated).getTime()) : "—"}</span>}
         </a>
@@ -196,6 +208,17 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
             {gitUncommittedCount != null && gitUncommittedCount > 0 && (
               <span className="strip-git-badge" title={`${gitUncommittedCount} uncommitted change${gitUncommittedCount === 1 ? '' : 's'}`}>
                 {gitUncommittedCount > 999 ? '999+' : gitUncommittedCount}
+              </span>
+            )}
+            {stripConfig?.showGitWorktrees !== false && project.worktrees && project.worktrees.activeCount > 0 && (
+              <span
+                className={`strip-git-badge strip-worktree-badge ${project.worktrees.hotCount > 0 ? "strip-worktree-badge--hot" : ""}`}
+                title={project.worktrees.hotCount > 0
+                  ? `${project.worktrees.hotCount} hot worktree${project.worktrees.hotCount === 1 ? "" : "s"}`
+                  : `${project.worktrees.activeCount} active worktree${project.worktrees.activeCount === 1 ? "" : "s"}`}
+              >
+                {project.worktrees.hotCount > 0 && <span className="strip-worktree-hot-dot" aria-hidden="true" />}
+                {project.worktrees.hotCount > 0 ? `${project.worktrees.hotCount} wt` : `${project.worktrees.activeCount} wt`}
               </span>
             )}
             {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
@@ -269,6 +292,42 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
             <span className="strip-section-label">Last Polled</span>
             <span className="strip-session-field-value">{formatRelativeTime(lastUpdatedMs)}</span>
           </div>
+
+          {stripConfig?.showGitWorktrees !== false && project.worktrees && project.worktrees.worktrees.length > 1 && (
+            <div className="strip-section">
+              <span className="strip-section-label">Worktrees ({project.worktrees.worktrees.length - 1})</span>
+              <div className="strip-worktrees-list">
+                {[...project.worktrees.worktrees]
+                  .filter((wt) => !wt.isMainWorktree)
+                  .sort((a, b) => {
+                    const aHot = a.commitsAhead > 0 && Boolean(a.diffStat && a.diffStat.filesChanged > 0)
+                    const bHot = b.commitsAhead > 0 && Boolean(b.diffStat && b.diffStat.filesChanged > 0)
+                    if (aHot !== bHot) return aHot ? -1 : 1
+                    const aBranch = a.branch || a.commitHash.substring(0, 7)
+                    const bBranch = b.branch || b.commitHash.substring(0, 7)
+                    return aBranch.localeCompare(bBranch)
+                  })
+                  .map((wt) => {
+                    const isHot = wt.commitsAhead > 0 && Boolean(wt.diffStat && wt.diffStat.filesChanged > 0)
+                    const branchName = wt.branch || wt.commitHash.substring(0, 7)
+                    return (
+                      <div key={wt.path} className={`strip-worktree-row ${isHot ? "strip-worktree-row--hot" : ""}`}>
+                        <span className="strip-worktree-branch" title={branchName}>
+                          {isHot && <span className="strip-worktree-hot-dot" title="Hot Worktree" />}
+                          {wt.isLocked && <span className="strip-worktree-indicator strip-worktree-indicator--locked" title="Locked">locked</span>}
+                          {wt.isPrunable && <span className="strip-worktree-indicator strip-worktree-indicator--prunable" title="Prunable">prunable</span>}
+                          <span className="strip-worktree-branch-name">{branchName.length > 30 ? `${branchName.substring(0, 30)}…` : branchName}</span>
+                        </span>
+                        {wt.commitsAhead > 0 && <span className="strip-worktree-commits"> +{wt.commitsAhead} commits</span>}
+                        {wt.diffStat && wt.diffStat.filesChanged > 0 && (
+                          <span className="strip-worktree-diff"> {wt.diffStat.filesChanged} files, +{wt.diffStat.insertions} -{wt.diffStat.deletions}</span>
+                        )}
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
+          )}
 
           {/* Background tasks */}
           {stripConfig?.showBackgroundTasks !== false && (

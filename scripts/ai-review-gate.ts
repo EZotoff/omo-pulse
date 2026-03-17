@@ -79,7 +79,7 @@ function writeStepSummary(result: ReviewPolicyResult): void {
 }
 
 function getExitCode(result: ReviewPolicyResult): number {
-  return result.decision === "auto_approve" ? 0 : 1
+  return result.blocked ? 1 : 0
 }
 
 function writeGitHubOutputs(result: ReviewPolicyResult): void {

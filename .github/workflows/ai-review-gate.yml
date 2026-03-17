@@ -106,14 +106,23 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      contents: write
     steps:
       - name: Auto-approve eligible PR
         id: submit_review
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ inputs.pull_request_url }}
         run: gh pr review --approve "$PR_URL" --body "AI review gate marked this PR auto-approve eligible."
+
+      - name: Enable auto-merge
+        id: enable_merge
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ inputs.pull_request_url }}
+        run: gh pr merge --auto --squash "$PR_URL"
 
       - name: Record auto-approval failure
         if: steps.submit_review.outcome == 'failure'

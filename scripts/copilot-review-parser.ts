@@ -461,7 +461,7 @@ function inferRiskFromFindings(findings: ParsedInlineFinding[]): ReviewRiskLevel
     return "medium"
   }
 
-  return "medium"
+  return "low"
 }
 
 function createFallbackFinding(summary: string): ReviewFinding {

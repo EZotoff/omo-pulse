@@ -1,7 +1,7 @@
+import { spawnSync } from "node:child_process"
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
-import { spawnSync } from "node:child_process"
 import { pathToFileURL } from "node:url"
 
 import { afterEach, describe, expect, it } from "vitest"
@@ -434,13 +434,43 @@ Malformed scores should degrade gracefully.
       featureQuality: 3,
       confidence: 3,
     })
-    expect(scorecard.risk).toBe("medium")
+    expect(scorecard.risk).toBe("low")
     expect(scorecard.findings).toEqual([
       {
         dimension: "featureQuality",
         severity: "info",
         confidence: "low",
         summary: "Copilot review text without structured scores.",
+      },
+    ])
+  })
+
+  it("uses low risk when degraded findings contain no warning or critical severities", () => {
+    const scorecard = buildCopilotScorecard(
+      {
+        body: "[SUMMARY]Copilot left only informational feedback.[/SUMMARY]",
+        user: { login: "github-copilot[bot]" },
+      },
+      [
+        {
+          body: "[SEVERITY:info] [DIM:performance]\n\nConsider simplifying this branch.",
+          path: "src/example.ts",
+          line: 5,
+          user: { login: "github-copilot[bot]" },
+        },
+      ],
+    )
+
+    expect(scorecard.source).toBe("copilot:degraded")
+    expect(scorecard.risk).toBe("low")
+    expect(scorecard.findings).toEqual([
+      {
+        dimension: "performance",
+        severity: "info",
+        confidence: "low",
+        summary: "Consider simplifying this branch.",
+        file: "src/example.ts",
+        line: 5,
       },
     ])
   })

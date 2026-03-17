@@ -7,8 +7,8 @@ import type { ReviewFinding, ReviewRiskLevel, ReviewScorecard } from "./types"
  * - `performance` and `featureQuality`: From Copilot if present, else from check-run
  * - `confidence`: Minimum of available scorecards
  * - `risk`: Most-severe ordering (high > medium > low)
- * - `findings`: Concatenated from both, with source attribution
- * - `summary`: Combined from both with source attribution; null Copilot uses informational degradation message
+ * - `findings`: Concatenated from both; null Copilot adds an informational fallback finding
+ * - `summary`: Combined from available summaries with source labels when present
  * - `autoApproveAllowed`: Logical AND of both
  * - `source`: "merged:check-run+copilot" for normal case, "check-run-only:copilot-unavailable" when Copilot is null
  *

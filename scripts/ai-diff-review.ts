@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 
+import * as fs from "node:fs"
+
 declare const Bun: {
   argv: string[]
   env: Record<string, string | undefined>
-  spawnSync(args: string[]): { exitCode: number; stderr: Uint8Array | string }
   write(path: string, data: string): Promise<number>
 }
 
@@ -541,11 +542,7 @@ function normalizeModelScorecard(value: unknown, model: string): ReviewScorecard
 
 async function writeOutput(scorecard: ReviewScorecard, outputPath: string): Promise<void> {
   const contents = `${JSON.stringify(scorecard, null, 2)}\n`
-  const mkdirResult = Bun.spawnSync(["mkdir", "-p", dirnameOf(outputPath)])
-  if (mkdirResult.exitCode !== 0) {
-    throw new Error(`Unable to create output directory for ${outputPath}`)
-  }
-
+  fs.mkdirSync(dirnameOf(outputPath), { recursive: true })
   await Bun.write(outputPath, contents)
   console.log(contents.trimEnd())
 }

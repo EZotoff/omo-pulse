@@ -7,8 +7,8 @@ import type { ReviewFinding, ReviewRiskLevel, ReviewScorecard } from "./types"
  * - `performance` and `featureQuality`: From LLM if present, else from check-run
  * - `confidence`: Minimum of available scorecards
  * - `risk`: Most-severe ordering (high > medium > low)
- * - `findings`: Concatenated from both, with source attribution
- * - `summary`: Combined from both with source attribution; null LLM uses informational degradation message
+ * - `findings`: Concatenated from both; null LLM adds an informational fallback finding
+ * - `summary`: Combined from available summaries with source labels when present
  * - `autoApproveAllowed`: Logical AND of both
  * - `source`: "merged:check-run+llm" for normal case, "check-run-only:llm-unavailable" when LLM is null
  *

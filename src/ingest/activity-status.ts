@@ -14,7 +14,9 @@ export function shouldKeepQueuedBackgroundTaskActive(startedAt: number, nowMs: n
 }
 
 export function resolveLastUpdatedTime(primary: number | null, fallback: number | null): number | null {
-  return typeof primary === "number" ? primary : fallback
+  if (typeof primary === "number" && Number.isFinite(primary) && primary > 0) return primary
+  if (typeof fallback === "number" && Number.isFinite(fallback) && fallback > 0) return fallback
+  return null
 }
 
 export function shouldSuppressStaleToolActivity(toolName: string, hasFreshActivity: boolean): boolean {

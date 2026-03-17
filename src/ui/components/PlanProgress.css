@@ -125,3 +125,8 @@
   color: var(--text-muted);
   font-style: italic;
 }
+
+.plan-progress__completed-time {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}

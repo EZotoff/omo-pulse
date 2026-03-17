@@ -1,5 +1,5 @@
 import type React from "react"
-import { memo, useRef, useEffect, useCallback } from "react"
+import { memo, useRef, useEffect, useCallback, useState } from "react"
 import type { ProjectSnapshot, StripConfigState } from "../../types"
 import { useProjectPaneHeights } from "../hooks/useProjectPaneHeights"
 import { getInitials } from "../utils/avatar"
@@ -11,6 +11,7 @@ const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 
 /** Format millisecond timestamp to relative time string ("2s ago", "1m ago", "3h ago") */
 export function formatRelativeTime(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return "—"
   const now = Date.now()
   const delta = Math.max(0, now - ms)
   const seconds = Math.floor(delta / 1_000)
@@ -29,6 +30,42 @@ function formatTokenCount(n: number): string {
   if (n < 1_000_000) return `${(n / 1_000).toFixed(1)}k`
   return `${(n / 1_000_000).toFixed(2)}M`
 }
+
+
+function formatDuration(startedAt: string, completedAt: string): string {
+  try {
+    const startMs = new Date(startedAt).getTime()
+    const endMs = new Date(completedAt).getTime()
+    if (Number.isNaN(startMs) || Number.isNaN(endMs)) return ""
+    const ms = Math.max(0, endMs - startMs)
+
+    const totalSeconds = Math.floor(ms / 1000)
+    const seconds = totalSeconds % 60
+    const totalMinutes = Math.floor(totalSeconds / 60)
+    const minutes = totalMinutes % 60
+    const totalHours = Math.floor(totalMinutes / 60)
+    const hours = totalHours % 24
+    const days = Math.floor(totalHours / 24)
+
+    if (days > 0) return hours > 0 ? `${days}d ${hours}h` : `${days}d`
+    if (totalHours > 0) return minutes > 0 ? `${totalHours}h ${minutes}m` : `${totalHours}h`
+    if (totalMinutes > 0) return seconds > 0 ? `${totalMinutes}m ${seconds}s` : `${totalMinutes}m`
+    return `${seconds}s`
+  } catch {
+    return ""
+  }
+}
+
+function formatCompletionDate(completedAt: string): string {
+  try {
+    const d = new Date(completedAt)
+    if (Number.isNaN(d.getTime())) return "Unknown"
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  } catch {
+    return "Unknown"
+  }
+}
+
 
 /* ── Props ── */
 
@@ -50,7 +87,7 @@ export type ProjectStripProps = {
 /* ── Component ── */
 
 function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idleTimeoutMs, children }: ProjectStripProps) {
-  const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount } = project
+  const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount, unintiatedPlans } = project
   const sourceId = project.sourceId
   const isStale = (() => {
     const activeStates = ['busy', 'thinking', 'running_tool', 'question', 'error']
@@ -82,6 +119,22 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
   const { setHeight, releaseHeight, isReleased, getHeight } = useProjectPaneHeights()
   const released = isReleased(sourceId)
   const currentHeight = getHeight(sourceId)
+
+  /* ── Uninitiated plans state ── */
+  const [expandedUninitiatedPlans, setExpandedUninitiatedPlans] = useState<Set<string>>(new Set())
+
+  const toggleUninitiatedPlan = useCallback((planPath: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setExpandedUninitiatedPlans((prev) => {
+      const next = new Set(prev)
+      if (next.has(planPath)) {
+        next.delete(planPath)
+      } else {
+        next.add(planPath)
+      }
+      return next
+    })
+  }, [])
 
   /* ── Drag-to-resize refs ── */
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -171,7 +224,21 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
               {gitUncommittedCount > 999 ? '999+' : gitUncommittedCount}
             </span>
           )}
+          {stripConfig?.showGitWorktrees !== false && project.worktrees && project.worktrees.activeCount > 0 && (
+            <span
+              className={`strip-git-badge strip-worktree-badge ${project.worktrees.hotCount > 0 ? "strip-worktree-badge--hot" : ""}`}
+              title={project.worktrees.hotCount > 0
+                ? `${project.worktrees.hotCount} hot worktree${project.worktrees.hotCount === 1 ? "" : "s"}`
+                : `${project.worktrees.activeCount} active worktree${project.worktrees.activeCount === 1 ? "" : "s"}`}
+            >
+              {project.worktrees.hotCount > 0 && <span className="strip-worktree-hot-dot" aria-hidden="true" />}
+              {project.worktrees.hotCount > 0 ? `${project.worktrees.hotCount} wt` : `${project.worktrees.activeCount} wt`}
+            </span>
+          )}
           {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
+          {unintiatedPlans && unintiatedPlans.length > 0 && (
+            <span className="uninitiated-badge">{unintiatedPlans.length}</span>
+          )}
           {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{mainSession.lastUpdated ? formatRelativeTime(new Date(mainSession.lastUpdated).getTime()) : "—"}</span>}
         </a>
       ) : (
@@ -198,7 +265,21 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
                 {gitUncommittedCount > 999 ? '999+' : gitUncommittedCount}
               </span>
             )}
+            {stripConfig?.showGitWorktrees !== false && project.worktrees && project.worktrees.activeCount > 0 && (
+              <span
+                className={`strip-git-badge strip-worktree-badge ${project.worktrees.hotCount > 0 ? "strip-worktree-badge--hot" : ""}`}
+                title={project.worktrees.hotCount > 0
+                  ? `${project.worktrees.hotCount} hot worktree${project.worktrees.hotCount === 1 ? "" : "s"}`
+                  : `${project.worktrees.activeCount} active worktree${project.worktrees.activeCount === 1 ? "" : "s"}`}
+              >
+                {project.worktrees.hotCount > 0 && <span className="strip-worktree-hot-dot" aria-hidden="true" />}
+                {project.worktrees.hotCount > 0 ? `${project.worktrees.hotCount} wt` : `${project.worktrees.activeCount} wt`}
+              </span>
+            )}
             {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
+            {unintiatedPlans && unintiatedPlans.length > 0 && (
+              <span className="uninitiated-badge">{unintiatedPlans.length}</span>
+            )}
             {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{mainSession.lastUpdated ? formatRelativeTime(new Date(mainSession.lastUpdated).getTime()) : "—"}</span>}
             <span className="strip-chevron" aria-hidden="true">{expanded ? "▾" : "▸"}</span>
           </button>
@@ -215,7 +296,6 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
           )}
         </div>
       )}
-
       {/* Expanded body */}
       <div
         className={`strip-body${expanded && !released ? " strip-body--constrained" : ""}`}
@@ -240,6 +320,71 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
             <span className="strip-section-label">Plan — {planProgress.name || "unnamed"}</span>
             <div className="plan-slot plan-slot--full">{children?.fullPlan}</div>
           </div>
+
+          {project.planHistory && project.planHistory.entries.length > 0 && (
+            <div className="strip-section plan-history-section">
+              <span className="strip-section-label">Plan History</span>
+              <div className="plan-history-list">
+                {project.planHistory.entries.map((entry) => {
+                  const duration = formatDuration(entry.started_at, entry.completed_at)
+                  return (
+                    <div key={`${entry.archived_path}-${entry.started_at}-${entry.completed_at}-${entry.completed_tasks}-${entry.total_tasks}`} className="plan-history-item">
+                      <div className="plan-history-header">
+                        <span className="plan-history-name truncate">{entry.plan_name || entry.plan_path}</span>
+                        <span className="plan-history-date">{formatCompletionDate(entry.completed_at)}</span>
+                      </div>
+                      <div className="plan-history-stats">
+                        <span className="plan-history-tasks">{entry.completed_tasks}/{entry.total_tasks} tasks</span>
+                        {duration && <span className="plan-history-duration">({duration})</span>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {unintiatedPlans && unintiatedPlans.length > 0 && (
+            <div className="strip-section">
+              <span className="strip-section-label">Uninitiated Plans ({unintiatedPlans.length})</span>
+              <div className="uninitiated-plans-section">
+                {unintiatedPlans.map((plan) => {
+                  const isExpanded = expandedUninitiatedPlans.has(plan.path)
+                  const visibleSteps = plan.steps.slice(0, 10)
+                  const hiddenCount = plan.steps.length - 10
+
+                  return (
+                    <button
+                      type="button"
+                      key={plan.path}
+                      className={`uninitiated-plan-item${isExpanded ? ' uninitiated-plan-item--expanded' : ''}`}
+                      onClick={(e) => toggleUninitiatedPlan(plan.path, e)}
+                      aria-expanded={isExpanded}
+                    >
+                      <div className="truncate">
+                        <strong>{plan.name}</strong> ({plan.total} task{plan.total === 1 ? '' : 's'})
+                      </div>
+                      
+                      {isExpanded && plan.steps.length > 0 && (
+                        <div className="uninitiated-plan-steps">
+                          {visibleSteps.map((step) => (
+                            <div key={`${plan.path}-${step.checked ? 'done' : 'todo'}-${step.text}`} className="truncate">
+                              [{'\u00A0'}] {step.text || '(empty)'}
+                            </div>
+                          ))}
+                          {hiddenCount > 0 && (
+                            <div className="uninitiated-plan-hidden-count">
+                              + {hiddenCount} more
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Main session detail */}
           <div className="strip-section">
@@ -269,6 +414,45 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
             <span className="strip-section-label">Last Polled</span>
             <span className="strip-session-field-value">{formatRelativeTime(lastUpdatedMs)}</span>
           </div>
+
+          {stripConfig?.showGitWorktrees !== false && project.worktrees && project.worktrees.worktrees.length > 1 && (() => {
+            const filteredWorktrees = project.worktrees.worktrees.filter((wt) => !wt.isMainWorktree)
+            if (filteredWorktrees.length === 0) return null
+            return (
+            <div className="strip-section">
+              <span className="strip-section-label">Worktrees ({filteredWorktrees.length})</span>
+              <div className="strip-worktrees-list">
+                {filteredWorktrees
+                  .sort((a, b) => {
+                    const aHot = a.commitsAhead > 0 && Boolean(a.diffStat && a.diffStat.filesChanged > 0)
+                    const bHot = b.commitsAhead > 0 && Boolean(b.diffStat && b.diffStat.filesChanged > 0)
+                    if (aHot !== bHot) return aHot ? -1 : 1
+                    const aBranch = a.branch || a.commitHash.substring(0, 7)
+                    const bBranch = b.branch || b.commitHash.substring(0, 7)
+                    return aBranch.localeCompare(bBranch)
+                  })
+                  .map((wt) => {
+                    const isHot = wt.commitsAhead > 0 && Boolean(wt.diffStat && wt.diffStat.filesChanged > 0)
+                    const branchName = wt.branch || wt.commitHash.substring(0, 7)
+                    return (
+                      <div key={wt.path} className={`strip-worktree-row ${isHot ? "strip-worktree-row--hot" : ""}`}>
+                        <span className="strip-worktree-branch" title={branchName}>
+                          {isHot && <span className="strip-worktree-hot-dot" title="Hot Worktree" />}
+                          {wt.isLocked && <span className="strip-worktree-indicator strip-worktree-indicator--locked" title="Locked">locked</span>}
+                          {wt.isPrunable && <span className="strip-worktree-indicator strip-worktree-indicator--prunable" title="Prunable">prunable</span>}
+                          <span className="strip-worktree-branch-name">{branchName.length > 30 ? `${branchName.substring(0, 30)}…` : branchName}</span>
+                        </span>
+                        {wt.commitsAhead > 0 && <span className="strip-worktree-commits"> +{wt.commitsAhead} commits</span>}
+                        {wt.diffStat && wt.diffStat.filesChanged > 0 && (
+                          <span className="strip-worktree-diff"> {wt.diffStat.filesChanged} files, +{wt.diffStat.insertions} -{wt.diffStat.deletions}</span>
+                        )}
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
+            )
+          })()}
 
           {/* Background tasks */}
           {stripConfig?.showBackgroundTasks !== false && (

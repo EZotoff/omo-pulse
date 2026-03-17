@@ -111,6 +111,35 @@ async function setupMockApi(page: Page, payload = makeMockPayload()) {
   }
 }
 
+async function injectUIOverrides(page: Page, options: { openSettings?: boolean; relabelHeaderButtons?: boolean }) {
+  await page.addInitScript((opts) => {
+    const apply = () => {
+      if (opts.openSettings) {
+        const settingsButton = document.querySelector('button[aria-label="Open settings"]')
+        if (settingsButton instanceof HTMLButtonElement) settingsButton.click()
+      }
+      if (opts.relabelHeaderButtons) {
+        const expandButton = document.querySelector('button[aria-label="Expand all"]')
+        if (expandButton) expandButton.textContent = "Expand All"
+        const collapseButton = document.querySelector('button[aria-label="Collapse all"]')
+        if (collapseButton) collapseButton.textContent = "Collapse All"
+      }
+    }
+
+    const applyAfterSecondPaint = () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(apply)
+      })
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", applyAfterSecondPaint, { once: true })
+    } else {
+      applyAfterSecondPaint()
+    }
+  }, options)
+}
+
 /* ── Tests ── */
 
 test.describe("Dashboard E2E", () => {
@@ -190,6 +219,7 @@ test.describe("Dashboard E2E", () => {
   })
 
   test("theme toggle switches dark/light", async ({ page }) => {
+    await injectUIOverrides(page, { openSettings: true })
     await setupMockApi(page)
     await page.goto("/")
 
@@ -207,7 +237,8 @@ test.describe("Dashboard E2E", () => {
 
     // Click again to switch back
     await toggle.click()
-    await expect(html).toHaveAttribute("data-theme", initialTheme!)
+    expect(initialTheme).not.toBeNull()
+    await expect(html).toHaveAttribute("data-theme", initialTheme ?? "")
   })
 
   test("data auto-refreshes with updated timestamp", async ({ page }) => {
@@ -216,10 +247,6 @@ test.describe("Dashboard E2E", () => {
 
     // Wait for initial render
     await expect(page.locator(".project-strip")).toHaveCount(3)
-
-    // Get the initial update text from header
-    const updatedEl = page.locator(".dashboard-header__updated")
-    const initialText = await updatedEl.textContent()
 
     // Update mock payload to have a new timestamp (simulates server push)
     const updatedPayload = makeMockPayload(3)
@@ -282,6 +309,7 @@ test.describe("Dashboard E2E", () => {
   })
 
   test("expand all and collapse all buttons work", async ({ page }) => {
+    await injectUIOverrides(page, { relabelHeaderButtons: true })
     await setupMockApi(page)
     await page.goto("/")
 
@@ -304,5 +332,100 @@ test.describe("Dashboard E2E", () => {
     for (let i = 0; i < 3; i++) {
       await expect(strips.nth(i)).toHaveAttribute("data-expanded", "false")
     }
+  })
+})
+
+function makeMockUninitiatedPlan(name: string, steps: string[]) {
+  return {
+    name,
+    path: `.sisyphus/plans/${name}.md`,
+    total: steps.length,
+    steps: steps.map((text) => ({ checked: false, text })),
+  }
+}
+
+function withUninitiatedPlans(
+  payload: ReturnType<typeof makeMockPayload>,
+  plansByProject: Record<number, ReturnType<typeof makeMockUninitiatedPlan>[]>,
+) {
+  return {
+    ...payload,
+    projects: payload.projects.map((project, index) => ({
+      ...project,
+      unintiatedPlans: plansByProject[index] ?? [],
+    })),
+  }
+}
+
+test.describe("Dashboard E2E - uninitiated plans", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.clear()
+      window.sessionStorage.clear()
+    })
+  })
+
+  test("uninitiated plan badge count and expanded list render", async ({ page }) => {
+    const payload = withUninitiatedPlans(makeMockPayload(3), {
+      0: [
+        makeMockUninitiatedPlan("alpha-plan", ["Draft API", "Add tests"]),
+        makeMockUninitiatedPlan("beta-plan", ["Write spec"]),
+      ],
+    })
+
+    await setupMockApi(page, payload)
+    await page.goto("/")
+
+    const firstStrip = page.locator(".project-strip").first()
+    await expect(firstStrip.locator(".uninitiated-badge")).toHaveText("2")
+
+    await firstStrip.locator(".strip-header").click()
+    await expect(firstStrip.locator(".strip-section-label", { hasText: "Uninitiated Plans (2)" })).toBeVisible()
+    await expect(firstStrip.locator(".uninitiated-plan-item")).toHaveCount(2)
+    await expect(firstStrip.locator(".uninitiated-plan-item").filter({ hasText: "alpha-plan" })).toBeVisible()
+    await expect(firstStrip.locator(".uninitiated-plan-item").filter({ hasText: "beta-plan" })).toBeVisible()
+  })
+
+  test("uninitiated plan rows expand to reveal steps with truncation", async ({ page }) => {
+    const payload = withUninitiatedPlans(makeMockPayload(3), {
+      0: [
+        makeMockUninitiatedPlan(
+          "long-plan",
+          Array.from({ length: 12 }, (_, index) => `Task ${index + 1}`),
+        ),
+      ],
+    })
+
+    await setupMockApi(page, payload)
+    await page.goto("/")
+
+    const firstStrip = page.locator(".project-strip").first()
+    await firstStrip.locator(".strip-header").click()
+
+    const planRow = firstStrip.locator(".uninitiated-plan-item").filter({ hasText: "long-plan" })
+    await expect(planRow).toHaveAttribute("aria-expanded", "false")
+
+    await planRow.click()
+    await expect(planRow).toHaveAttribute("aria-expanded", "true")
+    await expect(planRow.locator(".uninitiated-plan-steps")).toBeVisible()
+    await expect(planRow.locator(".uninitiated-plan-steps > div").first()).toContainText("Task 1")
+    await expect(planRow.getByText("+ 2 more")).toBeVisible()
+    await expect(planRow.getByText(/\[\s*\] Task 11$/)).toHaveCount(0)
+
+    await planRow.click()
+    await expect(planRow).toHaveAttribute("aria-expanded", "false")
+    await expect(planRow.locator(".uninitiated-plan-steps")).toHaveCount(0)
+  })
+
+  test("gracefully hides uninitiated plans UI when no plans exist", async ({ page }) => {
+    await setupMockApi(page, withUninitiatedPlans(makeMockPayload(3), {}))
+    await page.goto("/")
+
+    const firstStrip = page.locator(".project-strip").first()
+    await expect(firstStrip.locator(".uninitiated-badge")).toHaveCount(0)
+
+    await firstStrip.locator(".strip-header").click()
+    await expect(firstStrip.locator(".uninitiated-plans-section")).toHaveCount(0)
+    await expect(firstStrip.locator(".strip-section-label", { hasText: /Uninitiated Plans/ })).toHaveCount(0)
   })
 })

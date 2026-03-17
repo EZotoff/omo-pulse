@@ -24,6 +24,40 @@ export type PlanStep = {
   text: string
 }
 
+/** Uninitiated plan (zero-completion state) */
+export type UnintiatedPlan = {
+  name: string
+  path: string
+  total: number
+  steps: PlanStep[]
+}
+
+export type BoulderState = {
+  active_plan: string
+  started_at: string
+  session_ids: string[]
+  plan_name: string
+  status?: string
+  completed_at?: string
+}
+
+export type BoulderHistoryEntry = {
+  plan_name: string
+  plan_path: string
+  archived_path: string
+  started_at: string
+  completed_at: string
+  session_ids: string[]
+  total_tasks: number
+  completed_tasks: number
+  agent?: string
+}
+
+export type PlanHistory = {
+  entries: BoulderHistoryEntry[]
+  totalCompleted: number
+}
+
 /** Time series data for a single series (e.g., token usage, tool calls) */
 export type TimeSeriesSeries = {
   id: string
@@ -58,6 +92,26 @@ export type SessionTimeSeriesPayload = {
   anchorMs: number
   serverNowMs: number
   sessions: SessionTimeSeriesEntry[]
+}
+
+/** Summary of a single git worktree */
+export type WorktreeSummary = {
+  path: string
+  branch: string | null
+  commitHash: string
+  isMainWorktree: boolean
+  commitsAhead: number
+  diffStat: { filesChanged: number; insertions: number; deletions: number } | null
+  isLocked: boolean
+  isPrunable: boolean
+}
+
+/** Aggregated git worktree information */
+export type WorktreeInfo = {
+  totalCount: number
+  activeCount: number
+  hotCount: number
+  worktrees: WorktreeSummary[]
 }
 
 /** Summary of a background task for dashboard display */
@@ -101,13 +155,18 @@ export type ProjectSnapshot = {
     steps: PlanStep[]
     planStale: boolean
     planComplete: boolean
+    boulderStatus?: string
+    completedAt?: string
   }
+  unintiatedPlans: UnintiatedPlan[]
+  planHistory?: PlanHistory
   timeSeries: TimeSeriesPayload
   backgroundTasks: BackgroundTaskSummary[]
   sessionTimeSeries: SessionTimeSeriesPayload
    tokenUsage?: TokenUsageSummary
    /** Uncommitted git changes count (staged + unstaged + untracked). undefined = not available */
    gitUncommittedCount?: number
+   worktrees?: WorktreeInfo
    lastUpdatedMs: number
 }
 

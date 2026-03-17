@@ -15,7 +15,6 @@ permissions:
   contents: read
   checks: read
   pull-requests: write
-  models: read
 
 jobs:
   prepare_scorecard:
@@ -93,24 +92,24 @@ jobs:
             --auto-approve-allowed "$ENABLE_AUTO_APPROVE" \
             --output .ai-review/check-run-scorecard.json
 
-      - name: Run LLM diff analysis (graceful degradation)
-        id: llm_analysis
-        timeout-minutes: 20
+      - name: Poll for Copilot review scorecard (graceful degradation)
+        id: copilot_analysis
+        timeout-minutes: 10
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PULL_REQUEST_NUMBER: ${{ steps.pr_context.outputs.pull_request_number }}
         run: |
           mkdir -p .ai-review
-          bun run scripts/ai-diff-review.ts \
+          bun run scripts/copilot-review-parser.ts \
             --repository "$GITHUB_REPOSITORY" \
             --pull-number "$PULL_REQUEST_NUMBER" \
-            --output .ai-review/llm-scorecard.json \
-            --model "gpt-4o-mini" \
-            --max-diff-chars 50000
+            --output .ai-review/copilot-scorecard.json \
+            --poll-interval-ms 30000 \
+            --timeout-ms 300000
         if: steps.pr_context.outputs.pull_request_number != ''
 
-      - name: Merge deterministic and LLM scorecards
+      - name: Merge deterministic and Copilot scorecards
         id: merge_scorecards
         env:
           PULL_REQUEST_URL: ${{ steps.pr_context.outputs.pull_request_url }}
@@ -125,16 +124,16 @@ jobs:
               readFileSync('.ai-review/check-run-scorecard.json', 'utf-8')
             );
 
-            let llmScorecard = null;
+            let copilotScorecard = null;
             try {
-              llmScorecard = JSON.parse(
-                readFileSync('.ai-review/llm-scorecard.json', 'utf-8')
+              copilotScorecard = JSON.parse(
+                readFileSync('.ai-review/copilot-scorecard.json', 'utf-8')
               );
             } catch (error) {
-              console.log('LLM scorecard unavailable, merging with null');
+              copilotScorecard = null;
             }
 
-            const merged = mergeScorecards(checkRunScorecard, llmScorecard);
+            const merged = mergeScorecards(checkRunScorecard, copilotScorecard);
             // Ensure JSON ends with newline for GitHub Actions heredoc
             writeFileSync('.ai-review/scorecard.json', JSON.stringify(merged, null, 2) + '\n');
           "

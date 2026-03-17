@@ -89,11 +89,12 @@ export type DashboardPayload = {
   raw: unknown
 }
 
-function readBoulderHistorySafe(projectRoot: string): PlanHistory {
+function readBoulderHistorySafe(projectRoot: string): PlanHistory | undefined {
   const historyReader = Reflect.has(boulderModule, "readBoulderHistory")
-    ? Reflect.get(boulderModule, "readBoulderHistory") as ((root: string) => PlanHistory["entries"])
+    ? Reflect.get(boulderModule, "readBoulderHistory") as ((root: string) => NonNullable<PlanHistory>["entries"])
     : null
   const entries = historyReader ? historyReader(projectRoot) : []
+  if (entries.length === 0) return undefined
   return { entries, totalCompleted: entries.length }
 }
 

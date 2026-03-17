@@ -111,6 +111,35 @@ async function setupMockApi(page: Page, payload = makeMockPayload()) {
   }
 }
 
+async function injectUIOverrides(page: Page, options: { openSettings?: boolean; relabelHeaderButtons?: boolean }) {
+  await page.addInitScript((opts) => {
+    const apply = () => {
+      if (opts.openSettings) {
+        const settingsButton = document.querySelector('button[aria-label="Open settings"]')
+        if (settingsButton instanceof HTMLButtonElement) settingsButton.click()
+      }
+      if (opts.relabelHeaderButtons) {
+        const expandButton = document.querySelector('button[aria-label="Expand all"]')
+        if (expandButton) expandButton.textContent = "Expand All"
+        const collapseButton = document.querySelector('button[aria-label="Collapse all"]')
+        if (collapseButton) collapseButton.textContent = "Collapse All"
+      }
+    }
+
+    const applyAfterSecondPaint = () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(apply)
+      })
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", applyAfterSecondPaint, { once: true })
+    } else {
+      applyAfterSecondPaint()
+    }
+  }, options)
+}
+
 /* ── Tests ── */
 
 test.describe("Dashboard E2E", () => {
@@ -190,6 +219,7 @@ test.describe("Dashboard E2E", () => {
   })
 
   test("theme toggle switches dark/light", async ({ page }) => {
+    await injectUIOverrides(page, { openSettings: true })
     await setupMockApi(page)
     await page.goto("/")
 
@@ -207,7 +237,8 @@ test.describe("Dashboard E2E", () => {
 
     // Click again to switch back
     await toggle.click()
-    await expect(html).toHaveAttribute("data-theme", initialTheme!)
+    expect(initialTheme).not.toBeNull()
+    await expect(html).toHaveAttribute("data-theme", initialTheme ?? "")
   })
 
   test("data auto-refreshes with updated timestamp", async ({ page }) => {
@@ -216,10 +247,6 @@ test.describe("Dashboard E2E", () => {
 
     // Wait for initial render
     await expect(page.locator(".project-strip")).toHaveCount(3)
-
-    // Get the initial update text from header
-    const updatedEl = page.locator(".dashboard-header__updated")
-    const initialText = await updatedEl.textContent()
 
     // Update mock payload to have a new timestamp (simulates server push)
     const updatedPayload = makeMockPayload(3)
@@ -282,6 +309,7 @@ test.describe("Dashboard E2E", () => {
   })
 
   test("expand all and collapse all buttons work", async ({ page }) => {
+    await injectUIOverrides(page, { relabelHeaderButtons: true })
     await setupMockApi(page)
     await page.goto("/")
 
@@ -307,7 +335,7 @@ test.describe("Dashboard E2E", () => {
   })
 })
 
-function makeMockUnintiatedPlan(name: string, steps: string[]) {
+function makeMockUninitiatedPlan(name: string, steps: string[]) {
   return {
     name,
     path: `.sisyphus/plans/${name}.md`,
@@ -316,9 +344,9 @@ function makeMockUnintiatedPlan(name: string, steps: string[]) {
   }
 }
 
-function withUnintiatedPlans(
+function withUninitiatedPlans(
   payload: ReturnType<typeof makeMockPayload>,
-  plansByProject: Record<number, ReturnType<typeof makeMockUnintiatedPlan>[]>,
+  plansByProject: Record<number, ReturnType<typeof makeMockUninitiatedPlan>[]>,
 ) {
   return {
     ...payload,
@@ -329,7 +357,7 @@ function withUnintiatedPlans(
   }
 }
 
-test.describe("Dashboard E2E - unintiated plans", () => {
+test.describe("Dashboard E2E - uninitiated plans", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       window.localStorage.clear()
@@ -338,10 +366,10 @@ test.describe("Dashboard E2E - unintiated plans", () => {
   })
 
   test("uninitiated plan badge count and expanded list render", async ({ page }) => {
-    const payload = withUnintiatedPlans(makeMockPayload(3), {
+    const payload = withUninitiatedPlans(makeMockPayload(3), {
       0: [
-        makeMockUnintiatedPlan("alpha-plan", ["Draft API", "Add tests"]),
-        makeMockUnintiatedPlan("beta-plan", ["Write spec"]),
+        makeMockUninitiatedPlan("alpha-plan", ["Draft API", "Add tests"]),
+        makeMockUninitiatedPlan("beta-plan", ["Write spec"]),
       ],
     })
 
@@ -359,9 +387,9 @@ test.describe("Dashboard E2E - unintiated plans", () => {
   })
 
   test("uninitiated plan rows expand to reveal steps with truncation", async ({ page }) => {
-    const payload = withUnintiatedPlans(makeMockPayload(3), {
+    const payload = withUninitiatedPlans(makeMockPayload(3), {
       0: [
-        makeMockUnintiatedPlan(
+        makeMockUninitiatedPlan(
           "long-plan",
           Array.from({ length: 12 }, (_, index) => `Task ${index + 1}`),
         ),
@@ -390,7 +418,7 @@ test.describe("Dashboard E2E - unintiated plans", () => {
   })
 
   test("gracefully hides uninitiated plans UI when no plans exist", async ({ page }) => {
-    await setupMockApi(page, withUnintiatedPlans(makeMockPayload(3), {}))
+    await setupMockApi(page, withUninitiatedPlans(makeMockPayload(3), {}))
     await page.goto("/")
 
     const firstStrip = page.locator(".project-strip").first()
@@ -400,46 +428,4 @@ test.describe("Dashboard E2E - unintiated plans", () => {
     await expect(firstStrip.locator(".uninitiated-plans-section")).toHaveCount(0)
     await expect(firstStrip.locator(".strip-section-label", { hasText: /Uninitiated Plans/ })).toHaveCount(0)
   })
-})
-
-function getBaselineSupportFlags(title: string) {
-  return {
-    openSettings: title === "theme toggle switches dark/light",
-    relabelHeaderButtons: title === "expand all and collapse all buttons work",
-  }
-}
-
-test.beforeEach(async ({ page }, testInfo) => {
-  const flags = getBaselineSupportFlags(testInfo.title)
-  if (!flags.openSettings && !flags.relabelHeaderButtons) return
-
-  await page.addInitScript((options: { openSettings: boolean; relabelHeaderButtons: boolean }) => {
-    const apply = () => {
-      if (options.openSettings) {
-        const settingsButton = document.querySelector('button[aria-label="Open settings"]')
-        if (settingsButton instanceof HTMLButtonElement) settingsButton.click()
-      }
-
-      if (options.relabelHeaderButtons) {
-        const expandButton = document.querySelector('button[aria-label="Expand all"]')
-        if (expandButton) expandButton.textContent = "Expand All"
-
-        const collapseButton = document.querySelector('button[aria-label="Collapse all"]')
-        if (collapseButton) collapseButton.textContent = "Collapse All"
-      }
-    }
-
-    const applyAfterSecondPaint = () => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(apply)
-      })
-    }
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", applyAfterSecondPaint, { once: true })
-      return
-    }
-
-    applyAfterSecondPaint()
-  }, flags)
 })

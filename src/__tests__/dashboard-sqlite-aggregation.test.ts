@@ -124,6 +124,7 @@ describe("buildDashboardPayload SQLite uninitiated plans", () => {
         ],
       },
     ])
+    expect(payload.planHistory).toBeUndefined()
   })
 
   it("includes lifecycle history and completed fields in the sqlite payload", () => {

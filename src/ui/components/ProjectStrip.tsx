@@ -60,7 +60,7 @@ function formatCompletionDate(completedAt: string): string {
   try {
     const d = new Date(completedAt)
     if (Number.isNaN(d.getTime())) return "Unknown"
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
   } catch {
     return "Unknown"
   }
@@ -373,7 +373,7 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
                             </div>
                           ))}
                           {hiddenCount > 0 && (
-                            <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 'var(--font-xs)', paddingTop: 'var(--sp-1)' }}>
+                            <div className="uninitiated-plan-hidden-count">
                               + {hiddenCount} more
                             </div>
                           )}
@@ -415,12 +415,14 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
             <span className="strip-session-field-value">{formatRelativeTime(lastUpdatedMs)}</span>
           </div>
 
-          {stripConfig?.showGitWorktrees !== false && project.worktrees && project.worktrees.worktrees.length > 1 && (
+          {stripConfig?.showGitWorktrees !== false && project.worktrees && project.worktrees.worktrees.length > 1 && (() => {
+            const filteredWorktrees = project.worktrees.worktrees.filter((wt) => !wt.isMainWorktree)
+            if (filteredWorktrees.length === 0) return null
+            return (
             <div className="strip-section">
-              <span className="strip-section-label">Worktrees ({project.worktrees.worktrees.length - 1})</span>
+              <span className="strip-section-label">Worktrees ({filteredWorktrees.length})</span>
               <div className="strip-worktrees-list">
-                {[...project.worktrees.worktrees]
-                  .filter((wt) => !wt.isMainWorktree)
+                {filteredWorktrees
                   .sort((a, b) => {
                     const aHot = a.commitsAhead > 0 && Boolean(a.diffStat && a.diffStat.filesChanged > 0)
                     const bHot = b.commitsAhead > 0 && Boolean(b.diffStat && b.diffStat.filesChanged > 0)
@@ -449,7 +451,8 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
                   })}
               </div>
             </div>
-          )}
+            )
+          })()}
 
           {/* Background tasks */}
           {stripConfig?.showBackgroundTasks !== false && (

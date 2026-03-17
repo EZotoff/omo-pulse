@@ -630,6 +630,13 @@
   font-family: var(--font-mono);
 }
 
+.uninitiated-plan-hidden-count {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: var(--font-xs);
+  padding-top: var(--sp-1);
+}
+
 
 
 .strip-bg-task-row {

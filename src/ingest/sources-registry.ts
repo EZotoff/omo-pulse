@@ -104,5 +104,28 @@ export function getSourceById(storageRoot: string, sourceId: string): SourceRegi
   return registry.sources[sourceId] ?? null
 }
 
+export function updateSourceLabelById(storageRoot: string, sourceId: string, label?: string): boolean {
+  const registry = loadRegistry(storageRoot)
+  const existing = registry.sources[sourceId]
+  if (!existing) return false
+
+  registry.sources[sourceId] = {
+    ...existing,
+    label,
+    updatedAt: Date.now(),
+  }
+  writeRegistry(storageRoot, registry)
+  return true
+}
+
+export function deleteSourceById(storageRoot: string, sourceId: string): boolean {
+  const registry = loadRegistry(storageRoot)
+  if (!registry.sources[sourceId]) return false
+
+  delete registry.sources[sourceId]
+  writeRegistry(storageRoot, registry)
+  return true
+}
+
 // Re-export helpers that may be useful for external callers
 export { canonicalizeProjectRoot, hashProjectRoot }

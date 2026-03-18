@@ -81,7 +81,11 @@ export function AddProjectForm({ onProjectAdded }: AddProjectFormProps) {
 
   return (
     <form className="add-project-form" onSubmit={handleSubmit}>
+      <label htmlFor="projectRoot" className="add-project-label">
+        Project Root
+      </label>
       <input
+        id="projectRoot"
         className={`add-project-input add-project-input--path${statusType === "error" && !projectRoot.trim() ? " add-project-input--error" : ""}`}
         type="text"
         name="projectRoot"
@@ -89,10 +93,15 @@ export function AddProjectForm({ onProjectAdded }: AddProjectFormProps) {
         value={projectRoot}
         onChange={(e) => setProjectRoot(e.target.value)}
         disabled={loading}
+        required
         autoComplete="off"
         spellCheck={false}
       />
+      <label htmlFor="label" className="add-project-label">
+        Label
+      </label>
       <input
+        id="label"
         className="add-project-input add-project-input--label"
         type="text"
         name="label"

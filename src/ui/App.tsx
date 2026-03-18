@@ -6,8 +6,8 @@ import { Sparkline } from "./components/Sparkline"
 import { PlanProgress } from "./components/PlanProgress"
 import { SessionSwimlane } from "./components/SessionSwimlane"
 import { SettingsPanel } from "./components/SettingsPanel"
-import { AddProjectForm } from "./components/AddProjectForm"
 import { ColumnResizeHandle } from "./components/ColumnResizeHandle"
+import { ProjectManagementPanel } from "./components/ProjectManagementPanel"
 import { useStripConfig } from "./hooks/useStripConfig"
 import { PreviewNav } from "./components/PreviewNav"
 import type { PreviewMode } from "./types"
@@ -82,7 +82,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
   const { config: stripConfig, toggle: toggleStripConfig } = useStripConfig()
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [overlayState, setOverlayState] = useState<'none' | 'settings' | 'projectManagement'>('none')
 
   /* ── Zoom ── */
   const [zoom, setZoom] = useState<number>(() => {
@@ -191,7 +191,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
     },
     [columns],
   )
-  const handleCloseSettings = useCallback(() => setSettingsOpen(false), [])
+  const handleCloseSettings = useCallback(() => setOverlayState('none'), [])
   const prevDataRef = useRef<DashboardMultiProjectPayload | null>(null)
   const firstLoadRef = useRef(true)
 
@@ -345,7 +345,8 @@ export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
         onCollapseAll={collapseAll}
         columns={columns}
         onSetColumns={setColumns}
-        onSettingsOpen={() => setSettingsOpen(true)}
+        onSettingsOpen={() => setOverlayState('settings')}
+        onManageProjectsOpen={() => setOverlayState('projectManagement')}
         zoom={zoom}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
@@ -358,12 +359,17 @@ export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
           <div className="dashboard-empty">
             <span className="dashboard-empty__icon">⊘</span>
             <span>No registered projects found</span>
-            <AddProjectForm onProjectAdded={() => { /* data will refresh on next poll */ }} />
+            <button type="button" className="dashboard-empty__action" onClick={() => setOverlayState('projectManagement')}>
+              Manage Projects
+            </button>
           </div>
         ) : projectCount === 0 ? (
           <div className="dashboard-empty">
             <span className="dashboard-empty__icon">⊘</span>
-            <span>All projects hidden — adjust visibility in Settings</span>
+            <span>All projects hidden — adjust visibility in Manage Projects</span>
+            <button type="button" className="dashboard-empty__action" onClick={() => setOverlayState('projectManagement')}>
+              Manage Projects
+            </button>
           </div>
         ) : (
           <>
@@ -428,17 +434,27 @@ export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
           if (event === 'error') playAttention()
           if (event === 'question') playQuestion()
         }}
-        open={settingsOpen}
+        open={overlayState === 'settings'}
         onClose={handleCloseSettings}
-        projects={data?.projects ?? []}
-        visibility={visibility}
-        onToggleVisibility={toggleVisibility}
+        onOpenProjectManagement={() => setOverlayState('projectManagement')}
         collapsedHeight={collapsedHeight}
         onCollapsedHeightChange={setCollapsedHeight}
         gridGap={gridGap}
         onGridGapChange={setGridGap}
         idleTimeoutMs={idleTimeoutMs}
         onIdleTimeoutMsChange={setIdleTimeoutMs}
+      />
+
+      <ProjectManagementPanel
+        open={overlayState === 'projectManagement'}
+        onClose={() => setOverlayState('none')}
+        projects={data?.projects ?? []}
+        orderedIds={orderedIds}
+        visibility={visibility}
+        onToggleVisibility={toggleVisibility}
+        onReorder={reorder}
+        onProjectAdded={() => { /* data will refresh on next poll */ }}
+        onOpenSettings={() => setOverlayState('settings')}
       />
     </div>
   )

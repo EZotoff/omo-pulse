@@ -3,8 +3,16 @@
 .add-project-form {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--sp-2);
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.add-project-label {
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  line-height: 1;
+  white-space: nowrap;
+  margin: 0;
 }
 
 .add-project-input {

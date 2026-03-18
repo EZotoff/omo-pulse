@@ -11,6 +11,7 @@ export type DashboardHeaderProps = {
   columns?: number
   onSetColumns?: (n: number) => void
   onSettingsOpen?: () => void
+  onManageProjectsOpen?: () => void
   zoom?: number
   onZoomIn?: () => void
   onZoomOut?: () => void
@@ -43,6 +44,7 @@ export function DashboardHeader({
   columns,
   onSetColumns,
   onSettingsOpen,
+  onManageProjectsOpen,
   zoom,
   onZoomIn,
   onZoomOut,
@@ -130,13 +132,17 @@ export function DashboardHeader({
           aria-label={connected ? "Connected" : "Disconnected"}
         />
 
+        {onManageProjectsOpen && (
+          <button className="header-btn" onClick={onManageProjectsOpen} type="button" title="Manage Projects" aria-label="Manage Projects">
+            Projects
+          </button>
+        )}
+
         {onSettingsOpen && (
           <button className="header-btn" onClick={onSettingsOpen} type="button" title="Settings" aria-label="Open settings">
             ⚙
           </button>
         )}
-
-
       </div>
     </header>
   )

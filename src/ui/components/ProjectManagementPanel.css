@@ -1,0 +1,181 @@
+.project-management-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 80vh;
+  min-height: 400px;
+  width: 100%;
+  max-width: 1200px;
+  background: var(--bg-secondary);
+  border-radius: inherit;
+  color: var(--text-primary);
+}
+
+.project-management-panel__header {
+  flex: 0 0 auto;
+  padding: var(--sp-4) var(--sp-6);
+  border-bottom: 1px solid var(--border-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.project-management-panel__title {
+  margin: 0;
+  font-size: var(--font-lg);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  color: var(--text-primary);
+}
+
+.project-management-panel__badge {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-subtle);
+}
+
+.project-management-panel__body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: var(--sp-6);
+  gap: var(--sp-6);
+}
+
+.project-management-panel__controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  background: var(--bg-primary);
+  padding: var(--sp-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.project-management-panel__search {
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--font-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.project-management-panel__search:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-primary-alpha);
+}
+
+.project-management-panel__add-form {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--sp-4);
+}
+
+.project-management-panel__content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-management-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--sp-4);
+}
+
+@media (max-width: 900px) {
+  .project-management-panel__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .project-management-panel__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.project-management-panel__card-wrapper {
+  transition: opacity var(--transition-normal);
+  display: flex;
+}
+
+.project-management-panel__grid[data-search-active="true"] .project-management-panel__card-wrapper {
+  cursor: default;
+}
+
+.project-management-panel__grid[data-search-active="true"] .project-card__drag-handle {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.project-management-panel__card-wrapper[data-hidden="true"] {
+  opacity: 0.5;
+  filter: grayscale(0.5);
+}
+
+.project-management-panel__card-wrapper[data-hidden="true"]:hover {
+  opacity: 0.8;
+}
+
+.project-management-panel__card-wrapper > * {
+  flex: 1;
+}
+
+.project-management-panel__empty {
+  text-align: center;
+  padding: var(--sp-8) var(--sp-4);
+  color: var(--text-muted);
+  font-style: italic;
+  background: var(--bg-primary);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin: auto 0;
+}
+
+.project-management-panel__footer {
+  flex: 0 0 auto;
+  padding: var(--sp-4) var(--sp-6);
+  border-top: 1px solid var(--border-primary);
+  display: flex;
+  justify-content: flex-end;
+  background: var(--bg-tertiary);
+}
+
+.project-management-panel__settings-link {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.project-management-panel__settings-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.project-management-panel__settings-link:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}

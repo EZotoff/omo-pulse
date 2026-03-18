@@ -111,12 +111,16 @@ async function setupMockApi(page: Page, payload = makeMockPayload()) {
   }
 }
 
-async function injectUIOverrides(page: Page, options: { openSettings?: boolean; relabelHeaderButtons?: boolean }) {
+async function injectUIOverrides(page: Page, options: { openSettings?: boolean; openProjects?: boolean; relabelHeaderButtons?: boolean }) {
   await page.addInitScript((opts) => {
     const apply = () => {
       if (opts.openSettings) {
         const settingsButton = document.querySelector('button[aria-label="Open settings"]')
         if (settingsButton instanceof HTMLButtonElement) settingsButton.click()
+      }
+      if (opts.openProjects) {
+        const projectsButton = document.querySelector('button[aria-label="Manage Projects"]')
+        if (projectsButton instanceof HTMLButtonElement) projectsButton.click()
       }
       if (opts.relabelHeaderButtons) {
         const expandButton = document.querySelector('button[aria-label="Expand all"]')
@@ -332,6 +336,96 @@ test.describe("Dashboard E2E", () => {
     for (let i = 0; i < 3; i++) {
       await expect(strips.nth(i)).toHaveAttribute("data-expanded", "false")
     }
+  })
+})
+
+
+
+test.describe("Settings & Project Management Overlays", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.clear()
+      window.sessionStorage.clear()
+    })
+  })
+
+  test("project management overlay opens and works", async ({ page }) => {
+    await setupMockApi(page)
+    await page.goto("/")
+
+    // Open projects overlay
+    await page.locator('button[aria-label="Manage Projects"]').click()
+    
+    // Verify overlay shell is visible and title is "Project Management"
+    await expect(page.locator(".overlay-shell")).toBeVisible()
+    await expect(page.locator(".overlay-shell__title")).toHaveText("Project Management")
+
+    // Check that we see the projects listed
+    await expect(page.locator(".pm-panel .project-card")).toHaveCount(3)
+  })
+
+  test("settings overlay opens and does not contain project management UI", async ({ page }) => {
+    await setupMockApi(page)
+    await page.goto("/")
+
+    // Open settings overlay
+    await page.locator('button[aria-label="Open settings"]').click()
+    
+    // Verify overlay shell is visible and title is "Settings"
+    await expect(page.locator(".overlay-shell")).toBeVisible()
+    await expect(page.locator(".overlay-shell__title")).toHaveText("Settings")
+
+    // Project management components should not be inside settings anymore
+    await expect(page.locator(".settings-projects")).toHaveCount(0)
+    await expect(page.locator(".add-project-form")).toHaveCount(0)
+    
+    // Global theme toggle should be there
+    await expect(page.locator(".theme-toggle")).toBeVisible()
+  })
+
+  test("add project form works within project management overlay", async ({ page }) => {
+    await setupMockApi(page)
+    await page.goto("/")
+
+    // Open projects overlay
+    await page.locator('button[aria-label="Manage Projects"]').click()
+    
+    // Mock the POST request for adding a project
+    let addedProject = false;
+    await page.route("**/api/sources", async (route) => {
+      if (route.request().method() === "POST") {
+        addedProject = true;
+        await route.fulfill({ status: 200, json: { ok: true } })
+      } else {
+        await route.continue()
+      }
+    })
+
+    // Fill form and submit
+    await page.locator('input[name="projectRoot"]').fill("/some/new/path")
+    await page.locator('input[name="label"]').fill("New Project")
+    await page.locator('.add-project-submit').click()
+
+    // Verify success message
+    await expect(page.locator('.add-project-status--success')).toBeVisible()
+    expect(addedProject).toBe(true)
+  })
+
+  test("project search filtering works", async ({ page }) => {
+    await setupMockApi(page)
+    await page.goto("/")
+
+    await page.locator('button[aria-label="Manage Projects"]').click()
+    
+    // Initially 3 projects
+    await expect(page.locator(".pm-panel .project-card")).toHaveCount(3)
+
+    // Search for "Project 0"
+    await page.locator('input[placeholder="Search projects..."]').fill("Project 0")
+    
+    // Should filter down to 1
+    await expect(page.locator(".pm-panel .project-card")).toHaveCount(1)
+    await expect(page.locator(".pm-panel .project-card__title")).toHaveText("Project 0")
   })
 })
 

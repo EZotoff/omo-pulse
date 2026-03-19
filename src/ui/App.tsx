@@ -341,7 +341,6 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
       <DashboardHeader
         connected={connected}
         lastUpdatedMs={lastUpdatedMs}
-        projectCount={projectCount}
         onExpandAll={handleExpandAll}
         onCollapseAll={collapseAll}
         columns={columns}

@@ -36,21 +36,21 @@ import type React from "react"
 
 /* ── Helpers ── */
 
-/** Status priority for sorting: active first, idle second, unknown last */
+/** Status priority for sorting: attention-first, then recency */
 const STATUS_PRIORITY: Record<SessionStatus, number> = {
-  busy: 0,
-  running_tool: 1,
+  error: 0,
+  question: 1,
   thinking: 2,
   idle: 3,
-  question: 4,
   plan_complete: 4,
-  error: 5,
+  busy: 5,
+  running_tool: 5,
   unknown: 6,
 }
 
 function compareProjects(a: ProjectSnapshot, b: ProjectSnapshot): number {
-  const pa = STATUS_PRIORITY[a.mainSession.status] ?? 5
-  const pb = STATUS_PRIORITY[b.mainSession.status] ?? 5
+  const pa = STATUS_PRIORITY[a.aggregateStatus ?? a.mainSession.status] ?? STATUS_PRIORITY.unknown
+  const pb = STATUS_PRIORITY[b.aggregateStatus ?? b.mainSession.status] ?? STATUS_PRIORITY.unknown
   if (pa !== pb) return pa - pb
   return b.lastUpdatedMs - a.lastUpdatedMs
 }
@@ -62,6 +62,7 @@ export type AppProps = {
   connected: boolean
   lastUpdatedMs: number | null
   previewMode: PreviewMode | null
+  refresh: () => Promise<void>
 }
 
 /* ── localStorage helpers ── */
@@ -76,12 +77,12 @@ function safeSetItem(key: string, value: string): void {
 
 /* ── Component ── */
 
-export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
+export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: AppProps) {
   const { expandedIds, toggle, expandAll, collapseAll } = useExpandState()
   const { config: soundConfig, setConfig: setSoundConfig, playWaiting, playAllClear, playAttention, playQuestion } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
-  const { config: stripConfig, toggle: toggleStripConfig } = useStripConfig()
+  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode } = useStripConfig()
   const [overlayState, setOverlayState] = useState<'none' | 'settings' | 'projectManagement'>('none')
 
   /* ── Zoom ── */
@@ -340,7 +341,6 @@ export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
       <DashboardHeader
         connected={connected}
         lastUpdatedMs={lastUpdatedMs}
-        projectCount={projectCount}
         onExpandAll={handleExpandAll}
         onCollapseAll={collapseAll}
         columns={columns}
@@ -426,6 +426,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
       <SettingsPanel
         stripConfig={stripConfig}
         onToggleStrip={toggleStripConfig}
+        onSetStripMode={setStripMode}
         soundConfig={soundConfig}
         onSoundConfigChange={setSoundConfig}
         onTestSound={(event) => {
@@ -453,7 +454,8 @@ export function App({ data, connected, lastUpdatedMs, previewMode }: AppProps) {
         visibility={visibility}
         onToggleVisibility={toggleVisibility}
         onReorder={reorder}
-        onProjectAdded={() => { /* data will refresh on next poll */ }}
+        onProjectAdded={refresh}
+        onRefresh={refresh}
         onOpenSettings={() => setOverlayState('settings')}
       />
     </div>

@@ -101,8 +101,9 @@
 
 .header-cols {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--sp-1);
+  gap: 1px;
 }
 
 .header-cols__label {
@@ -110,6 +111,7 @@
   font-size: var(--font-xs);
   color: var(--text-muted);
   user-select: none;
+  line-height: 1;
 }
 
 .header-cols__toggle {
@@ -250,6 +252,11 @@
 .dashboard-empty__icon {
   font-size: 2rem;
   opacity: 0.5;
+}
+
+.dashboard-empty__action {
+  margin-top: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
 }
 
 /* ── Loading state ── */

@@ -76,6 +76,17 @@ export type TimeSeriesPayload = {
   series: TimeSeriesSeries[]
 }
 
+export type SessionSummary = {
+  sessionId: string
+  sessionLabel: string
+  agent: string
+  status: SessionStatus
+  currentModel: string
+  currentTool: string
+  lastUpdated: string
+  lastUpdatedMs: number
+}
+
 /** Single session's contribution to time series data */
 export type SessionTimeSeriesEntry = {
   sessionId: string
@@ -146,6 +157,8 @@ export type ProjectSnapshot = {
     sessionId: string | null
     status: SessionStatus
   }
+  sessions: SessionSummary[]
+  aggregateStatus: SessionStatus
   planProgress: {
     name: string
     completed: number
@@ -189,6 +202,7 @@ export type StripConfigState = {
   showGitWorktrees: boolean
   showAvatar: boolean
   showProjectName: boolean
+  stripDisplayMode: "project" | "session"
 }
 
 /** Sound notification configuration */

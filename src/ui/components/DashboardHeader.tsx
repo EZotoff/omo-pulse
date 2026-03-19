@@ -5,7 +5,6 @@ import { useEffect, useState } from "react"
 export type DashboardHeaderProps = {
   connected: boolean
   lastUpdatedMs: number | null
-  projectCount: number
   onExpandAll: () => void
   onCollapseAll: () => void
   columns?: number
@@ -38,7 +37,6 @@ function formatUpdateTime(ms: number | null): string {
 export function DashboardHeader({
   connected,
   lastUpdatedMs,
-  projectCount,
   onExpandAll,
   onCollapseAll,
   columns,
@@ -63,7 +61,11 @@ export function DashboardHeader({
     <header className="dashboard-header">
       <div className="dashboard-header__left">
         <h1 className="dashboard-header__title">ez-omo-dash</h1>
-        <span className="dashboard-header__count">{projectCount} projects</span>
+        {onManageProjectsOpen && (
+          <button className="header-btn" onClick={onManageProjectsOpen} type="button" title="Manage Projects" aria-label="Manage Projects">
+            Projects
+          </button>
+        )}
       </div>
 
       <div className="dashboard-header__right">
@@ -131,12 +133,6 @@ export function DashboardHeader({
           role="status"
           aria-label={connected ? "Connected" : "Disconnected"}
         />
-
-        {onManageProjectsOpen && (
-          <button className="header-btn" onClick={onManageProjectsOpen} type="button" title="Manage Projects" aria-label="Manage Projects">
-            Projects
-          </button>
-        )}
 
         {onSettingsOpen && (
           <button className="header-btn" onClick={onSettingsOpen} type="button" title="Settings" aria-label="Open settings">

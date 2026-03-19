@@ -31,6 +31,7 @@ export type ProjectManagementPanelProps = {
   onReorder: (oldIndex: number, newIndex: number) => void
   onProjectAdded?: () => void
   onOpenSettings?: () => void
+  onRefresh?: () => void
 }
 
 type SortableProjectCardProps = {
@@ -39,6 +40,7 @@ type SortableProjectCardProps = {
   isVisible: boolean
   dragDisabled: boolean
   onToggleVisibility: (sourceId: string) => void
+  onRefresh?: () => void
 }
 
 function resolveOrderedProjectIds(projects: ProjectSnapshot[], orderedIds: string[]): string[] {
@@ -54,6 +56,7 @@ function SortableProjectCard({
   isVisible,
   dragDisabled,
   onToggleVisibility,
+  onRefresh,
 }: SortableProjectCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id,
@@ -82,6 +85,7 @@ function SortableProjectCard({
         isVisible={isVisible}
         onToggleVisibility={onToggleVisibility}
         dragHandleProps={dragHandleProps}
+        onRefresh={onRefresh}
       />
     </div>
   )
@@ -97,6 +101,7 @@ export function ProjectManagementPanel({
   onReorder,
   onProjectAdded,
   onOpenSettings,
+  onRefresh,
 }: ProjectManagementPanelProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const isSearchActive = searchQuery.trim().length > 0
@@ -200,6 +205,7 @@ export function ProjectManagementPanel({
                           isVisible={isVisible}
                           dragDisabled={isSearchActive}
                           onToggleVisibility={onToggleVisibility}
+                          onRefresh={onRefresh}
                         />
                       )
                     })}

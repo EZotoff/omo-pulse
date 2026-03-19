@@ -101,3 +101,110 @@
 .project-card__toggle {
   flex-shrink: 0;
 }
+
+/* Edit and Remove UI */
+.project-card__edit-form,
+.project-card__remove-form {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  width: 100%;
+}
+
+.project-card__edit-input {
+  flex: 1;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--font-sm);
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+.project-card__edit-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.project-card__edit-actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.project-card__btn {
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-xs);
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.project-card__btn--save {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+.project-card__btn--save:hover {
+  background: var(--accent-primary);
+}
+
+.project-card__btn--cancel {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: var(--border-primary);
+}
+
+.project-card__btn--cancel:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.project-card__btn--danger {
+  background: var(--accent-danger);
+  color: var(--bg-primary);
+}
+
+.project-card__btn--danger:hover {
+  background: var(--accent-danger);
+}
+
+.project-card__remove-text {
+  font-size: var(--font-sm);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.project-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.project-card__icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--font-md);
+  padding: var(--sp-1);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  line-height: 1;
+}
+
+.project-card__icon-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.project-card__icon-btn--danger:hover {
+  background: rgba(255, 68, 68, 0.1);
+  color: var(--accent-danger);
+}

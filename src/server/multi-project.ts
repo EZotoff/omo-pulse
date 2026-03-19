@@ -1,14 +1,19 @@
 import { getGitUncommittedCount } from "../ingest/git-status"
 import { getWorktreeInfo } from "../ingest/git-worktrees"
 import { derivePerSessionTimeSeries } from "../ingest/per-session-timeseries"
+import { isSessionIncluded } from "../ingest/session-inclusion"
 import { getSourceById, listSources } from "../ingest/sources-registry"
+import { getMainSessionViewSqlite } from "../ingest/sqlite-derive"
+import { compareSessionsBySeverity, computeAggregateStatus, selectDisplaySession } from "../ingest/status-rollup"
 import { getLegacyStorageRootForBackend, type StorageBackend } from "../ingest/storage-backend"
+import { readMainSessionMetasSqlite } from "../ingest/storage-backend"
 import type {
   BackgroundTaskSummary,
   DashboardMultiProjectPayload,
   PlanStatus,
   ProjectSnapshot,
   SessionStatus,
+  SessionSummary,
   SessionTimeSeriesPayload,
   TokenUsageSummary,
 } from "../types"
@@ -25,6 +30,7 @@ function mapStatusPillToSessionStatus(pill: string): SessionStatus {
   if (pill === "idle") return "idle"
   if (pill === "question") return "question"
   if (pill === "plan complete") return "plan_complete"
+  if (pill === "error") return "error"
   return "unknown"
 }
 
@@ -69,28 +75,97 @@ function buildEmptySessionTimeSeries(nowMs: number): SessionTimeSeriesPayload {
 
 export const MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS = 5_000
 export const SESSION_TIMESERIES_CACHE_TTL_MS = 15_000
+const INCLUDED_SESSION_IDLE_WINDOW_MS = 300_000
+
+function buildSessionSummary(projectRoot: string, sqlitePath: string, nowMs: number): SessionSummary[] {
+  try {
+    if (typeof readMainSessionMetasSqlite !== "function" || typeof getMainSessionViewSqlite !== "function") {
+      return []
+    }
+
+    const metas = readMainSessionMetasSqlite({ sqlitePath, directoryFilter: projectRoot })
+    if (!metas.ok) return []
+
+    const summaries = metas.rows.flatMap((meta) => {
+      const result = getMainSessionViewSqlite({
+        sqlitePath,
+        sessionId: meta.id,
+        sessionMeta: meta,
+        nowMs,
+      })
+      if (!result.ok) return []
+
+      const summary: SessionSummary = {
+        sessionId: meta.id,
+        sessionLabel: result.value.sessionLabel,
+        agent: result.value.agent,
+        status: result.value.status,
+        currentModel: result.value.currentModel ?? "-",
+        currentTool: result.value.currentTool ?? "-",
+        lastUpdated: result.value.lastUpdated ? new Date(result.value.lastUpdated).toISOString() : "",
+        lastUpdatedMs: result.value.lastUpdated ?? 0,
+      }
+
+      const included = isSessionIncluded(meta, INCLUDED_SESSION_IDLE_WINDOW_MS, nowMs)
+        || summary.status === "question"
+        || summary.status === "error"
+      return included ? [summary] : []
+    })
+
+    return summaries.sort(compareSessionsBySeverity)
+  } catch {
+    return []
+  }
+}
+
+function resolveSnapshotLastUpdatedMs(payload: DashboardPayload, sessions: SessionSummary[], nowMs: number): number {
+  const values = sessions
+    .map((session) => session.lastUpdatedMs)
+    .filter((value) => Number.isFinite(value) && value > 0)
+
+  if (values.length > 0) return Math.max(...values)
+  const fallback = Date.parse(payload.mainSession.lastUpdatedLabel)
+  return Number.isFinite(fallback) ? fallback : nowMs
+}
 
 function transformPayloadToSnapshot(
   sourceId: string,
   label: string,
   projectRoot: string,
   payload: DashboardPayload,
+  sessions: SessionSummary[],
   nowMs: number,
   sessionTimeSeries: SessionTimeSeriesPayload,
 ): ProjectSnapshot {
+  const displaySession = selectDisplaySession(sessions)
+  const mainSessionStatus = mapStatusPillToSessionStatus(payload.mainSession.statusPill)
+  const mainSession = displaySession
+    ? {
+        agent: displaySession.agent,
+        currentModel: displaySession.currentModel,
+        currentTool: displaySession.currentTool ?? "-",
+        lastUpdated: displaySession.lastUpdated,
+        sessionLabel: displaySession.sessionLabel,
+        sessionId: displaySession.sessionId,
+        status: displaySession.status,
+      }
+    : {
+        agent: payload.mainSession.agent,
+        currentModel: payload.mainSession.currentModel,
+        currentTool: payload.mainSession.currentTool,
+        lastUpdated: payload.mainSession.lastUpdatedLabel,
+        sessionLabel: payload.mainSession.session,
+        sessionId: payload.mainSession.sessionId,
+        status: mainSessionStatus,
+      }
+
   return {
     sourceId,
     label,
     projectRoot,
-    mainSession: {
-      agent: payload.mainSession.agent,
-      currentModel: payload.mainSession.currentModel,
-      currentTool: payload.mainSession.currentTool,
-      lastUpdated: payload.mainSession.lastUpdatedLabel,
-      sessionLabel: payload.mainSession.session,
-      sessionId: payload.mainSession.sessionId,
-      status: mapStatusPillToSessionStatus(payload.mainSession.statusPill),
-    },
+    mainSession,
+    sessions,
+    aggregateStatus: sessions.length > 0 ? computeAggregateStatus(sessions) : mainSession.status,
     planProgress: {
       name: payload.planProgress.name,
       completed: payload.planProgress.completed,
@@ -109,7 +184,7 @@ function transformPayloadToSnapshot(
     backgroundTasks: mapBackgroundTasks(payload),
     sessionTimeSeries,
     tokenUsage: mapTokenUsage(payload),
-    lastUpdatedMs: nowMs,
+    lastUpdatedMs: resolveSnapshotLastUpdatedMs(payload, sessions, nowMs),
   }
 }
 
@@ -121,7 +196,7 @@ export function createMultiProjectService(opts: {
   storageRoot: string
   storageBackend: StorageBackend
   pollIntervalMs?: number
-}): { getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload> } {
+}): { getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload>; invalidate: () => void } {
   const pollIntervalMs = opts.pollIntervalMs ?? 2000
   const storeBySourceId = new Map<string, DashboardStore>()
   const storeByProjectRoot = new Map<string, DashboardStore>()
@@ -201,10 +276,11 @@ export function createMultiProjectService(opts: {
         const label = source.label ?? entry.projectRoot
         const sqlitePath = opts.storageBackend.kind === "sqlite" ? opts.storageBackend.sqlitePath : undefined
         const sessionTimeSeries = getCachedSessionTimeSeries(entry.projectRoot, sqlitePath, nowMs)
-         const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, nowMs, sessionTimeSeries)
-         snapshot.gitUncommittedCount = await getGitUncommittedCount(entry.projectRoot)
-         snapshot.worktrees = await getWorktreeInfo(entry.projectRoot)
-         projects.push(snapshot)
+        const sessions = sqlitePath ? buildSessionSummary(entry.projectRoot, sqlitePath, nowMs) : []
+        const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, sessions, nowMs, sessionTimeSeries)
+        snapshot.gitUncommittedCount = await getGitUncommittedCount(entry.projectRoot)
+        snapshot.worktrees = await getWorktreeInfo(entry.projectRoot)
+        projects.push(snapshot)
       } catch {
         // Per-source error isolation: if one source fails, others still return
       }
@@ -221,5 +297,11 @@ export function createMultiProjectService(opts: {
     return payload
   }
 
-  return { getMultiProjectPayload }
+  function invalidate(): void {
+    cachedPayload = null
+    cachedPayloadAt = 0
+    sessionTimeSeriesByProjectRoot.clear()
+  }
+
+  return { getMultiProjectPayload, invalidate }
 }

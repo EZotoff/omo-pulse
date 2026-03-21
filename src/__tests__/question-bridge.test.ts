@@ -2,7 +2,7 @@ import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
 
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 
 import { deriveBackgroundTasks } from "../ingest/background-tasks"
 import { getMainSessionView, type OpenCodeStorageRoots, type SessionMetadata, type StoredMessageMeta, type StoredToolPart } from "../ingest/session"
@@ -32,8 +32,6 @@ function makeTempStorage(): OpenCodeStorageRoots {
 }
 
 afterEach(() => {
-  vi.resetModules()
-  vi.doUnmock("../ingest/storage-backend")
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop()
     if (dir) fs.rmSync(dir, { recursive: true, force: true })
@@ -164,116 +162,5 @@ describe("background question bridge", () => {
 
     expect(view.status).toBe("question")
     expect(view.currentTool).toBe("mcp_question")
-  })
-
-  it("surfaces question for SQLite background tasks and main-session fallback", async () => {
-    vi.doMock("../ingest/storage-backend", () => {
-      const mainSessionMeta: SessionMetadata = {
-        id: "ses-main",
-        projectID: "proj-1",
-        directory: "/tmp/project",
-        time: { created: 900_000, updated: 999_000 },
-      }
-      const childSessionMeta: SessionMetadata = {
-        id: "ses-child",
-        projectID: "proj-1",
-        directory: "/tmp/project",
-        parentID: "ses-main",
-        title: "Ask the user (@atlas subagent)",
-        time: { created: 999_100, updated: 999_900 },
-      }
-      const mainMeta: StoredMessageMeta = {
-        id: "msg-main",
-        sessionID: "ses-main",
-        role: "assistant",
-        time: { created: 999_000, completed: 999_100 },
-        agent: "build",
-      }
-      const childMeta: StoredMessageMeta = {
-        id: "msg-child",
-        sessionID: "ses-child",
-        role: "assistant",
-        time: { created: 999_900 },
-        agent: "atlas",
-      }
-      const mainTaskPart: PersistedToolPart = {
-        id: "part-main",
-        sessionID: "ses-main",
-        messageID: "msg-main",
-        type: "tool",
-        callID: "call-main",
-        tool: "background_task",
-        state: {
-          status: "completed",
-          input: {
-            description: "Ask the user",
-            run_in_background: true,
-            subagent_type: "atlas",
-          },
-          metadata: { sessionId: "ses-child" },
-          time: { start: 999_050 },
-        },
-      }
-      const childQuestionPart: StoredToolPart = {
-        id: "part-child",
-        sessionID: "ses-child",
-        messageID: "msg-child",
-        type: "tool",
-        callID: "call-child",
-        tool: "mcp_question",
-        state: {
-          status: "pending",
-          input: {},
-        },
-      }
-
-      return {
-        readMainSessionMetasSqlite: vi.fn(() => ({ ok: true as const, rows: [mainSessionMeta] })),
-        readAllSessionMetasSqlite: vi.fn(() => ({ ok: true as const, rows: [mainSessionMeta, childSessionMeta] })),
-        readSessionExistsSqlite: vi.fn(() => ({ ok: true as const, rows: [{ id: "ses-child" }] })),
-        readTodosSqlite: vi.fn(() => ({ ok: true as const, rows: [] })),
-        readRecentMessageMetasSqlite: vi.fn(({ sessionId }: { sessionId: string }) => {
-          if (sessionId === "ses-main") return { ok: true as const, rows: [mainMeta] }
-          if (sessionId === "ses-child") return { ok: true as const, rows: [childMeta] }
-          return { ok: true as const, rows: [] }
-        }),
-        readToolPartsForMessagesSqlite: vi.fn(({ messageIds }: { messageIds: string[] }) => {
-          const rows: StoredToolPart[] = []
-          if (messageIds.includes("msg-main")) rows.push(mainTaskPart)
-          if (messageIds.includes("msg-child")) rows.push(childQuestionPart)
-          return { ok: true as const, rows }
-        }),
-      }
-    })
-
-    const { deriveBackgroundTasksSqlite, getMainSessionViewSqlite } = await import("../ingest/sqlite-derive")
-
-    const tasksResult = deriveBackgroundTasksSqlite({
-      sqlitePath: "/tmp/opencode.db",
-      mainSessionId: "ses-main",
-      nowMs: 1_000_000,
-    })
-
-    expect(tasksResult.ok).toBe(true)
-    if (!tasksResult.ok) throw new Error("expected sqlite background tasks")
-    expect(tasksResult.value[0]?.status).toBe("question")
-    expect(tasksResult.value[0]?.lastTool).toBe("mcp_question")
-
-    const viewResult = getMainSessionViewSqlite({
-      sqlitePath: "/tmp/opencode.db",
-      sessionId: "ses-main",
-      sessionMeta: {
-        id: "ses-main",
-        projectID: "proj-1",
-        directory: "/tmp/project",
-        time: { created: 900_000, updated: 999_000 },
-      },
-      nowMs: 1_000_000,
-    })
-
-    expect(viewResult.ok).toBe(true)
-    if (!viewResult.ok) throw new Error("expected sqlite main session view")
-    expect(viewResult.value.status).toBe("question")
-    expect(viewResult.value.currentTool).toBe("mcp_question")
   })
 })

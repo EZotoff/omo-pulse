@@ -7,10 +7,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 const { mockQueryAll, MockDatabase } = vi.hoisted(() => {
   const mockQueryAll = vi.fn((): unknown[] => [])
   const mockDbClose = vi.fn()
-  const MockDatabase = vi.fn(() => ({
-    query: vi.fn(() => ({ all: mockQueryAll })),
-    close: mockDbClose,
-  }))
+  const MockDatabase = vi.fn(function () {
+    return {
+      query: vi.fn(() => ({ all: mockQueryAll })),
+      close: mockDbClose,
+    }
+  })
   return { mockQueryAll, mockDbClose, MockDatabase }
 })
 

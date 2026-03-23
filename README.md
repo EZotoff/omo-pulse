@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Runtime: Bun](https://img.shields.io/badge/Runtime-Bun-%23f9f1e1?logo=bun)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-lightgrey)](https://github.com/sponsors/EZotoff)
 
 ![Dashboard — multi-project view with session activity and token usage](docs/screenshots/details-collapsed.png)
 
@@ -238,6 +239,10 @@ src/
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, and contribution guidelines.
+
+## Related Projects
+
+- **[ez-omo-config](https://github.com/EZotoff/ez-omo-config)** — Personal OpenCode configuration with Oh-My-OpenCode presets, curated commands, plugins, and skills
 
 ## Acknowledgments
 

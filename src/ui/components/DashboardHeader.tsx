@@ -60,7 +60,7 @@ export function DashboardHeader({
   return (
     <header className="dashboard-header">
       <div className="dashboard-header__left">
-        <h1 className="dashboard-header__title">ez-omo-dash</h1>
+        <h1 className="dashboard-header__title">OmO Pulse</h1>
         {onManageProjectsOpen && (
           <button className="header-btn" onClick={onManageProjectsOpen} type="button" title="Manage Projects" aria-label="Manage Projects">
             Projects

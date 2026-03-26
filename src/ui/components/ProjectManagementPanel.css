@@ -112,6 +112,7 @@
 .project-management-panel__card-wrapper {
   transition: opacity var(--transition-normal);
   display: flex;
+  min-width: 0;
 }
 
 .project-management-panel__grid[data-search-active="true"] .project-management-panel__card-wrapper {
@@ -134,6 +135,7 @@
 
 .project-management-panel__card-wrapper > * {
   flex: 1;
+  min-width: 0;
 }
 
 .project-management-panel__empty {

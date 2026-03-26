@@ -1,5 +1,11 @@
 import { useMemo, useCallback, useRef, useEffect, useState } from "react"
-import type { DashboardMultiProjectPayload, ProjectSnapshot, SessionStatus, StripConfigState } from "../types"
+import type {
+  DashboardMultiProjectPayload,
+  PlanStatus,
+  ProjectSnapshot,
+  SoundConfig,
+  StripConfigState,
+} from "../types"
 import { DashboardHeader } from "./components/DashboardHeader"
 import { ProjectStrip } from "./components/ProjectStrip"
 import { Sparkline } from "./components/Sparkline"
@@ -18,6 +24,17 @@ import { useDensityMode } from "./hooks/useDensityMode"
 import { useSoundNotifications } from "./hooks/useSoundNotifications"
 import { useProjectOrder } from "./hooks/useProjectOrder"
 import { useProjectVisibility } from "./hooks/useProjectVisibility"
+import { ATTENTION_FIRST_PRIORITY } from "../ingest/status-rollup"
+import {
+  buildSessionStatusMap,
+  diffSessionStatuses,
+  shouldPlaySound,
+} from "../ingest/session-diff"
+import type {
+  SessionStatusDiff,
+  SessionStatusMap,
+  SoundPlaybackDecision,
+} from "../ingest/session-diff"
 import {
   DndContext,
   closestCenter,
@@ -36,23 +53,78 @@ import type React from "react"
 
 /* ── Helpers ── */
 
-/** Status priority for sorting: attention-first, then recency */
-const STATUS_PRIORITY: Record<SessionStatus, number> = {
-  error: 0,
-  question: 1,
-  thinking: 2,
-  idle: 3,
-  plan_complete: 4,
-  busy: 5,
-  running_tool: 5,
-  unknown: 6,
+type ProjectSessionStatusMaps = Map<string, SessionStatusMap>
+type ProjectPlanStatuses = Map<string, PlanStatus>
+
+export type ProjectSoundDecision = {
+  sourceId: string
+  diff: SessionStatusDiff
+  playback: SoundPlaybackDecision
 }
 
-function compareProjects(a: ProjectSnapshot, b: ProjectSnapshot): number {
-  const pa = STATUS_PRIORITY[a.aggregateStatus ?? a.mainSession.status] ?? STATUS_PRIORITY.unknown
-  const pb = STATUS_PRIORITY[b.aggregateStatus ?? b.mainSession.status] ?? STATUS_PRIORITY.unknown
+export function compareProjects(a: ProjectSnapshot, b: ProjectSnapshot): number {
+  const pa = ATTENTION_FIRST_PRIORITY[a.aggregateStatus] ?? ATTENTION_FIRST_PRIORITY.unknown
+  const pb = ATTENTION_FIRST_PRIORITY[b.aggregateStatus] ?? ATTENTION_FIRST_PRIORITY.unknown
   if (pa !== pb) return pa - pb
   return b.lastUpdatedMs - a.lastUpdatedMs
+}
+
+export function resolveProjectOrderIds(
+  sortedProjects: ProjectSnapshot[],
+  orderedIds: string[],
+  isManualOrder: boolean,
+): string[] {
+  const currentIds = sortedProjects.map((project) => project.sourceId)
+  if (!isManualOrder) return currentIds
+
+  const retained = orderedIds.filter((id) => currentIds.includes(id))
+  const added = currentIds.filter((id) => !orderedIds.includes(id))
+  return [...retained, ...added]
+}
+
+function buildProjectSessionMaps(projects: ProjectSnapshot[]): ProjectSessionStatusMaps {
+  return new Map(
+    projects.map((project) => [project.sourceId, buildSessionStatusMap(project.sessions)]),
+  )
+}
+
+function buildProjectPlanStatuses(projects: ProjectSnapshot[]): ProjectPlanStatuses {
+  return new Map(projects.map((project) => [project.sourceId, project.planProgress.status]))
+}
+
+export function computeProjectSoundDecisions(args: {
+  previousSessionMaps: ProjectSessionStatusMaps
+  previousPlanStatuses: ProjectPlanStatuses
+  projects: ProjectSnapshot[]
+  soundConfig: SoundConfig
+}): {
+  decisions: ProjectSoundDecision[]
+  nextSessionMaps: ProjectSessionStatusMaps
+  nextPlanStatuses: ProjectPlanStatuses
+} {
+  const { previousSessionMaps, previousPlanStatuses, projects, soundConfig } = args
+  const nextSessionMaps = buildProjectSessionMaps(projects)
+  const nextPlanStatuses = buildProjectPlanStatuses(projects)
+  const decisions: ProjectSoundDecision[] = []
+
+  for (const project of projects) {
+    const diff = diffSessionStatuses(
+      previousSessionMaps.get(project.sourceId) ?? new Map(),
+      nextSessionMaps.get(project.sourceId) ?? new Map(),
+      {
+        prevPlanStatus: previousPlanStatuses.get(project.sourceId),
+        currPlanStatus: project.planProgress.status,
+      },
+    )
+
+    decisions.push({
+      sourceId: project.sourceId,
+      diff,
+      playback: shouldPlaySound(diff, soundConfig),
+    })
+  }
+
+  return { decisions, nextSessionMaps, nextPlanStatuses }
 }
 
 /* ── Props ── */
@@ -64,6 +136,8 @@ export type AppProps = {
   previewMode: PreviewMode | null
   refresh: () => Promise<void>
 }
+
+export type ActiveOverlay = 'none' | 'settings' | 'projectManagement'
 
 /* ── localStorage helpers ── */
 
@@ -83,7 +157,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
   const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode } = useStripConfig()
-  const [overlayState, setOverlayState] = useState<'none' | 'settings' | 'projectManagement'>('none')
+  const [activeOverlay, setActiveOverlay] = useState<ActiveOverlay>('none')
 
   /* ── Zoom ── */
   const [zoom, setZoom] = useState<number>(() => {
@@ -192,9 +266,10 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
     },
     [columns],
   )
-  const handleCloseSettings = useCallback(() => setOverlayState('none'), [])
-  const prevDataRef = useRef<DashboardMultiProjectPayload | null>(null)
+  const handleCloseOverlay = useCallback(() => setActiveOverlay('none'), [])
   const firstLoadRef = useRef(true)
+  const prevSessionMapsRef = useRef<ProjectSessionStatusMaps>(new Map())
+  const prevPlanStatusesRef = useRef<ProjectPlanStatuses>(new Map())
 
   const handleExpandAll = useCallback(() => {
     if (!data) return
@@ -205,60 +280,47 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   useEffect(() => {
     if (!data || !connected) return
 
+    const {
+      decisions,
+      nextSessionMaps,
+      nextPlanStatuses,
+    } = computeProjectSoundDecisions({
+      previousSessionMaps: prevSessionMapsRef.current,
+      previousPlanStatuses: prevPlanStatusesRef.current,
+      projects: data.projects,
+      soundConfig,
+    })
+
     // Skip sound on first successful load
     if (firstLoadRef.current) {
       firstLoadRef.current = false
-      prevDataRef.current = data
+      prevSessionMapsRef.current = nextSessionMaps
+      prevPlanStatusesRef.current = nextPlanStatuses
       return
     }
 
-    const prev = prevDataRef.current
-    const soundDebug = safeGetItem('dashboard-sound-debug') === 'true'
-    if (prev) {
-      for (const project of data.projects) {
-        const prevProject = prev.projects.find(p => p.sourceId === project.sourceId)
-        if (!prevProject) continue
+    for (const decision of decisions) {
+      if (decision.playback.playWaiting) {
+        playWaiting()
+      }
 
-        const prevSessionId = prevProject.mainSession.sessionId
-        const currSessionId = project.mainSession.sessionId
-        if (prevSessionId !== currSessionId) continue
+      if (decision.playback.playAttention) {
+        playAttention()
+      }
 
-        const prevStatus = prevProject.mainSession.status
-        const currStatus = project.mainSession.status
-        const activeStates: SessionStatus[] = ['busy', 'running_tool', 'thinking']
+      if (decision.playback.playAllClear) {
+        playAllClear()
+      }
 
-         // Session idle: active → idle
-         if (activeStates.includes(prevStatus) && currStatus === 'idle') {
-           playWaiting()
-           if (soundDebug) console.debug('[sound] idle', project.sourceId, prevStatus, '→', currStatus)
-         }
-
-         // Session error: active/idle → error
-         if (prevStatus !== 'error' && currStatus === 'error') {
-           playAttention()
-           if (soundDebug) console.debug('[sound] error', project.sourceId, prevStatus, '→', currStatus)
-         }
-
-         // Plan complete: in progress → complete
-         const prevPlanStatus = prevProject.planProgress.status
-         const currPlanStatus = project.planProgress.status
-         if (prevPlanStatus === 'in progress' && currPlanStatus === 'complete') {
-           playAllClear()
-           if (soundDebug) console.debug('[sound] complete', project.sourceId, prevPlanStatus, '→', currPlanStatus)
-         }
-
-         // Question: any → question
-         if (prevStatus !== 'question' && currStatus === 'question') {
-           playQuestion()
-           if (soundDebug) console.debug('[sound] question', project.sourceId, prevStatus, '→', currStatus)
-         }
+      if (decision.playback.playQuestion) {
+        playQuestion()
       }
     }
 
-    prevDataRef.current = data
-  }, [data, connected, playWaiting, playAllClear, playAttention, playQuestion])
+    prevSessionMapsRef.current = nextSessionMaps
+    prevPlanStatusesRef.current = nextPlanStatuses
+  }, [data, connected, soundConfig, playWaiting, playAllClear, playAttention, playQuestion])
 
-  /* Sort projects: active first */
   const sortedProjects = useMemo(() => {
     if (!data) return []
     return [...data.projects].sort(compareProjects)
@@ -271,13 +333,19 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
     }
   }, [sortedProjects, syncIds])
 
+  const currentOrderIds = useMemo(
+    () => resolveProjectOrderIds(sortedProjects, orderedIds, orderedIds.length > 0),
+    [sortedProjects, orderedIds],
+  )
+
   /* Display projects in DnD order when available, else status sort; then filter by visibility */
   const displayProjects = useMemo(() => {
     const map = new Map(sortedProjects.map((p) => [p.sourceId, p]))
-    const ordered = orderedIds.length === 0 ? sortedProjects :
-      orderedIds.map((id) => map.get(id)).filter((p): p is ProjectSnapshot => p !== undefined)
+    const ordered = currentOrderIds
+      .map((id) => map.get(id))
+      .filter((p): p is ProjectSnapshot => p !== undefined)
     return ordered.filter((p) => isVisible(p.sourceId))
-  }, [sortedProjects, orderedIds, isVisible])
+  }, [sortedProjects, currentOrderIds, isVisible])
 
   const resizeHandleIds = useMemo(
     () => Array.from({ length: Math.max(columns - 1, 0) }, (_, handleIndex) => `column-resize-handle-${handleIndex + 1}`),
@@ -326,14 +394,14 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
       const { active, over } = event
       if (!over || active.id === over.id) return
 
-      const oldIndex = orderedIds.indexOf(String(active.id))
-      const newIndex = orderedIds.indexOf(String(over.id))
+      const oldIndex = currentOrderIds.indexOf(String(active.id))
+      const newIndex = currentOrderIds.indexOf(String(over.id))
 
       if (oldIndex !== -1 && newIndex !== -1) {
         reorder(oldIndex, newIndex)
       }
     },
-    [orderedIds, reorder]
+    [currentOrderIds, reorder]
   )
 
   return (
@@ -345,8 +413,8 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         onCollapseAll={collapseAll}
         columns={columns}
         onSetColumns={setColumns}
-        onSettingsOpen={() => setOverlayState('settings')}
-        onManageProjectsOpen={() => setOverlayState('projectManagement')}
+        onSettingsOpen={() => setActiveOverlay('settings')}
+        onManageProjectsOpen={() => setActiveOverlay('projectManagement')}
         zoom={zoom}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
@@ -359,7 +427,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
           <div className="dashboard-empty">
             <span className="dashboard-empty__icon">⊘</span>
             <span>No registered projects found</span>
-            <button type="button" className="dashboard-empty__action" onClick={() => setOverlayState('projectManagement')}>
+            <button type="button" className="dashboard-empty__action" onClick={() => setActiveOverlay('projectManagement')}>
               Manage Projects
             </button>
           </div>
@@ -367,7 +435,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
           <div className="dashboard-empty">
             <span className="dashboard-empty__icon">⊘</span>
             <span>All projects hidden — adjust visibility in Manage Projects</span>
-            <button type="button" className="dashboard-empty__action" onClick={() => setOverlayState('projectManagement')}>
+            <button type="button" className="dashboard-empty__action" onClick={() => setActiveOverlay('projectManagement')}>
               Manage Projects
             </button>
           </div>
@@ -435,9 +503,9 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
           if (event === 'error') playAttention()
           if (event === 'question') playQuestion()
         }}
-        open={overlayState === 'settings'}
-        onClose={handleCloseSettings}
-        onOpenProjectManagement={() => setOverlayState('projectManagement')}
+        open={activeOverlay === 'settings'}
+        onClose={handleCloseOverlay}
+        onOpenProjectManagement={() => setActiveOverlay('projectManagement')}
         collapsedHeight={collapsedHeight}
         onCollapsedHeightChange={setCollapsedHeight}
         gridGap={gridGap}
@@ -447,8 +515,8 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
       />
 
       <ProjectManagementPanel
-        open={overlayState === 'projectManagement'}
-        onClose={() => setOverlayState('none')}
+        open={activeOverlay === 'projectManagement'}
+        onClose={handleCloseOverlay}
         projects={data?.projects ?? []}
         orderedIds={orderedIds}
         visibility={visibility}
@@ -456,7 +524,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         onReorder={reorder}
         onProjectAdded={refresh}
         onRefresh={refresh}
-        onOpenSettings={() => setOverlayState('settings')}
+        onOpenSettings={() => setActiveOverlay('settings')}
       />
     </div>
   )

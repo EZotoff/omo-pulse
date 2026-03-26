@@ -237,7 +237,7 @@ export function SettingsPanel({
               <input
                 className="settings-slider"
                 type="range"
-                min={80}
+                min={40}
                 max={300}
                 step={1}
                 value={collapsedHeight}
@@ -258,7 +258,7 @@ export function SettingsPanel({
                 step={1}
                 value={gridGap}
                 onChange={(e) => onGridGapChange(Number(e.target.value))}
-                aria-label="Grid gap between columns"
+                aria-label="Grid gap between project strips"
               />
               <span className="settings-slider-value">{gridGap}px</span>
             </div>

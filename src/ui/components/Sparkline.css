@@ -37,7 +37,7 @@
 }
 
 .sparkline-bar--sand {
-  --glow-color: rgba(255, 165, 2, 0.6);
+  --glow-color: rgba(217, 70, 239, 0.6);
 }
 
 .sparkline-bar--muted {
@@ -74,8 +74,8 @@
 }
 
 .sparkline-glow--sand {
-  fill: rgba(245, 158, 11, 0.8);
-  filter: drop-shadow(0 0 6px rgba(245, 158, 11, var(--sparkline-glow-intensity, 0.7)));
+  fill: rgba(217, 70, 239, 0.8);
+  filter: drop-shadow(0 0 6px rgba(217, 70, 239, var(--sparkline-glow-intensity, 0.7)));
 }
 
 .sparkline-glow--muted {

@@ -1,12 +1,12 @@
+import { Database } from "bun:sqlite"
 import { getGitUncommittedCount } from "../ingest/git-status"
 import { getWorktreeInfo } from "../ingest/git-worktrees"
 import { derivePerSessionTimeSeries } from "../ingest/per-session-timeseries"
-import { isSessionIncluded } from "../ingest/session-inclusion"
+import { findIncludedSessionsSqlite } from "../ingest/session-inclusion"
 import { getSourceById, listSources } from "../ingest/sources-registry"
 import { getMainSessionViewSqlite } from "../ingest/sqlite-derive"
 import { compareSessionsBySeverity, computeAggregateStatus, selectDisplaySession } from "../ingest/status-rollup"
 import { getLegacyStorageRootForBackend, type StorageBackend } from "../ingest/storage-backend"
-import { readMainSessionMetasSqlite } from "../ingest/storage-backend"
 import type {
   BackgroundTaskSummary,
   DashboardMultiProjectPayload,
@@ -79,14 +79,21 @@ const INCLUDED_SESSION_IDLE_WINDOW_MS = 300_000
 
 function buildSessionSummary(projectRoot: string, sqlitePath: string, nowMs: number): SessionSummary[] {
   try {
-    if (typeof readMainSessionMetasSqlite !== "function" || typeof getMainSessionViewSqlite !== "function") {
-      return []
+    // Pre-filter sessions with cheap status checks (4 queries per stale session)
+    // instead of calling expensive getMainSessionViewSqlite (200 messages) on ALL sessions.
+    // This reduces 400+ expensive calls to ~10-20 across all sources.
+    const db = new Database(sqlitePath, { readonly: true })
+    let includedMetas: import("../ingest/session").SessionMetadata[]
+    try {
+      includedMetas = findIncludedSessionsSqlite(db, projectRoot, INCLUDED_SESSION_IDLE_WINDOW_MS)
+    } finally {
+      db.close()
     }
 
-    const metas = readMainSessionMetasSqlite({ sqlitePath, directoryFilter: projectRoot })
-    if (!metas.ok) return []
+    if (includedMetas.length === 0) return []
 
-    const summaries = metas.rows.flatMap((meta) => {
+    // Only compute full session views for sessions that passed the pre-filter
+    const summaries = includedMetas.flatMap((meta) => {
       const result = getMainSessionViewSqlite({
         sqlitePath,
         sessionId: meta.id,
@@ -105,11 +112,7 @@ function buildSessionSummary(projectRoot: string, sqlitePath: string, nowMs: num
         lastUpdated: result.value.lastUpdated ? new Date(result.value.lastUpdated).toISOString() : "",
         lastUpdatedMs: result.value.lastUpdated ?? 0,
       }
-
-      const included = isSessionIncluded(meta, INCLUDED_SESSION_IDLE_WINDOW_MS, nowMs)
-        || summary.status === "question"
-        || summary.status === "error"
-      return included ? [summary] : []
+      return [summary]
     })
 
     return summaries.sort(compareSessionsBySeverity)
@@ -264,8 +267,9 @@ export function createMultiProjectService(opts: {
     }
 
     const sources = listSources(opts.storageRoot)
-    const projects: ProjectSnapshot[] = []
+    const snapshots: Array<{ snapshot: ProjectSnapshot; projectRoot: string }> = []
 
+    // Phase 1: Synchronous SQLite work (can't parallelize bun:sqlite)
     for (const source of sources) {
       try {
         const entry = getSourceById(opts.storageRoot, source.id)
@@ -278,13 +282,27 @@ export function createMultiProjectService(opts: {
         const sessionTimeSeries = getCachedSessionTimeSeries(entry.projectRoot, sqlitePath, nowMs)
         const sessions = sqlitePath ? buildSessionSummary(entry.projectRoot, sqlitePath, nowMs) : []
         const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, sessions, nowMs, sessionTimeSeries)
-        snapshot.gitUncommittedCount = await getGitUncommittedCount(entry.projectRoot)
-        snapshot.worktrees = await getWorktreeInfo(entry.projectRoot)
-        projects.push(snapshot)
+        snapshots.push({ snapshot, projectRoot: entry.projectRoot })
       } catch {
         // Per-source error isolation: if one source fails, others still return
       }
     }
+
+    // Phase 2: Parallel async git operations across all sources
+    await Promise.all(snapshots.map(async ({ snapshot, projectRoot }) => {
+      try {
+        const [gitCount, worktrees] = await Promise.all([
+          getGitUncommittedCount(projectRoot),
+          getWorktreeInfo(projectRoot),
+        ])
+        snapshot.gitUncommittedCount = gitCount
+        snapshot.worktrees = worktrees
+      } catch {
+        // Git failures are isolated per-source
+      }
+    }))
+
+    const projects = snapshots.map((s) => s.snapshot)
 
     const payload = {
       projects,

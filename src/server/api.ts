@@ -2,13 +2,7 @@ import { Hono } from "hono"
 import * as path from "node:path"
 import * as fs from "node:fs"
 import { homedir } from "node:os"
-import {
-  addOrUpdateSource,
-  deleteSourceById,
-  getDefaultSourceId,
-  listSources,
-  updateSourceLabelById,
-} from "../ingest/sources-registry"
+import { listSources, getDefaultSourceId, addOrUpdateSource } from "../ingest/sources-registry"
 import { getStorageRoots, getMessageDir } from "../ingest/session"
 import { assertAllowedPath } from "../ingest/paths"
 import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../ingest/tool-calls"
@@ -32,9 +26,6 @@ export function createApi(opts: {
     storageBackend: opts.storageBackend,
     pollIntervalMs: opts.pollIntervalMs,
   })
-  const invalidateProjects = (): void => {
-    multiProjectService.invalidate()
-  }
 
   // ---------------------------------------------------------------------------
   // Middleware: no-cache + JSON content type on all API responses
@@ -85,35 +76,6 @@ export function createApi(opts: {
     }
 
     const sourceId = addOrUpdateSource(opts.storageRoot, projectRoot, label)
-    invalidateProjects()
-    return c.json({ ok: true, sourceId })
-  })
-
-  api.put("/sources/:sourceId", async (c) => {
-    const sourceId = c.req.param("sourceId")
-    const body = await c.req.json<{ label?: string }>()
-
-    if (body.label !== undefined && typeof body.label !== "string") {
-      return c.json({ ok: false, error: "label must be a string when provided" }, 400)
-    }
-
-    const updated = updateSourceLabelById(opts.storageRoot, sourceId, body.label)
-    if (!updated) {
-      return c.json({ ok: false, error: "Source not found", sourceId }, 404)
-    }
-
-    invalidateProjects()
-    return c.json({ ok: true, sourceId })
-  })
-
-  api.delete("/sources/:sourceId", (c) => {
-    const sourceId = c.req.param("sourceId")
-    const deleted = deleteSourceById(opts.storageRoot, sourceId)
-    if (!deleted) {
-      return c.json({ ok: false, error: "Source not found", sourceId }, 404)
-    }
-
-    invalidateProjects()
     return c.json({ ok: true, sourceId })
   })
 
@@ -131,7 +93,7 @@ export function createApi(opts: {
   api.get("/projects/:sourceId", async (c) => {
     const sourceId = c.req.param("sourceId")
     const payload = await multiProjectService.getMultiProjectPayload()
-    const project = payload.projects.find((p) => p.sourceId === sourceId)
+    const project = payload.projects.find((p: { sourceId: string }) => p.sourceId === sourceId)
     if (!project) {
       return c.json({ ok: false, error: "Source not found", sourceId }, 404)
     }

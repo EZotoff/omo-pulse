@@ -1,7 +1,7 @@
 import * as path from "node:path"
 import { Database } from "bun:sqlite"
 import { realpathSafe } from "./paths"
-import { ACTIVE_BUSY_WINDOW_MS } from "./activity-status"
+import { ACTIVE_BUSY_WINDOW_MS, ERROR_STALE_MS } from "./activity-status"
 import type { SessionMetadata } from "./session"
 import { QUESTION_TOOL_NAMES } from "./tool-names"
 
@@ -50,16 +50,33 @@ function deriveSessionStatus(db: Database, session: SessionMetadata, nowMs: numb
       return "running_tool"
     }
 
-    // Check for error tool
-    const errorParts = db
+    const latestMessage = db
       .query(
-        `SELECT COUNT(*) as cnt FROM part 
-         WHERE session_id = ? AND state_status = 'error'
+        `SELECT created FROM message
+         WHERE session_id = ?
+         ORDER BY created DESC LIMIT 1`
+      )
+      .all(session.id) as Array<{ created: number }>
+
+    const latestErrorMessage = db
+      .query(
+        `SELECT m.created as created FROM message m
+         JOIN part p ON p.message_id = m.id
+         WHERE m.session_id = ? AND p.state_status = 'error'
+         ORDER BY m.created DESC
          LIMIT 1`
       )
-      .all(session.id) as Array<{ cnt: number }>
+      .all(session.id) as Array<{ created: number }>
 
-    if (errorParts.length > 0 && errorParts[0].cnt > 0) {
+    const lastUpdated = session.time.updated ?? session.time.created ?? 0
+    const ageMs = nowMs - lastUpdated
+    const isStaleActivity = ageMs > ACTIVE_BUSY_WINDOW_MS
+    const latestErrorCreatedAt = latestErrorMessage[0]?.created
+    const latestMessageCreatedAt = latestMessage[0]?.created
+    const isErrorStale = typeof latestErrorCreatedAt !== "number" || (nowMs - latestErrorCreatedAt > ERROR_STALE_MS)
+    const isTerminalError = typeof latestErrorCreatedAt === "number" && latestErrorCreatedAt === latestMessageCreatedAt
+
+    if (!isStaleActivity && !isErrorStale && isTerminalError) {
       return "error"
     }
 
@@ -81,8 +98,6 @@ function deriveSessionStatus(db: Database, session: SessionMetadata, nowMs: numb
     }
 
     // Default: distinguish busy vs idle based on canonical ACTIVE_BUSY_WINDOW_MS threshold
-    const lastUpdated = session.time.updated ?? session.time.created ?? 0
-    const ageMs = nowMs - lastUpdated
     return ageMs <= ACTIVE_BUSY_WINDOW_MS ? "busy" : "idle"
   } catch {
     // On any error, return unknown

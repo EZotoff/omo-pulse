@@ -2,6 +2,8 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import {
   ACTIVE_BUSY_WINDOW_MS,
+  ERROR_STALE_MS,
+  getTerminalErrorMessageCreatedAt,
   hasFreshMainSessionActivity,
   resolveLastUpdatedTime,
   shouldSuppressStaleToolActivity,
@@ -302,6 +304,17 @@ function hasErrorToolPart(partStorage: string, messageID: string): boolean {
   return false
 }
 
+function getLatestErrorMessageCreatedAt(
+  partStorage: string,
+  recentMetas: StoredMessageMeta[],
+): number | null {
+  return getTerminalErrorMessageCreatedAt({
+    orderedMessages: recentMetas,
+    getCreatedAt: (meta) => (typeof meta.time?.created === "number" ? meta.time.created : null),
+    hasErrorPart: (meta) => hasErrorToolPart(partStorage, meta.id),
+  })
+}
+
 export function getMainSessionView(opts: {
   projectRoot: string
   sessionId: string
@@ -332,18 +345,14 @@ export function getMainSessionView(opts: {
     }
   }
 
-  let hasErrorTool = false
+  let latestErrorMessageCreatedAt: number | null = null
   if (!activeTool) {
-    for (const meta of recentMetas) {
-      if (hasErrorToolPart(opts.storage.part, meta.id)) {
-        hasErrorTool = true
-        break
-      }
-    }
+    latestErrorMessageCreatedAt = getLatestErrorMessageCreatedAt(opts.storage.part, recentMetas)
   }
 
   const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
   const isStaleActivity = typeof lastUpdated === "number" && !hasFreshActivity
+  const isErrorStale = typeof latestErrorMessageCreatedAt !== "number" || (nowMs - latestErrorMessageCreatedAt > ERROR_STALE_MS)
 
   let status: MainSessionView["status"] = "unknown"
   if (activeTool?.status === "pending" || activeTool?.status === "running") {
@@ -354,7 +363,7 @@ export function getMainSessionView(opts: {
     }
   }
 
-  if (status === "unknown" && !isStaleActivity && hasErrorTool) {
+  if (status === "unknown" && !isErrorStale) {
     status = "error"
   } else if (status === "unknown" && !isStaleActivity && recent?.role === "assistant" && typeof recent?.time?.created === "number" && typeof recent?.time?.completed !== "number") {
     status = "thinking"
@@ -368,7 +377,9 @@ export function getMainSessionView(opts: {
       mainSessionId: opts.sessionId,
       nowMs,
     })
-    const questionTask = bgTasks.find((t) => t.status === "question")
+    const questionTask = bgTasks.find(
+      (t) => t.status === "question" || ((t.status === "running" || t.status === "queued") && QUESTION_TOOL_NAMES.has(t.lastTool ?? ""))
+    )
     if (questionTask) {
       status = "question"
       if (!activeTool) activeTool = { tool: questionTask.lastTool ?? "question", status: "running" }

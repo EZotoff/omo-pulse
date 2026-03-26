@@ -22,8 +22,12 @@ type ActivePartRow = {
   status: string
 }
 
-type ErrorCountRow = {
-  cnt: number
+type ErrorMessageRow = {
+  created: number
+}
+
+type LatestMessageRow = {
+  created: number
 }
 
 type AssistantMessageRow = {
@@ -31,7 +35,7 @@ type AssistantMessageRow = {
   time_completed?: number
 }
 
-type QueryRows = SessionRow[] | ActivePartRow[] | ErrorCountRow[] | AssistantMessageRow[]
+type QueryRows = SessionRow[] | ActivePartRow[] | ErrorMessageRow[] | LatestMessageRow[] | AssistantMessageRow[]
 
 type MockStatement = {
   all: (...params: unknown[]) => QueryRows
@@ -44,7 +48,8 @@ type MockDatabase = {
 type MockDbConfig = {
   sessionRows?: SessionRow[]
   activePartsBySession?: Record<string, ActivePartRow[]>
-  errorCountsBySession?: Record<string, number>
+  errorMessagesBySession?: Record<string, ErrorMessageRow[]>
+  latestMessageBySession?: Record<string, LatestMessageRow[]>
   assistantMessagesBySession?: Record<string, AssistantMessageRow[]>
   throwOnQuery?: boolean
 }
@@ -69,11 +74,15 @@ function createMockDb(config: MockDbConfig = {}): MockDatabase {
           }
 
           if (sql.includes("state_status = 'error'")) {
-            return [{ cnt: sessionId ? (config.errorCountsBySession?.[sessionId] ?? 0) : 0 }]
+            return sessionId ? (config.errorMessagesBySession?.[sessionId] ?? []) : []
+          }
+
+          if (sql.includes("FROM message") && sql.includes("role = 'assistant'")) {
+            return sessionId ? (config.assistantMessagesBySession?.[sessionId] ?? []) : []
           }
 
           if (sql.includes("FROM message")) {
-            return sessionId ? (config.assistantMessagesBySession?.[sessionId] ?? []) : []
+            return sessionId ? (config.latestMessageBySession?.[sessionId] ?? []) : []
           }
 
           return []
@@ -273,7 +282,7 @@ describe("findIncludedSessionsSqlite", () => {
     expect(result.map((session) => session.id)).toEqual(["stale-question"])
   })
 
-  it("keeps stale error sessions included beyond the normal idle window", () => {
+  it("excludes stale error sessions once error and activity are both stale", () => {
     const now = Date.now()
     const result = runFindIncludedSessionsSqlite(
       createMockDb({
@@ -293,15 +302,18 @@ describe("findIncludedSessionsSqlite", () => {
             time_updated: now - 120000,
           },
         ],
-        errorCountsBySession: {
-          "stale-error": 1,
+        errorMessagesBySession: {
+          "stale-error": [{ created: now - 120000 }],
+        },
+        latestMessageBySession: {
+          "stale-error": [{ created: now - 120000 }],
         },
       }),
       "/home/user/project",
       60000,
     )
 
-    expect(result.map((session) => session.id)).toEqual(["stale-error"])
+    expect(result.map((session) => session.id)).toEqual([])
   })
 
   it("does not treat generic mc_* tools as question status", () => {
@@ -511,8 +523,11 @@ describe("findIncludedSessionsSqlite", () => {
         activePartsBySession: {
           "question-session": [{ tool: "mcp_question", status: "pending" }],
         },
-        errorCountsBySession: {
-          "error-session": 1,
+        errorMessagesBySession: {
+          "error-session": [{ created: now - 30000 }],
+        },
+        latestMessageBySession: {
+          "error-session": [{ created: now - 30000 }],
         },
       }),
       "/home/user/project",

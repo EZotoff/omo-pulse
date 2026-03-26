@@ -1,6 +1,8 @@
 import {
   ACTIVE_BUSY_WINDOW_MS,
   BACKGROUND_RUNNING_WINDOW_MS,
+  ERROR_STALE_MS,
+  getTerminalErrorMessageCreatedAt,
   hasFreshMainSessionActivity,
   resolveLastUpdatedTime,
   shouldSuppressStaleToolActivity,
@@ -42,6 +44,55 @@ const SERIES_ORDER: Array<Pick<TimeSeriesSeries, "id" | "label" | "tone">> = [
   { id: "agent:atlas", label: "Atlas", tone: "green" },
   { id: "background-total", label: "Background tasks (total)", tone: "muted" },
 ]
+
+function normalizeSessionIds(values: Array<string | null | undefined>): string[] {
+  const sessionIds: string[] = []
+  const seen = new Set<string>()
+
+  for (const value of values) {
+    if (typeof value !== "string") continue
+    const id = value.trim()
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    sessionIds.push(id)
+  }
+
+  return sessionIds
+}
+
+function createEmptyTimeSeriesPayload(opts: {
+  nowMs: number
+  windowMs: number
+  bucketMs: number
+}): TimeSeriesPayload {
+  const buckets = Math.floor(opts.windowMs / opts.bucketMs)
+
+  return {
+    windowMs: opts.windowMs,
+    bucketMs: opts.bucketMs,
+    buckets,
+    anchorMs: Math.floor(opts.nowMs / opts.bucketMs) * opts.bucketMs,
+    serverNowMs: opts.nowMs,
+    series: SERIES_ORDER.map((series) => ({
+      ...series,
+      values: zeroBuckets(buckets),
+    })),
+  }
+}
+
+function mergeTimeSeriesPayload(target: TimeSeriesPayload, source: TimeSeriesPayload): void {
+  const targetSeries = new Map(target.series.map((series) => [series.id, series] as const))
+
+  for (const series of source.series) {
+    const existing = targetSeries.get(series.id)
+    if (!existing) continue
+
+    const limit = Math.min(existing.values.length, series.values.length)
+    for (let index = 0; index < limit; index += 1) {
+      existing.values[index] += series.values[index] ?? 0
+    }
+  }
+}
 
 function readStartTimeFromToolPart(part: unknown): number | null {
   if (!part || typeof part !== "object") return null
@@ -188,6 +239,20 @@ function readSessionMessagesAndParts(opts: {
       partsByMessage: mapToolPartsByMessage(partsResult.rows),
     },
   }
+}
+
+function getLatestErrorMessageCreatedAtSqlite(opts: {
+  metas: StoredMessageMeta[]
+  partsByMessage: Map<string, StoredToolPart[]>
+}): number | null {
+  return getTerminalErrorMessageCreatedAt({
+    orderedMessages: opts.metas,
+    getCreatedAt: (meta) => (typeof meta.time?.created === "number" ? meta.time.created : null),
+    hasErrorPart: (meta) => {
+      const parts = opts.partsByMessage.get(meta.id) ?? []
+      return parts.some((part) => part.state.status === "error")
+    },
+  })
 }
 
 function canonicalizeAgent(agent: unknown): CanonicalAgent {
@@ -406,20 +471,17 @@ export function getMainSessionViewSqlite(opts: {
     if (activeTool) break
   }
 
-  let hasErrorTool = false
+  let latestErrorMessageCreatedAt: number | null = null
   if (!activeTool) {
-    for (const meta of session.value.metas) {
-      const parts = session.value.partsByMessage.get(meta.id) ?? []
-      const errorPart = parts.find((part) => part.state.status === "error")
-      if (errorPart) {
-        hasErrorTool = true
-        break
-      }
-    }
+    latestErrorMessageCreatedAt = getLatestErrorMessageCreatedAtSqlite({
+      metas: session.value.metas,
+      partsByMessage: session.value.partsByMessage,
+    })
   }
 
   const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
   const isStaleActivity = typeof lastUpdated === "number" && !hasFreshActivity
+  const isErrorStale = typeof latestErrorMessageCreatedAt !== "number" || (nowMs - latestErrorMessageCreatedAt > ERROR_STALE_MS)
 
   let status: MainSessionView["status"] = "unknown"
   if (activeTool?.status === "pending" || activeTool?.status === "running") {
@@ -430,7 +492,7 @@ export function getMainSessionViewSqlite(opts: {
     }
   }
 
-  if (status === "unknown" && !isStaleActivity && hasErrorTool) {
+  if (status === "unknown" && !isErrorStale) {
     status = "error"
   } else if (status === "unknown" && !isStaleActivity && recent?.role === "assistant" && typeof recent.time?.created === "number" && typeof recent.time?.completed !== "number") {
     status = "thinking"
@@ -648,6 +710,27 @@ export function deriveBackgroundTasksSqlite(opts: {
   return { ok: true, value: rows }
 }
 
+export function deriveBackgroundTasksSqliteForSessions(opts: {
+  sqlitePath: string
+  mainSessionIds?: Array<string | null | undefined>
+  nowMs?: number
+}): SqliteDeriveResult<BackgroundTaskRow[]> {
+  const sessionIds = normalizeSessionIds(opts.mainSessionIds ?? [])
+  const rows: BackgroundTaskRow[] = []
+
+  for (const sessionId of sessionIds) {
+    const result = deriveBackgroundTasksSqlite({
+      sqlitePath: opts.sqlitePath,
+      mainSessionId: sessionId,
+      nowMs: opts.nowMs,
+    })
+    if (!result.ok) return result
+    rows.push(...result.value)
+  }
+
+  return { ok: true, value: rows }
+}
+
 export function deriveTimeSeriesActivitySqlite(opts: {
   sqlitePath: string
   mainSessionId: string | null
@@ -757,23 +840,39 @@ export function deriveTimeSeriesActivitySqlite(opts: {
   }
 }
 
-export function deriveTokenUsageSqlite(opts: {
+export function deriveTimeSeriesActivitySqliteForSessions(opts: {
   sqlitePath: string
-  mainSessionId: string | null
-  backgroundSessionIds?: Array<string | null | undefined>
-}): SqliteDeriveResult<ReturnType<typeof aggregateTokenUsage>> {
-  const sessionIds: string[] = []
-  const seen = new Set<string>()
-  const push = (value: unknown): void => {
-    if (typeof value !== "string") return
-    const id = value.trim()
-    if (!id || seen.has(id)) return
-    seen.add(id)
-    sessionIds.push(id)
+  mainSessionIds?: Array<string | null | undefined>
+  nowMs?: number
+  windowMs?: number
+  bucketMs?: number
+}): SqliteDeriveResult<TimeSeriesPayload> {
+  const nowMs = opts.nowMs ?? Date.now()
+  const windowMs = opts.windowMs ?? 300_000
+  const bucketMs = opts.bucketMs ?? 2_000
+  const payload = createEmptyTimeSeriesPayload({ nowMs, windowMs, bucketMs })
+  const sessionIds = normalizeSessionIds(opts.mainSessionIds ?? [])
+
+  for (const sessionId of sessionIds) {
+    const result = deriveTimeSeriesActivitySqlite({
+      sqlitePath: opts.sqlitePath,
+      mainSessionId: sessionId,
+      nowMs,
+      windowMs,
+      bucketMs,
+    })
+    if (!result.ok) return result
+    mergeTimeSeriesPayload(payload, result.value)
   }
 
-  push(opts.mainSessionId)
-  for (const id of opts.backgroundSessionIds ?? []) push(id)
+  return { ok: true, value: payload }
+}
+
+export function deriveTokenUsageSqliteForSessions(opts: {
+  sqlitePath: string
+  sessionIds?: Array<string | null | undefined>
+}): SqliteDeriveResult<ReturnType<typeof aggregateTokenUsage>> {
+  const sessionIds = normalizeSessionIds(opts.sessionIds ?? [])
 
   const metas: unknown[] = []
   for (const sessionId of sessionIds) {
@@ -790,6 +889,17 @@ export function deriveTokenUsageSqlite(opts: {
     ok: true,
     value: aggregateTokenUsage(metas),
   }
+}
+
+export function deriveTokenUsageSqlite(opts: {
+  sqlitePath: string
+  mainSessionId: string | null
+  backgroundSessionIds?: Array<string | null | undefined>
+}): SqliteDeriveResult<ReturnType<typeof aggregateTokenUsage>> {
+  return deriveTokenUsageSqliteForSessions({
+    sqlitePath: opts.sqlitePath,
+    sessionIds: [opts.mainSessionId, ...(opts.backgroundSessionIds ?? [])],
+  })
 }
 
 export function deriveToolCallsSqlite(opts: {
@@ -889,4 +999,23 @@ export function deriveTodosSqlite(opts: {
     ok: true,
     value: result.rows,
   }
+}
+
+export function deriveTodosSqliteForSessions(opts: {
+  sqlitePath: string
+  sessionIds?: Array<string | null | undefined>
+}): SqliteDeriveResult<TodoItem[]> {
+  const sessionIds = normalizeSessionIds(opts.sessionIds ?? [])
+  const rows: TodoItem[] = []
+
+  for (const sessionId of sessionIds) {
+    const result = deriveTodosSqlite({
+      sqlitePath: opts.sqlitePath,
+      sessionId,
+    })
+    if (!result.ok) return result
+    rows.push(...result.value)
+  }
+
+  return { ok: true, value: rows }
 }

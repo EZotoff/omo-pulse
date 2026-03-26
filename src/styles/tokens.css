@@ -65,6 +65,8 @@
   --status-busy-new: #0284c7;
   --status-thinking-new: #0278b0;
   --status-tool-new: #026c9f;
+  --status-script: #7c6040;
+  --status-script-glow: rgba(124, 96, 64, 0.3);
   --status-idle-glow: #475569;
   --status-idle-glow-border: #334155;
   --status-idle-border-bright: #d4d4d8;
@@ -115,6 +117,8 @@
   --status-busy-new: #0891b2;
   --status-thinking-new: #0284c7;
   --status-tool-new: #0278b0;
+  --status-script: #8b7355;
+  --status-script-glow: rgba(139, 115, 85, 0.25);
   --status-idle-glow: #475569;
   --status-idle-glow-border: #cbd5e1;
   --status-idle-border-bright: #94a3b8;

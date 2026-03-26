@@ -8,7 +8,6 @@ import "./ProjectStrip.css"
 /* ── Helpers ── */
 
 const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
-const MAX_SESSION_DOTS = 5
 
 /** Format millisecond timestamp to relative time string ("2s ago", "1m ago", "3h ago") */
 export function formatRelativeTime(ms: number): string {
@@ -25,27 +24,6 @@ export function formatRelativeTime(ms: number): string {
   return `${days}d ago`
 }
 
-export function computeDisplayStatus(
-  aggregateStatus: string,
-  lastUpdatedTime: number,
-  idleTimeoutMs = 300_000,
-  nowMs = Date.now(),
-): string {
-  if (aggregateStatus === "plan_complete") return "idle"
-
-  const demotableStatuses = ["running_tool", "thinking", "busy"]
-  if (!demotableStatuses.includes(aggregateStatus)) return aggregateStatus
-
-  return nowMs - lastUpdatedTime > idleTimeoutMs ? "idle" : aggregateStatus
-}
-
-export function getSessionFamily(status: string): "active" | "attention" | "danger" | "idle" {
-  if (["busy", "thinking", "running_tool"].includes(status)) return "active"
-  if (status === "question") return "attention"
-  if (status === "error") return "danger"
-  return "idle"
-}
-
 /** Format a token count to a compact string (e.g., 1234 → "1.2k") */
 function formatTokenCount(n: number): string {
   if (n < 1_000) return String(n)
@@ -53,6 +31,31 @@ function formatTokenCount(n: number): string {
   return `${(n / 1_000_000).toFixed(2)}M`
 }
 
+/** Tool names that indicate a long-running script/command rather than AI tool activity */
+const SCRIPT_TOOL_NAMES = new Set(["bash", "interactive_bash", "shell", "terminal", "execute_command"])
+
+export function computeDisplayStatus(
+  aggregateStatus: string,
+  lastUpdatedTime: number,
+  idleTimeoutMs: number = 300_000,
+  nowMs: number = Date.now(),
+  currentTool?: string,
+): string {
+  if (aggregateStatus === 'plan_complete') return 'idle'
+  
+  // Only active execution states demote to idle when stale
+  const DEMOTABLE_STATUSES = ['running_tool', 'thinking', 'busy']
+  if (!DEMOTABLE_STATUSES.includes(aggregateStatus)) return aggregateStatus
+  
+  const isClientStale = nowMs - lastUpdatedTime > idleTimeoutMs
+  if (isClientStale) return "idle"
+
+  if (aggregateStatus === 'running_tool' && currentTool && SCRIPT_TOOL_NAMES.has(currentTool)) {
+    return 'running_script'
+  }
+
+  return aggregateStatus
+}
 
 function formatDuration(startedAt: string, completedAt: string): string {
   try {
@@ -108,12 +111,21 @@ export type ProjectStripProps = {
 
 /* ── Component ── */
 
+const MAX_SESSION_DOTS = 5;
+
+export function getSessionFamily(status: string): 'active' | 'attention' | 'danger' | 'idle' {
+  if (['busy', 'thinking', 'running_tool', 'running_script'].includes(status)) return 'active'
+  if (status === 'question') return 'attention'
+  if (status === 'error') return 'danger'
+  return 'idle'
+}
+
 function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idleTimeoutMs, children }: ProjectStripProps) {
   const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount, unintiatedPlans } = project
   const sourceId = project.sourceId
   const aggregateStatus = project.aggregateStatus ?? mainSession.status
   const isStale = (() => {
-    const activeStates = ['busy', 'thinking', 'running_tool', 'question', 'error']
+    const activeStates = ['busy', 'thinking', 'running_tool', 'running_script', 'question', 'error']
     if (activeStates.includes(aggregateStatus)) return false
     if (planProgress?.planStale) return true
     if (!mainSession?.lastUpdated) return true
@@ -124,7 +136,9 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
   const displayStatus = computeDisplayStatus(
     aggregateStatus,
     mainSession.lastUpdated ? new Date(mainSession.lastUpdated).getTime() : 0,
-    idleTimeoutMs ?? 300_000,
+    idleTimeoutMs,
+    undefined,
+    mainSession.currentTool || undefined,
   )
 
   const finalDisplayStatus = sourceId.startsWith('preview-') && mainSession.status === 'plan_complete'
@@ -233,6 +247,11 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
               {stripConfig?.showAvatar !== false ? getInitials(project.label) : null}
             </span>
           )}
+          {(finalDisplayStatus === 'running_tool' || finalDisplayStatus === 'running_script') && mainSession.currentTool && (
+            <span className="strip-tool-badge" data-script={finalDisplayStatus === 'running_script' ? "true" : undefined}>
+              {mainSession.currentTool}
+            </span>
+          )}
           {stripConfig?.showProjectName !== false && (
             <span className="strip-label truncate">{project.label}</span>
           )}
@@ -261,13 +280,14 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
           )}
           {stripConfig?.showGitWorktrees !== false && project.worktrees && project.worktrees.activeCount > 0 && (
             <span
-              className={`strip-git-badge strip-worktree-badge ${project.worktrees.hotCount > 0 ? "strip-worktree-badge--hot" : ""}`}
-              title={project.worktrees.hotCount > 0
-                ? `${project.worktrees.hotCount} hot worktree${project.worktrees.hotCount === 1 ? "" : "s"}`
-                : `${project.worktrees.activeCount} active worktree${project.worktrees.activeCount === 1 ? "" : "s"}`}
+              className={`strip-worktree-badge${project.worktrees.hotCount > 0 ? " strip-worktree-badge--hot" : ""}`}
+              title={`${project.worktrees.activeCount} active worktree${project.worktrees.activeCount === 1 ? "" : "s"}${project.worktrees.hotCount > 0 ? ` • ${project.worktrees.hotCount} hot` : ""}`}
             >
-              {project.worktrees.hotCount > 0 && <span className="strip-worktree-hot-dot" aria-hidden="true" />}
-              {project.worktrees.hotCount > 0 ? `${project.worktrees.hotCount} wt` : `${project.worktrees.activeCount} wt`}
+              <span className={`strip-worktree-badge__value${project.worktrees.hotCount > 0 ? " strip-worktree-badge__value--hot" : ""}`}>
+                {project.worktrees.hotCount}
+              </span>
+              <span className="strip-worktree-badge__divider" aria-hidden="true" />
+              <span className="strip-worktree-badge__value">{project.worktrees.activeCount}</span>
             </span>
           )}
           {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
@@ -288,6 +308,11 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
             {stripConfig?.showStatusDot !== false && (
               <span className="strip-status-dot" data-status={finalDisplayStatus} data-stale={isStale} data-avatar={stripConfig?.showAvatar !== false ? "true" : undefined} aria-hidden="true">
                 {stripConfig?.showAvatar !== false ? getInitials(project.label) : null}
+              </span>
+            )}
+            {(finalDisplayStatus === 'running_tool' || finalDisplayStatus === 'running_script') && mainSession.currentTool && (
+              <span className="strip-tool-badge" data-script={finalDisplayStatus === 'running_script' ? "true" : undefined}>
+                {mainSession.currentTool}
               </span>
             )}
             {stripConfig?.showProjectName !== false && (
@@ -318,13 +343,14 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
             )}
             {stripConfig?.showGitWorktrees !== false && project.worktrees && project.worktrees.activeCount > 0 && (
               <span
-                className={`strip-git-badge strip-worktree-badge ${project.worktrees.hotCount > 0 ? "strip-worktree-badge--hot" : ""}`}
-                title={project.worktrees.hotCount > 0
-                  ? `${project.worktrees.hotCount} hot worktree${project.worktrees.hotCount === 1 ? "" : "s"}`
-                  : `${project.worktrees.activeCount} active worktree${project.worktrees.activeCount === 1 ? "" : "s"}`}
+                className={`strip-worktree-badge${project.worktrees.hotCount > 0 ? " strip-worktree-badge--hot" : ""}`}
+                title={`${project.worktrees.activeCount} active worktree${project.worktrees.activeCount === 1 ? "" : "s"}${project.worktrees.hotCount > 0 ? ` • ${project.worktrees.hotCount} hot` : ""}`}
               >
-                {project.worktrees.hotCount > 0 && <span className="strip-worktree-hot-dot" aria-hidden="true" />}
-                {project.worktrees.hotCount > 0 ? `${project.worktrees.hotCount} wt` : `${project.worktrees.activeCount} wt`}
+                <span className={`strip-worktree-badge__value${project.worktrees.hotCount > 0 ? " strip-worktree-badge__value--hot" : ""}`}>
+                  {project.worktrees.hotCount}
+                </span>
+                <span className="strip-worktree-badge__divider" aria-hidden="true" />
+                <span className="strip-worktree-badge__value">{project.worktrees.activeCount}</span>
               </span>
             )}
             {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{children?.compactPlan}</div>}
@@ -546,8 +572,6 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
               </div>
             </div>
           )}
-
-          {/* Git worktrees — reserved for future use via showGitWorktrees config toggle */}
         </div>
         {/* Resize handle — only visible when constrained */}
         {expanded && !released && (

@@ -1,12 +1,12 @@
+import { Database } from "bun:sqlite"
 import { getGitUncommittedCount } from "../ingest/git-status"
 import { getWorktreeInfo } from "../ingest/git-worktrees"
 import { derivePerSessionTimeSeries } from "../ingest/per-session-timeseries"
-import { isSessionIncluded } from "../ingest/session-inclusion"
+import { findIncludedSessionsSqlite } from "../ingest/session-inclusion"
 import { getSourceById, listSources } from "../ingest/sources-registry"
 import { getMainSessionViewSqlite } from "../ingest/sqlite-derive"
 import { compareSessionsBySeverity, computeAggregateStatus, selectDisplaySession } from "../ingest/status-rollup"
 import { getLegacyStorageRootForBackend, type StorageBackend } from "../ingest/storage-backend"
-import { readMainSessionMetasSqlite } from "../ingest/storage-backend"
 import type {
   BackgroundTaskSummary,
   DashboardMultiProjectPayload,
@@ -75,23 +75,21 @@ function buildEmptySessionTimeSeries(nowMs: number): SessionTimeSeriesPayload {
 
 export const MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS = 5_000
 export const SESSION_TIMESERIES_CACHE_TTL_MS = 15_000
+export const SESSION_SUMMARY_CACHE_TTL_MS = 10_000
 const INCLUDED_SESSION_IDLE_WINDOW_MS = 300_000
 
-function buildSessionSummary(projectRoot: string, sqlitePath: string, nowMs: number): SessionSummary[] {
+function buildSessionSummary(projectRoot: string, db: Database, sqlitePath: string, nowMs: number): SessionSummary[] {
   try {
-    if (typeof readMainSessionMetasSqlite !== "function" || typeof getMainSessionViewSqlite !== "function") {
-      return []
-    }
+    const includedMetas = findIncludedSessionsSqlite(db, projectRoot, INCLUDED_SESSION_IDLE_WINDOW_MS)
+    if (includedMetas.length === 0) return []
 
-    const metas = readMainSessionMetasSqlite({ sqlitePath, directoryFilter: projectRoot })
-    if (!metas.ok) return []
-
-    const summaries = metas.rows.flatMap((meta) => {
+    const summaries = includedMetas.flatMap((meta) => {
       const result = getMainSessionViewSqlite({
         sqlitePath,
         sessionId: meta.id,
         sessionMeta: meta,
         nowMs,
+        db,
       })
       if (!result.ok) return []
 
@@ -106,10 +104,7 @@ function buildSessionSummary(projectRoot: string, sqlitePath: string, nowMs: num
         lastUpdatedMs: result.value.lastUpdated ?? 0,
       }
 
-      const included = isSessionIncluded(meta, INCLUDED_SESSION_IDLE_WINDOW_MS, nowMs)
-        || summary.status === "question"
-        || summary.status === "error"
-      return included ? [summary] : []
+      return [summary]
     })
 
     return summaries.sort(compareSessionsBySeverity)
@@ -201,6 +196,7 @@ export function createMultiProjectService(opts: {
   const storeBySourceId = new Map<string, DashboardStore>()
   const storeByProjectRoot = new Map<string, DashboardStore>()
   const sessionTimeSeriesByProjectRoot = new Map<string, { value: SessionTimeSeriesPayload; fetchedAt: number }>()
+  const sessionSummaryByProjectRoot = new Map<string, { value: SessionSummary[]; fetchedAt: number }>()
   let cachedPayload: DashboardMultiProjectPayload | null = null
   let cachedPayloadAt = 0
 
@@ -231,6 +227,16 @@ export function createMultiProjectService(opts: {
     const empty = buildEmptySessionTimeSeries(nowMs)
     sessionTimeSeriesByProjectRoot.set(projectRoot, { value: empty, fetchedAt: nowMs })
     return empty
+  }
+
+  function getCachedSessionSummary(projectRoot: string, db: Database, sqlitePath: string, nowMs: number): SessionSummary[] {
+    const cached = sessionSummaryByProjectRoot.get(projectRoot)
+    if (cached && nowMs - cached.fetchedAt < SESSION_SUMMARY_CACHE_TTL_MS) {
+      return cached.value
+    }
+    const value = buildSessionSummary(projectRoot, db, sqlitePath, nowMs)
+    sessionSummaryByProjectRoot.set(projectRoot, { value, fetchedAt: nowMs })
+    return value
   }
 
   function getOrCreateStore(sourceId: string, projectRoot: string): DashboardStore {
@@ -264,28 +270,55 @@ export function createMultiProjectService(opts: {
     }
 
     const sources = listSources(opts.storageRoot)
-    const projects: ProjectSnapshot[] = []
+    const snapshots: Array<{ snapshot: ProjectSnapshot; projectRoot: string }> = []
+    const sqlitePath = opts.storageBackend.kind === "sqlite" ? opts.storageBackend.sqlitePath : undefined
 
-    for (const source of sources) {
+    let sharedDb: Database | null = null
+    if (sqlitePath) {
       try {
-        const entry = getSourceById(opts.storageRoot, source.id)
-        if (!entry) continue
-
-        const store = getOrCreateStore(source.id, entry.projectRoot)
-        const payload = store.getSnapshot()
-        const label = source.label ?? entry.projectRoot
-        const sqlitePath = opts.storageBackend.kind === "sqlite" ? opts.storageBackend.sqlitePath : undefined
-        const sessionTimeSeries = getCachedSessionTimeSeries(entry.projectRoot, sqlitePath, nowMs)
-        const sessions = sqlitePath ? buildSessionSummary(entry.projectRoot, sqlitePath, nowMs) : []
-        const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, sessions, nowMs, sessionTimeSeries)
-        snapshot.gitUncommittedCount = await getGitUncommittedCount(entry.projectRoot)
-        snapshot.worktrees = await getWorktreeInfo(entry.projectRoot)
-        projects.push(snapshot)
+        sharedDb = new Database(sqlitePath, { readonly: true })
       } catch {
-        // Per-source error isolation: if one source fails, others still return
       }
     }
 
+    try {
+      for (const source of sources) {
+        try {
+          const entry = getSourceById(opts.storageRoot, source.id)
+          if (!entry) continue
+
+          const store = getOrCreateStore(source.id, entry.projectRoot)
+          const payload = store.getSnapshot()
+          const label = source.label ?? entry.projectRoot
+          const sessionTimeSeries = getCachedSessionTimeSeries(entry.projectRoot, sqlitePath, nowMs)
+          const sessions = sharedDb && sqlitePath
+            ? getCachedSessionSummary(entry.projectRoot, sharedDb, sqlitePath, nowMs)
+            : []
+          const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, sessions, nowMs, sessionTimeSeries)
+          snapshots.push({ snapshot, projectRoot: entry.projectRoot })
+        } catch {
+          // Per-source error isolation: if one source fails, others still return
+        }
+      }
+    } finally {
+      try { sharedDb?.close() } catch {}
+    }
+
+    // Phase 2: Parallel async git operations across all sources
+    await Promise.all(snapshots.map(async ({ snapshot, projectRoot }) => {
+      try {
+        const [gitCount, worktrees] = await Promise.all([
+          getGitUncommittedCount(projectRoot),
+          getWorktreeInfo(projectRoot),
+        ])
+        snapshot.gitUncommittedCount = gitCount
+        snapshot.worktrees = worktrees
+      } catch {
+        // Git failures are isolated per-source
+      }
+    }))
+
+    const projects = snapshots.map((s) => s.snapshot)
     const payload = {
       projects,
       serverNowMs: nowMs,
@@ -293,7 +326,7 @@ export function createMultiProjectService(opts: {
     }
 
     cachedPayload = payload
-    cachedPayloadAt = nowMs
+    cachedPayloadAt = Date.now()
     return payload
   }
 
@@ -301,6 +334,7 @@ export function createMultiProjectService(opts: {
     cachedPayload = null
     cachedPayloadAt = 0
     sessionTimeSeriesByProjectRoot.clear()
+    sessionSummaryByProjectRoot.clear()
   }
 
   return { getMultiProjectPayload, invalidate }

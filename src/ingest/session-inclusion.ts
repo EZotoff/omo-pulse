@@ -139,6 +139,7 @@ export function findIncludedSessionsSqlite(
     }>
 
     const sessions: SessionMetadata[] = []
+    const statusCache = new Map<string, string>()
     for (const row of sessionRows) {
       if (typeof row.id !== "string" || typeof row.directory !== "string") continue
 
@@ -159,11 +160,13 @@ export function findIncludedSessionsSqlite(
         time: { created: timeCreated, updated: timeUpdated },
       }
 
+      const status = deriveSessionStatus(db, meta, nowMs)
       if (
         isSessionIncluded(meta, idleWindowMs, nowMs) ||
-        isAttentionStatus(deriveSessionStatus(db, meta, nowMs))
+        isAttentionStatus(status)
       ) {
         sessions.push(meta)
+        statusCache.set(meta.id, status)
       }
     }
 
@@ -171,8 +174,8 @@ export function findIncludedSessionsSqlite(
     // Then recency: most recent activity first (time.updated DESC)
     // Finally stable tie-breaker: id ascending
     sessions.sort((a, b) => {
-      const aStatus = deriveSessionStatus(db, a, nowMs)
-      const bStatus = deriveSessionStatus(db, b, nowMs)
+      const aStatus = statusCache.get(a.id) ?? "unknown"
+      const bStatus = statusCache.get(b.id) ?? "unknown"
 
       const aSeverity = STATUS_SEVERITY[aStatus] ?? 6
       const bSeverity = STATUS_SEVERITY[bStatus] ?? 6

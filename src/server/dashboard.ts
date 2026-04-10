@@ -1,3 +1,4 @@
+import { Database } from "bun:sqlite"
 import * as fs from "node:fs"
 import { deriveBackgroundTasks } from "../ingest/background-tasks"
 import * as boulderModule from "../ingest/boulder"
@@ -338,184 +339,175 @@ export function buildDashboardPayload(opts: {
   const unintiatedPlans = scanUnintiatedPlans(opts.projectRoot, boulder?.active_plan ?? null)
   const planHistory = readBoulderHistorySafe(opts.projectRoot)
 
-  const active = pickActiveSessionIdSqlite({
-    sqlitePath: backend.sqlitePath,
-    projectRoot: opts.projectRoot,
-    boulderSessionIds: boulder?.session_ids,
-  })
-  if (!active.ok) {
-    if (hasLegacyStorageRoots(opts.storage)) {
-      return buildDashboardPayloadFiles({ projectRoot: opts.projectRoot, storage: opts.storage, nowMs })
-    }
+  let db: Database
+  try {
+    db = new Database(backend.sqlitePath, { readonly: true })
+  } catch {
     return buildDashboardPayloadFiles({ projectRoot: opts.projectRoot, storage: opts.storage, nowMs })
   }
 
-  const sessionId = active.value
-  let sessionMeta: SessionMetadata | null = null
-  if (sessionId) {
-    const metas = readMainSessionMetasSqlite({ sqlitePath: backend.sqlitePath, directoryFilter: opts.projectRoot })
-    if (!metas.ok) {
-      if (hasLegacyStorageRoots(opts.storage)) {
-        return buildDashboardPayloadFiles({ projectRoot: opts.projectRoot, storage: opts.storage, nowMs })
-      }
-      return buildDashboardPayloadFiles({ projectRoot: opts.projectRoot, storage: opts.storage, nowMs })
-    }
-    sessionMeta = metas.rows.find((m) => m.id === sessionId) ?? null
+  const fallback = (): DashboardPayload => {
+    try { db.close() } catch {}
+    return buildDashboardPayloadFiles({ projectRoot: opts.projectRoot, storage: opts.storage, nowMs })
   }
 
-  const main = sessionId
-    ? (() => {
-        const result = getMainSessionViewSqlite({
+  try {
+    const active = pickActiveSessionIdSqlite({
+      sqlitePath: backend.sqlitePath,
+      projectRoot: opts.projectRoot,
+      boulderSessionIds: boulder?.session_ids,
+      db,
+    })
+    if (!active.ok) return fallback()
+
+    const sessionId = active.value
+    let sessionMeta: SessionMetadata | null = null
+    if (sessionId) {
+      const metas = readMainSessionMetasSqlite({ sqlitePath: backend.sqlitePath, directoryFilter: opts.projectRoot, db })
+      if (!metas.ok) return fallback()
+      sessionMeta = metas.rows.find((m) => m.id === sessionId) ?? null
+    }
+
+    const main = sessionId
+      ? (() => {
+          const result = getMainSessionViewSqlite({
+            sqlitePath: backend.sqlitePath,
+            sessionId,
+            sessionMeta,
+            nowMs,
+            db,
+          })
+          if (!result.ok) return null
+          return result.value
+        })()
+      : { agent: "unknown", currentTool: null, currentModel: null, lastUpdated: null, sessionLabel: "(no session)", status: "unknown" as const }
+    if (!main) return fallback()
+
+    const tasksResult = sessionId
+      ? deriveBackgroundTasksSqlite({
+          sqlitePath: backend.sqlitePath,
+          mainSessionId: sessionId,
+          nowMs,
+          db,
+        })
+      : { ok: true as const, value: [] }
+    if (!tasksResult.ok) return fallback()
+
+    const timeSeriesResult = deriveTimeSeriesActivitySqlite({
+      sqlitePath: backend.sqlitePath,
+      mainSessionId: sessionId ?? null,
+      nowMs,
+      db,
+    })
+    if (!timeSeriesResult.ok) return fallback()
+
+    const mainCurrentModel = main.currentModel
+    const mainSessionTasks = (() => {
+      if (!sessionId) return []
+
+      const mainStatus = main.status
+      const status = mainStatus === "running_tool" || mainStatus === "thinking" || mainStatus === "busy"
+        ? "running"
+        : mainStatus === "idle"
+          ? "idle"
+          : "unknown"
+
+      const callsResult = deriveToolCallsSqlite({ sqlitePath: backend.sqlitePath, sessionId, db })
+      if (!callsResult.ok) {
+        return []
+      }
+
+      const startAt = sessionMeta?.time?.created ?? null
+      const endAtMs = status === "running" ? nowMs : (main.lastUpdated ?? nowMs)
+
+      return [
+        {
+          id: "main-session",
+          description: "Main session",
+          subline: sessionId,
+          agent: main.agent,
+          lastModel: mainCurrentModel,
+          status,
+          toolCalls: callsResult.value.toolCalls.length,
+          lastTool: callsResult.value.toolCalls[0]?.tool ?? "-",
+          timeline: formatTimeline(startAt, endAtMs),
+          sessionId,
+        },
+      ]
+    })()
+
+    const tokenUsageResult = deriveTokenUsageSqlite({
+      sqlitePath: backend.sqlitePath,
+      mainSessionId: sessionId ?? null,
+      backgroundSessionIds: tasksResult.value.map((task) => task.sessionId ?? null),
+      db,
+    })
+    if (!tokenUsageResult.ok) return fallback()
+
+    const todosResult = sessionId
+      ? deriveTodosSqlite({
           sqlitePath: backend.sqlitePath,
           sessionId,
-          sessionMeta,
-          nowMs,
+          db,
         })
-        if (!result.ok) return null
-        return result.value
-      })()
-    : { agent: "unknown", currentTool: null, currentModel: null, lastUpdated: null, sessionLabel: "(no session)", status: "unknown" as const }
-  if (!main) {
-    if (hasLegacyStorageRoots(opts.storage)) {
-      return buildDashboardPayloadFiles({ projectRoot: opts.projectRoot, storage: opts.storage, nowMs })
-    }
-    return buildDashboardPayloadFiles({ projectRoot: opts.projectRoot, storage: opts.storage, nowMs })
-  }
+      : { ok: true as const, value: [] }
+    const todos = todosResult.ok ? todosResult.value : []
 
-  const tasksResult = sessionId
-    ? deriveBackgroundTasksSqlite({
-        sqlitePath: backend.sqlitePath,
-        mainSessionId: sessionId,
-        nowMs,
-      })
-    : { ok: true as const, value: [] }
-  if (!tasksResult.ok) {
-    if (hasLegacyStorageRoots(opts.storage)) {
-      return buildDashboardPayloadFiles({ projectRoot: opts.projectRoot, storage: opts.storage, nowMs })
-    }
-    return buildDashboardPayloadFiles({ projectRoot: opts.projectRoot, storage: opts.storage, nowMs })
-  }
-
-  const timeSeriesResult = deriveTimeSeriesActivitySqlite({
-    sqlitePath: backend.sqlitePath,
-    mainSessionId: sessionId ?? null,
-    nowMs,
-  })
-  if (!timeSeriesResult.ok) {
-    if (hasLegacyStorageRoots(opts.storage)) {
-      return buildDashboardPayloadFiles({ projectRoot: opts.projectRoot, storage: opts.storage, nowMs })
-    }
-    return buildDashboardPayloadFiles({ projectRoot: opts.projectRoot, storage: opts.storage, nowMs })
-  }
-
-  const mainCurrentModel = main.currentModel
-  const mainSessionTasks = (() => {
-    if (!sessionId) return []
-
-    const mainStatus = main.status
-    const status = mainStatus === "running_tool" || mainStatus === "thinking" || mainStatus === "busy"
-      ? "running"
-      : mainStatus === "idle"
-        ? "idle"
-        : "unknown"
-
-    const callsResult = deriveToolCallsSqlite({ sqlitePath: backend.sqlitePath, sessionId })
-    if (!callsResult.ok) {
-      return []
-    }
-
-    const startAt = sessionMeta?.time?.created ?? null
-    const endAtMs = status === "running" ? nowMs : (main.lastUpdated ?? nowMs)
-
-    return [
-      {
-        id: "main-session",
-        description: "Main session",
-        subline: sessionId,
+    const payload: DashboardPayload = {
+      mainSession: {
         agent: main.agent,
-        lastModel: mainCurrentModel,
-        status,
-        toolCalls: callsResult.value.toolCalls.length,
-        lastTool: callsResult.value.toolCalls[0]?.tool ?? "-",
-        timeline: formatTimeline(startAt, endAtMs),
-        sessionId,
+        currentModel: mainCurrentModel,
+        currentTool: main.currentTool ?? "-",
+        lastUpdatedLabel: formatIso(main.lastUpdated),
+        session: main.sessionLabel,
+        sessionId: sessionId ?? null,
+        statusPill: plan.planComplete && main.status === "idle"
+          ? mainStatusPill("plan_complete")
+          : mainStatusPill(main.status),
       },
-    ]
-  })()
-
-  const tokenUsageResult = deriveTokenUsageSqlite({
-    sqlitePath: backend.sqlitePath,
-    mainSessionId: sessionId ?? null,
-    backgroundSessionIds: tasksResult.value.map((task) => task.sessionId ?? null),
-  })
-  if (!tokenUsageResult.ok) {
-    if (hasLegacyStorageRoots(opts.storage)) {
-      return buildDashboardPayloadFiles({ projectRoot: opts.projectRoot, storage: opts.storage, nowMs })
+      planProgress: {
+        name: planName,
+        completed: plan.completed,
+        total: plan.total,
+        path: planPath,
+        statusPill: planStatusPill(plan),
+        steps: planSteps.missing ? [] : planSteps.steps,
+        planStale: plan.planStale,
+        planComplete: plan.planComplete,
+        boulderStatus: boulder?.status,
+        completedAt: boulder?.completed_at,
+      },
+      unintiatedPlans,
+      planHistory,
+      backgroundTasks: tasksResult.value.map((t) => ({
+        id: t.id,
+        description: t.description,
+        agent: t.agent,
+        lastModel: t.lastModel ?? null,
+        status: t.status,
+        toolCalls: t.toolCalls ?? 0,
+        lastTool: t.lastTool ?? "-",
+        timeline: typeof t.timeline === "string" ? t.timeline : "",
+        sessionId: t.sessionId ?? null,
+      })),
+      mainSessionTasks,
+      timeSeries: timeSeriesResult.value,
+      tokenUsage: tokenUsageResult.value,
+      todos,
+      raw: null,
     }
-    return buildDashboardPayloadFiles({ projectRoot: opts.projectRoot, storage: opts.storage, nowMs })
-  }
 
-  const todosResult = sessionId
-    ? deriveTodosSqlite({
-        sqlitePath: backend.sqlitePath,
-        sessionId,
-      })
-    : { ok: true as const, value: [] }
-  // Don't fail the entire payload if todos fail, just use empty array
-  const todos = todosResult.ok ? todosResult.value : []
-
-  const payload: DashboardPayload = {
-    mainSession: {
-      agent: main.agent,
-      currentModel: mainCurrentModel,
-      currentTool: main.currentTool ?? "-",
-      lastUpdatedLabel: formatIso(main.lastUpdated),
-      session: main.sessionLabel,
-      sessionId: sessionId ?? null,
-      statusPill: plan.planComplete && main.status === "idle"
-        ? mainStatusPill("plan_complete")
-        : mainStatusPill(main.status),
-    },
-    planProgress: {
-      name: planName,
-      completed: plan.completed,
-      total: plan.total,
-      path: planPath,
-      statusPill: planStatusPill(plan),
-      steps: planSteps.missing ? [] : planSteps.steps,
-      planStale: plan.planStale,
-      planComplete: plan.planComplete,
-      boulderStatus: boulder?.status,
-      completedAt: boulder?.completed_at,
-    },
-    unintiatedPlans,
-    planHistory,
-    backgroundTasks: tasksResult.value.map((t) => ({
-      id: t.id,
-      description: t.description,
-      agent: t.agent,
-      lastModel: t.lastModel ?? null,
-      status: t.status,
-      toolCalls: t.toolCalls ?? 0,
-      lastTool: t.lastTool ?? "-",
-      timeline: typeof t.timeline === "string" ? t.timeline : "",
-      sessionId: t.sessionId ?? null,
-    })),
-    mainSessionTasks,
-    timeSeries: timeSeriesResult.value,
-    tokenUsage: tokenUsageResult.value,
-    todos,
-    raw: null,
+    payload.raw = {
+      mainSession: payload.mainSession,
+      planProgress: payload.planProgress,
+      backgroundTasks: payload.backgroundTasks,
+      mainSessionTasks: payload.mainSessionTasks,
+      timeSeries: payload.timeSeries,
+    }
+    return payload
+  } finally {
+    try { db.close() } catch {}
   }
-
-  payload.raw = {
-    mainSession: payload.mainSession,
-    planProgress: payload.planProgress,
-    backgroundTasks: payload.backgroundTasks,
-    mainSessionTasks: payload.mainSessionTasks,
-    timeSeries: payload.timeSeries,
-  }
-  return payload
 }
 
 // ---------------------------------------------------------------------------

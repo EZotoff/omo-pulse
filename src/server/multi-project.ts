@@ -75,21 +75,12 @@ function buildEmptySessionTimeSeries(nowMs: number): SessionTimeSeriesPayload {
 
 export const MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS = 5_000
 export const SESSION_TIMESERIES_CACHE_TTL_MS = 15_000
+export const SESSION_SUMMARY_CACHE_TTL_MS = 10_000
 const INCLUDED_SESSION_IDLE_WINDOW_MS = 300_000
 
-function buildSessionSummary(projectRoot: string, sqlitePath: string, nowMs: number): SessionSummary[] {
+function buildSessionSummary(projectRoot: string, db: Database, sqlitePath: string, nowMs: number): SessionSummary[] {
   try {
-    // Pre-filter sessions with cheap status checks (4 queries per stale session)
-    // instead of calling expensive getMainSessionViewSqlite (200 messages) on ALL sessions.
-    // This reduces 400+ expensive calls to ~10-20 across all sources.
-    const db = new Database(sqlitePath, { readonly: true })
-    let includedMetas: import("../ingest/session").SessionMetadata[]
-    try {
-      includedMetas = findIncludedSessionsSqlite(db, projectRoot, INCLUDED_SESSION_IDLE_WINDOW_MS)
-    } finally {
-      db.close()
-    }
-
+    const includedMetas = findIncludedSessionsSqlite(db, projectRoot, INCLUDED_SESSION_IDLE_WINDOW_MS)
     if (includedMetas.length === 0) return []
 
     // Only compute full session views for sessions that passed the pre-filter
@@ -99,6 +90,7 @@ function buildSessionSummary(projectRoot: string, sqlitePath: string, nowMs: num
         sessionId: meta.id,
         sessionMeta: meta,
         nowMs,
+        db,
       })
       if (!result.ok) return []
 
@@ -204,6 +196,7 @@ export function createMultiProjectService(opts: {
   const storeBySourceId = new Map<string, DashboardStore>()
   const storeByProjectRoot = new Map<string, DashboardStore>()
   const sessionTimeSeriesByProjectRoot = new Map<string, { value: SessionTimeSeriesPayload; fetchedAt: number }>()
+  const sessionSummaryByProjectRoot = new Map<string, { value: SessionSummary[]; fetchedAt: number }>()
   let cachedPayload: DashboardMultiProjectPayload | null = null
   let cachedPayloadAt = 0
 
@@ -234,6 +227,16 @@ export function createMultiProjectService(opts: {
     const empty = buildEmptySessionTimeSeries(nowMs)
     sessionTimeSeriesByProjectRoot.set(projectRoot, { value: empty, fetchedAt: nowMs })
     return empty
+  }
+
+  function getCachedSessionSummary(projectRoot: string, db: Database, sqlitePath: string, nowMs: number): SessionSummary[] {
+    const cached = sessionSummaryByProjectRoot.get(projectRoot)
+    if (cached && nowMs - cached.fetchedAt < SESSION_SUMMARY_CACHE_TTL_MS) {
+      return cached.value
+    }
+    const value = buildSessionSummary(projectRoot, db, sqlitePath, nowMs)
+    sessionSummaryByProjectRoot.set(projectRoot, { value, fetchedAt: nowMs })
+    return value
   }
 
   function getOrCreateStore(sourceId: string, projectRoot: string): DashboardStore {
@@ -268,24 +271,37 @@ export function createMultiProjectService(opts: {
 
     const sources = listSources(opts.storageRoot)
     const snapshots: Array<{ snapshot: ProjectSnapshot; projectRoot: string }> = []
+    const sqlitePath = opts.storageBackend.kind === "sqlite" ? opts.storageBackend.sqlitePath : undefined
 
-    // Phase 1: Synchronous SQLite work (can't parallelize bun:sqlite)
-    for (const source of sources) {
+    let sharedDb: Database | null = null
+    if (sqlitePath) {
       try {
-        const entry = getSourceById(opts.storageRoot, source.id)
-        if (!entry) continue
-
-        const store = getOrCreateStore(source.id, entry.projectRoot)
-        const payload = store.getSnapshot()
-        const label = source.label ?? entry.projectRoot
-        const sqlitePath = opts.storageBackend.kind === "sqlite" ? opts.storageBackend.sqlitePath : undefined
-        const sessionTimeSeries = getCachedSessionTimeSeries(entry.projectRoot, sqlitePath, nowMs)
-        const sessions = sqlitePath ? buildSessionSummary(entry.projectRoot, sqlitePath, nowMs) : []
-        const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, sessions, nowMs, sessionTimeSeries)
-        snapshots.push({ snapshot, projectRoot: entry.projectRoot })
+        sharedDb = new Database(sqlitePath, { readonly: true })
       } catch {
-        // Per-source error isolation: if one source fails, others still return
       }
+    }
+
+    try {
+      for (const source of sources) {
+        try {
+          const entry = getSourceById(opts.storageRoot, source.id)
+          if (!entry) continue
+
+          const store = getOrCreateStore(source.id, entry.projectRoot)
+          const payload = store.getSnapshot()
+          const label = source.label ?? entry.projectRoot
+          const sessionTimeSeries = getCachedSessionTimeSeries(entry.projectRoot, sqlitePath, nowMs)
+          const sessions = sharedDb && sqlitePath
+            ? getCachedSessionSummary(entry.projectRoot, sharedDb, sqlitePath, nowMs)
+            : []
+          const snapshot = transformPayloadToSnapshot(source.id, label, entry.projectRoot, payload, sessions, nowMs, sessionTimeSeries)
+          snapshots.push({ snapshot, projectRoot: entry.projectRoot })
+        } catch {
+          // Per-source error isolation: if one source fails, others still return
+        }
+      }
+    } finally {
+      try { sharedDb?.close() } catch {}
     }
 
     // Phase 2: Parallel async git operations across all sources
@@ -311,7 +327,7 @@ export function createMultiProjectService(opts: {
     }
 
     cachedPayload = payload
-    cachedPayloadAt = nowMs
+    cachedPayloadAt = Date.now()
     return payload
   }
 
@@ -319,6 +335,7 @@ export function createMultiProjectService(opts: {
     cachedPayload = null
     cachedPayloadAt = 0
     sessionTimeSeriesByProjectRoot.clear()
+    sessionSummaryByProjectRoot.clear()
   }
 
   return { getMultiProjectPayload, invalidate }

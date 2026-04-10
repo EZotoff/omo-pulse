@@ -62,6 +62,25 @@ function withReadonlyDb<T>(sqlitePath: string, fn: (db: BunDatabase) => T): { ok
   }
 }
 
+/**
+ * Run a query against a pre-opened DB (no open/close overhead) or fall back
+ * to opening a fresh readonly connection via `withReadonlyDb`.
+ */
+function withDbOrOpen<T>(
+  db: BunDatabase | undefined,
+  sqlitePath: string,
+  fn: (db: BunDatabase) => T,
+): { ok: true; value: T } | { ok: false; reason: SqliteReadFailureReason } {
+  if (db) {
+    try {
+      return { ok: true, value: fn(db) }
+    } catch (error) {
+      return { ok: false, reason: classifySqliteError(error) }
+    }
+  }
+  return withReadonlyDb(sqlitePath, fn)
+}
+
 function asFiniteNumber(value: unknown): number | null {
   if (typeof value !== "number") return null
   return Number.isFinite(value) ? value : null
@@ -82,6 +101,7 @@ function isToolStatus(value: unknown): value is StoredToolPart["state"]["status"
 export function readMainSessionMetasSqlite(opts: {
   sqlitePath: string
   directoryFilter?: string
+  db?: BunDatabase
 }): SqliteReadResult<SessionMetadata> {
   const directoryNeedle = typeof opts.directoryFilter === "string" && opts.directoryFilter.length > 0
     ? (() => {
@@ -91,7 +111,7 @@ export function readMainSessionMetasSqlite(opts: {
       })()
     : null
 
-  const result = withReadonlyDb(opts.sqlitePath, (db) =>
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) =>
     db
       .query("SELECT id, project_id, parent_id, directory, title, time_created, time_updated FROM session WHERE parent_id IS NULL ORDER BY time_updated DESC, id DESC")
       .all() as Array<{
@@ -141,8 +161,9 @@ export function readMainSessionMetasSqlite(opts: {
 
 export function readAllSessionMetasSqlite(opts: {
   sqlitePath: string
+  db?: BunDatabase
 }): SqliteReadResult<SessionMetadata> {
-  const result = withReadonlyDb(opts.sqlitePath, (db) =>
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) =>
     db
       .query("SELECT id, project_id, parent_id, directory, title, time_created, time_updated FROM session ORDER BY time_updated DESC, id DESC")
       .all() as Array<{
@@ -187,8 +208,9 @@ export function readAllSessionMetasSqlite(opts: {
 export function readSessionExistsSqlite(opts: {
   sqlitePath: string
   sessionId: string
+  db?: BunDatabase
 }): SqliteReadResult<{ sessionId: string }> {
-  const result = withReadonlyDb(opts.sqlitePath, (db) =>
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) =>
     db
       .query("SELECT id FROM session WHERE id = ? LIMIT 1")
       .get(opts.sessionId) as { id?: unknown } | null
@@ -204,8 +226,9 @@ export function readRecentMessageMetasSqlite(opts: {
   sqlitePath: string
   sessionId: string
   limit: number
+  db?: BunDatabase
 }): SqliteReadResult<StoredMessageMeta> {
-  const result = withReadonlyDb(opts.sqlitePath, (db) =>
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) =>
     db
       .query("SELECT id, session_id, time_created, data FROM message WHERE session_id = ? ORDER BY time_created DESC, id DESC LIMIT ?")
       .all(opts.sessionId, opts.limit) as Array<{
@@ -267,12 +290,13 @@ export function readRecentMessageMetasSqlite(opts: {
 export function readToolPartsForMessagesSqlite(opts: {
   sqlitePath: string
   messageIds: string[]
+  db?: BunDatabase
 }): SqliteReadResult<StoredToolPart> {
   if (opts.messageIds.length === 0) return { ok: true, rows: [] }
 
   const placeholders = opts.messageIds.map(() => "?").join(",")
   const sql = `SELECT id, message_id, session_id, time_created, data FROM part WHERE message_id IN (${placeholders}) ORDER BY message_id ASC, time_created ASC, id ASC`
-  const result = withReadonlyDb(opts.sqlitePath, (db) =>
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) =>
     db.query(sql).all(...opts.messageIds) as Array<{
       id: unknown
       message_id: unknown
@@ -337,8 +361,9 @@ export type TodoItem = {
 export function readTodosSqlite(opts: {
   sqlitePath: string
   sessionId: string
+  db?: BunDatabase
 }): SqliteReadResult<TodoItem> {
-  const result = withReadonlyDb(opts.sqlitePath, (db) => {
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) => {
     try {
       return db
         .query("SELECT content, status, priority, position FROM todo WHERE session_id = ? ORDER BY position ASC")

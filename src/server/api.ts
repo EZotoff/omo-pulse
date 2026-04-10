@@ -14,24 +14,25 @@ import { assertAllowedPath } from "../ingest/paths"
 import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../ingest/tool-calls"
 import { deriveToolCallsSqlite } from "../ingest/sqlite-derive"
 import type { StorageBackend } from "../ingest/storage-backend"
-import { createMultiProjectService } from "./multi-project"
+import type { DashboardMultiProjectPayload, TelegramServiceStatus } from "../types"
 
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/
+
+export type MultiProjectService = {
+  getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload>
+  invalidate: () => void
+}
 
 export function createApi(opts: {
   storageRoot: string
   storageBackend: StorageBackend
-  pollIntervalMs?: number
+  multiProjectService: MultiProjectService
+  telegramStatus?: () => TelegramServiceStatus
   version?: string
 }): Hono {
   const api = new Hono()
   const version = opts.version ?? "0.0.0"
-
-  const multiProjectService = createMultiProjectService({
-    storageRoot: opts.storageRoot,
-    storageBackend: opts.storageBackend,
-    pollIntervalMs: opts.pollIntervalMs,
-  })
+  const multiProjectService = opts.multiProjectService
   const invalidateProjects = (): void => {
     multiProjectService.invalidate()
   }
@@ -265,6 +266,16 @@ export function createApi(opts: {
     } catch (err) {
       return c.json({ ok: false, error: String(err) }, 500)
     }
+  })
+
+  // ---------------------------------------------------------------------------
+  // GET /telegram/status — Telegram notification service status
+  // ---------------------------------------------------------------------------
+  api.get("/telegram/status", (c) => {
+    if (!opts.telegramStatus) {
+      return c.json({ ok: true, telegram: { enabled: false } })
+    }
+    return c.json({ ok: true, telegram: opts.telegramStatus() })
   })
 
   return api

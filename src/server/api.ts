@@ -2,30 +2,31 @@ import { Hono } from "hono"
 import * as path from "node:path"
 import * as fs from "node:fs"
 import { homedir } from "node:os"
-import { listSources, getDefaultSourceId, addOrUpdateSource } from "../ingest/sources-registry"
+import { listSources, getDefaultSourceId, addOrUpdateSource, updateSourceLabelById, deleteSourceById } from "../ingest/sources-registry"
 import { getStorageRoots, getMessageDir } from "../ingest/session"
 import { assertAllowedPath } from "../ingest/paths"
 import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../ingest/tool-calls"
 import { deriveToolCallsSqlite } from "../ingest/sqlite-derive"
 import type { StorageBackend } from "../ingest/storage-backend"
-import { createMultiProjectService } from "./multi-project"
+import type { DashboardMultiProjectPayload, TelegramServiceStatus } from "../types"
 
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/
+
+export type MultiProjectService = {
+  getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload>
+  invalidate: () => void
+}
 
 export function createApi(opts: {
   storageRoot: string
   storageBackend: StorageBackend
-  pollIntervalMs?: number
+  multiProjectService: MultiProjectService
+  telegramStatus?: () => TelegramServiceStatus
   version?: string
 }): Hono {
   const api = new Hono()
   const version = opts.version ?? "0.0.0"
-
-  const multiProjectService = createMultiProjectService({
-    storageRoot: opts.storageRoot,
-    storageBackend: opts.storageBackend,
-    pollIntervalMs: opts.pollIntervalMs,
-  })
+  const multiProjectService = opts.multiProjectService
 
   // ---------------------------------------------------------------------------
   // Middleware: no-cache + JSON content type on all API responses
@@ -76,6 +77,33 @@ export function createApi(opts: {
     }
 
     const sourceId = addOrUpdateSource(opts.storageRoot, projectRoot, label)
+    return c.json({ ok: true, sourceId })
+  })
+
+  // ---------------------------------------------------------------------------
+  // PUT /sources/:sourceId — update project label
+  // ---------------------------------------------------------------------------
+  api.put("/sources/:sourceId", async (c) => {
+    const sourceId = c.req.param("sourceId")
+    const body = await c.req.json<{ label?: string }>()
+    const updated = updateSourceLabelById(opts.storageRoot, sourceId, body.label)
+    if (!updated) {
+      return c.json({ ok: false, error: "Source not found" }, 404)
+    }
+    multiProjectService.invalidate()
+    return c.json({ ok: true, sourceId })
+  })
+
+  // ---------------------------------------------------------------------------
+  // DELETE /sources/:sourceId — remove a project source
+  // ---------------------------------------------------------------------------
+  api.delete("/sources/:sourceId", async (c) => {
+    const sourceId = c.req.param("sourceId")
+    const deleted = deleteSourceById(opts.storageRoot, sourceId)
+    if (!deleted) {
+      return c.json({ ok: false, error: "Source not found" }, 404)
+    }
+    multiProjectService.invalidate()
     return c.json({ ok: true, sourceId })
   })
 
@@ -227,6 +255,16 @@ export function createApi(opts: {
     } catch (err) {
       return c.json({ ok: false, error: String(err) }, 500)
     }
+  })
+
+  // ---------------------------------------------------------------------------
+  // GET /telegram/status — Telegram notification service status
+  // ---------------------------------------------------------------------------
+  api.get("/telegram/status", (c) => {
+    if (!opts.telegramStatus) {
+      return c.json({ ok: true, telegram: { enabled: false } })
+    }
+    return c.json({ ok: true, telegram: opts.telegramStatus() })
   })
 
   return api

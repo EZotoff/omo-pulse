@@ -237,3 +237,22 @@ export type ProjectOrderState = {
 
 /** Per-project visibility configuration */
 export type VisibilityConfig = Record<string, boolean>
+
+/** Telegram notification service configuration */
+export type TelegramServiceConfig = {
+  botToken: string
+  chatId: string
+  /** Polling interval in ms (default: 5000) */
+  pollIntervalMs?: number
+  /** Debounce interval for edits in ms (default: 3000) */
+  debounceMs?: number
+}
+
+/** Telegram notification service runtime status */
+export type TelegramServiceStatus = {
+  enabled: boolean
+  pinnedMessageId: number | null
+  lastUpdateMs: number | null
+  lastError: string | null
+  alertsSent: number
+}

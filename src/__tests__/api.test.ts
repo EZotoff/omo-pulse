@@ -22,16 +22,6 @@ vi.mock("../ingest/sources-registry", () => ({
   getSourceById: vi.fn(() => null),
 }))
 
-vi.mock("../server/multi-project", () => ({
-  createMultiProjectService: vi.fn(() => ({
-    getMultiProjectPayload: vi.fn(async (): Promise<DashboardMultiProjectPayload> => ({
-      projects: [],
-      serverNowMs: Date.now(),
-      pollIntervalMs: 2000,
-    })),
-  })),
-}))
-
 vi.mock("../ingest/session", () => ({
   getStorageRoots: vi.fn(() => ({
     session: "/tmp/session",
@@ -63,7 +53,6 @@ vi.mock("../ingest/sqlite-derive", () => ({
 // Import AFTER mocking
 // ---------------------------------------------------------------------------
 import { createApi } from "../server/api"
-import { createMultiProjectService } from "../server/multi-project"
 import type { ProjectSnapshot } from "../types"
 
 // ---------------------------------------------------------------------------
@@ -83,6 +72,8 @@ function makeProjectSnapshot(overrides: Partial<ProjectSnapshot> = {}): ProjectS
       sessionId: "ses_abc",
       status: "idle",
     },
+    sessions: [],
+    aggregateStatus: "idle",
     planProgress: {
       name: "plan-1",
       completed: 3,
@@ -93,6 +84,7 @@ function makeProjectSnapshot(overrides: Partial<ProjectSnapshot> = {}): ProjectS
       planStale: false,
       planComplete: false,
     },
+    unintiatedPlans: [],
     timeSeries: {
       windowMs: 300000,
       bucketMs: 2000,
@@ -127,12 +119,13 @@ describe("API routes", () => {
         serverNowMs: Date.now(),
         pollIntervalMs: 2000,
       })),
+      invalidate: vi.fn(),
     }
-    vi.mocked(createMultiProjectService).mockReturnValue(mockService)
 
     app = createApi({
       storageRoot: "/tmp/test-storage",
       storageBackend: { kind: "sqlite", dataDir: "/tmp", sqlitePath: "/tmp/test.db" },
+      multiProjectService: mockService,
       version: "1.0.0-test",
     })
   })

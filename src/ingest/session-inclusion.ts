@@ -34,14 +34,14 @@ function normalizePath(dir: string): string {
  */
 function deriveSessionStatus(db: Database, session: SessionMetadata, nowMs: number): string {
   try {
-    // Check for active tool (pending or running)
     const activeParts = db
       .query(
-        `SELECT tool, status FROM part 
-         WHERE session_id = ? AND (state_status = 'pending' OR state_status = 'running')
-         ORDER BY created DESC LIMIT 1`
+        `SELECT json_extract(data, '$.tool') as tool
+         FROM part 
+         WHERE session_id = ? AND json_extract(data, '$.state.status') IN ('pending', 'running')
+         ORDER BY time_created DESC LIMIT 1`
       )
-      .all(session.id) as Array<{ tool: string; status: string }>
+      .all(session.id) as Array<{ tool: string }>
 
     if (activeParts.length > 0) {
       if (QUESTION_TOOL_NAMES.has(activeParts[0].tool)) {
@@ -50,42 +50,39 @@ function deriveSessionStatus(db: Database, session: SessionMetadata, nowMs: numb
       return "running_tool"
     }
 
-    // Check for error tool
-    const errorParts = db
+    const lastTerminal = db
       .query(
-        `SELECT COUNT(*) as cnt FROM part 
-         WHERE session_id = ? AND state_status = 'error'
-         LIMIT 1`
+        `SELECT json_extract(data, '$.state.status') as status
+         FROM part 
+         WHERE session_id = ? AND json_extract(data, '$.state.status') IN ('error', 'completed')
+         ORDER BY time_created DESC LIMIT 1`
       )
-      .all(session.id) as Array<{ cnt: number }>
+      .all(session.id) as Array<{ status: string }>
 
-    if (errorParts.length > 0 && errorParts[0].cnt > 0) {
+    if (lastTerminal.length > 0 && lastTerminal[0].status === "error") {
       return "error"
     }
 
-    // Check for recent assistant message (thinking)
     const recentMessages = db
       .query(
-        `SELECT role, time_completed FROM message 
-         WHERE session_id = ? AND role = 'assistant'
-         ORDER BY created DESC LIMIT 1`
+        `SELECT json_extract(data, '$.time.completed') as time_completed
+         FROM message 
+         WHERE session_id = ? AND json_extract(data, '$.role') = 'assistant'
+         ORDER BY time_created DESC LIMIT 1`
       )
-      .all(session.id) as Array<{ role: string; time_completed?: number }>
+      .all(session.id) as Array<{ time_completed: number | null }>
 
     if (
       recentMessages.length > 0 &&
-      recentMessages[0].role === "assistant" &&
-      recentMessages[0].time_completed === undefined
+      recentMessages[0].time_completed === null
     ) {
       return "thinking"
     }
 
-    // Default: distinguish busy vs idle based on canonical ACTIVE_BUSY_WINDOW_MS threshold
     const lastUpdated = session.time.updated ?? session.time.created ?? 0
     const ageMs = nowMs - lastUpdated
     return ageMs <= ACTIVE_BUSY_WINDOW_MS ? "busy" : "idle"
   } catch {
-    // On any error, return unknown
     return "unknown"
   }
 }

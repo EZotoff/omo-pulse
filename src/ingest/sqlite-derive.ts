@@ -414,14 +414,16 @@ export function getMainSessionViewSqlite(opts: {
     if (activeTool) break
   }
 
-  let hasErrorTool = false
+  let lastToolErrored = false
   if (!activeTool) {
-    for (const meta of session.value.metas) {
+    findLastTerminal: for (const meta of session.value.metas) {
       const parts = session.value.partsByMessage.get(meta.id) ?? []
-      const errorPart = parts.find((part) => part.state.status === "error")
-      if (errorPart) {
-        hasErrorTool = true
-        break
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const s = parts[i].state.status
+        if (s === "error" || s === "completed") {
+          lastToolErrored = s === "error"
+          break findLastTerminal
+        }
       }
     }
   }
@@ -438,7 +440,7 @@ export function getMainSessionViewSqlite(opts: {
     }
   }
 
-  if (status === "unknown" && !isStaleActivity && hasErrorTool) {
+  if (status === "unknown" && !isStaleActivity && lastToolErrored) {
     status = "error"
   } else if (status === "unknown" && !isStaleActivity && recent?.role === "assistant" && typeof recent.time?.created === "number" && typeof recent.time?.completed !== "number") {
     status = "thinking"

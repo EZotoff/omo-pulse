@@ -19,19 +19,17 @@ type SessionRow = {
 
 type ActivePartRow = {
   tool: string
+}
+
+type TerminalPartRow = {
   status: string
 }
 
-type ErrorCountRow = {
-  cnt: number
-}
-
 type AssistantMessageRow = {
-  role: string
-  time_completed?: number
+  time_completed: number | null
 }
 
-type QueryRows = SessionRow[] | ActivePartRow[] | ErrorCountRow[] | AssistantMessageRow[]
+type QueryRows = SessionRow[] | ActivePartRow[] | TerminalPartRow[] | AssistantMessageRow[]
 
 type MockStatement = {
   all: (...params: unknown[]) => QueryRows
@@ -44,7 +42,7 @@ type MockDatabase = {
 type MockDbConfig = {
   sessionRows?: SessionRow[]
   activePartsBySession?: Record<string, ActivePartRow[]>
-  errorCountsBySession?: Record<string, number>
+  terminalStatusBySession?: Record<string, string>
   assistantMessagesBySession?: Record<string, AssistantMessageRow[]>
   throwOnQuery?: boolean
 }
@@ -64,12 +62,13 @@ function createMockDb(config: MockDbConfig = {}): MockDatabase {
             return config.sessionRows ?? []
           }
 
-          if (sql.includes("state_status = 'pending' OR state_status = 'running'")) {
+          if (sql.includes("'pending', 'running'")) {
             return sessionId ? (config.activePartsBySession?.[sessionId] ?? []) : []
           }
 
-          if (sql.includes("state_status = 'error'")) {
-            return [{ cnt: sessionId ? (config.errorCountsBySession?.[sessionId] ?? 0) : 0 }]
+          if (sql.includes("'error', 'completed'")) {
+            const status = sessionId ? (config.terminalStatusBySession?.[sessionId] ?? null) : null
+            return status ? [{ status }] : []
           }
 
           if (sql.includes("FROM message")) {
@@ -293,8 +292,8 @@ describe("findIncludedSessionsSqlite", () => {
             time_updated: now - 120000,
           },
         ],
-        errorCountsBySession: {
-          "stale-error": 1,
+        terminalStatusBySession: {
+          "stale-error": "error",
         },
       }),
       "/home/user/project",
@@ -511,8 +510,8 @@ describe("findIncludedSessionsSqlite", () => {
         activePartsBySession: {
           "question-session": [{ tool: "mcp_question", status: "pending" }],
         },
-        errorCountsBySession: {
-          "error-session": 1,
+        terminalStatusBySession: {
+          "error-session": "error",
         },
       }),
       "/home/user/project",

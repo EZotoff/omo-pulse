@@ -283,23 +283,28 @@ function readLastToolPart(partStorage: string, messageID: string): { tool: strin
   return null
 }
 
-function hasErrorToolPart(partStorage: string, messageID: string): boolean {
+function messageTerminalToolStatus(partStorage: string, messageID: string): "error" | "completed" | null {
   const partDir = path.join(partStorage, messageID)
-  if (!fs.existsSync(partDir)) return false
+  if (!fs.existsSync(partDir)) return null
 
+  let hasError = false
+  let hasCompleted = false
   const files = fs.readdirSync(partDir).filter((f) => f.endsWith(".json"))
   for (const file of files) {
     try {
       const content = fs.readFileSync(path.join(partDir, file), "utf8")
       const part = JSON.parse(content) as Partial<StoredToolPart>
-      if (part.type === "tool" && part.state?.status === "error") {
-        return true
+      if (part.type === "tool") {
+        if (part.state?.status === "error") hasError = true
+        else if (part.state?.status === "completed") hasCompleted = true
       }
     } catch {
       continue
     }
   }
-  return false
+  if (hasError) return "error"
+  if (hasCompleted) return "completed"
+  return null
 }
 
 export function getMainSessionView(opts: {
@@ -332,11 +337,12 @@ export function getMainSessionView(opts: {
     }
   }
 
-  let hasErrorTool = false
+  let lastToolErrored = false
   if (!activeTool) {
     for (const meta of recentMetas) {
-      if (hasErrorToolPart(opts.storage.part, meta.id)) {
-        hasErrorTool = true
+      const terminal = messageTerminalToolStatus(opts.storage.part, meta.id)
+      if (terminal !== null) {
+        lastToolErrored = terminal === "error"
         break
       }
     }
@@ -354,7 +360,7 @@ export function getMainSessionView(opts: {
     }
   }
 
-  if (status === "unknown" && !isStaleActivity && hasErrorTool) {
+  if (status === "unknown" && !isStaleActivity && lastToolErrored) {
     status = "error"
   } else if (status === "unknown" && !isStaleActivity && recent?.role === "assistant" && typeof recent?.time?.created === "number" && typeof recent?.time?.completed !== "number") {
     status = "thinking"

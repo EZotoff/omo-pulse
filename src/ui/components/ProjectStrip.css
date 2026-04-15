@@ -789,49 +789,6 @@
 
 
 
-/* ── Collapsed strips: NO animations, static only ── */
-
-.project-strip[data-expanded="false"] .strip-status-dot {
-  animation: none !important;
-}
-.project-strip[data-expanded="false"] {
-  animation: none !important;
-}
-.project-strip[data-expanded="false"]::after {
-  animation: none;
-  opacity: 0;
-}
-
-.project-strip[data-expanded="false"][data-status="question"] {
-  animation: question-shadow-drift 4s ease-in-out infinite !important;
-}
-.project-strip[data-expanded="false"][data-status="error"] {
-  animation: danger-shadow-drift 4s ease-in-out infinite !important;
-}
-.project-strip[data-expanded="false"][data-status="plan_complete"] {
-  animation: plan-complete-shadow-drift 4s ease-in-out infinite !important;
-}
-.project-strip[data-expanded="false"][data-status="idle"] {
-  animation: idle-border-breathe 4s ease-in-out infinite !important;
-}
-
-.project-strip[data-expanded="false"][data-status="question"]::before {
-  animation: question-border-radiation 5s linear infinite !important;
-  opacity: 1;
-  background-size: 220% 220%;
-}
-.project-strip[data-expanded="false"][data-status="error"]::before {
-  animation: danger-border-radiation 5s ease-in-out infinite !important;
-  opacity: 1;
-  background-size: 220% 220%;
-}
-.project-strip[data-expanded="false"][data-status="plan_complete"]::before {
-  animation: plan-complete-border-radiation 5s ease-in-out infinite !important;
-  opacity: 1;
-  background-size: 220% 220%;
-}
-
-
 /* ── Density overrides ── */
 
 /* Dense mode: 40px strips, tighter padding, smaller font */
@@ -873,6 +830,10 @@
 }
 [data-density="dense"] .session-indicators {
   max-width: 26px;
+}
+[data-density="dense"] .session-dot {
+  width: 6px;
+  height: 6px;
 }
 [data-density="dense"] .strip-status-dot {
   width: 12px;
@@ -934,6 +895,10 @@
 }
 [data-density="ultra-dense"] .session-indicators {
   max-width: 23px;
+}
+[data-density="ultra-dense"] .session-dot {
+  width: 5px;
+  height: 5px;
 }
 [data-density="ultra-dense"] .strip-status-dot {
   width: 10px;
@@ -1024,6 +989,25 @@
 
 /* ── Scanning sheen — expanded active only ── */
 /* (Removed strip-level animation from busy/thinking/running_tool) */
+
+/* ── Collapsed strips: NO animations, static only ── */
+
+.project-strip[data-expanded="false"] {
+  animation: none;
+}
+
+.project-strip[data-expanded="false"]::before {
+  animation: none;
+}
+
+.project-strip[data-expanded="false"]::after {
+  animation: none;
+  opacity: 0;
+}
+
+.project-strip[data-expanded="false"] .strip-status-dot {
+  animation: none;
+}
 
 .project-strip[data-expanded="true"][data-status="question"]::after {
   left: 30%;

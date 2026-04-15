@@ -32,6 +32,32 @@ function formatUpdateTime(ms: number | null): string {
   return `${hours}h ago`
 }
 
+type LastUpdatedLabelProps = {
+  lastUpdatedMs: number | null
+}
+
+function LastUpdatedLabel({ lastUpdatedMs }: LastUpdatedLabelProps) {
+  const [nowMs, setNowMs] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (lastUpdatedMs === null) return
+
+    setNowMs(Date.now())
+
+    const intervalId = window.setInterval(() => {
+      setNowMs(Date.now())
+    }, 1_000)
+
+    return () => window.clearInterval(intervalId)
+  }, [lastUpdatedMs])
+
+  return (
+    <span className="dashboard-header__updated mono" aria-live="polite" aria-atomic="true">
+      {formatUpdateTime(lastUpdatedMs === null ? null : Math.min(lastUpdatedMs, nowMs))}
+    </span>
+  )
+}
+
 /* ── Component ── */
 
 export function DashboardHeader({
@@ -48,15 +74,6 @@ export function DashboardHeader({
   onZoomOut,
   onZoomReset,
 }: DashboardHeaderProps) {
-
-
-  /* Re-render update time every second */
-  const [, setTick] = useState(0)
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1_000)
-    return () => clearInterval(id)
-  }, [])
-
   return (
     <header className="dashboard-header">
       <div className="dashboard-header__left">
@@ -122,9 +139,7 @@ export function DashboardHeader({
           )}
         </div>
 
-        <span className="dashboard-header__updated mono" aria-live="polite" aria-atomic="true">
-          {formatUpdateTime(lastUpdatedMs)}
-        </span>
+        <LastUpdatedLabel lastUpdatedMs={lastUpdatedMs} />
 
         <span
           className="dashboard-header__connection"

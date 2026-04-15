@@ -166,6 +166,54 @@ describe("background question bridge", () => {
     expect(view.currentTool).toBe("mcp_question")
   })
 
+  it("demotes stale running question tools on the main session to idle", () => {
+    const storage = makeTempStorage()
+    const nowMs = 1_000_000
+    const mainSessionId = "ses-main"
+    const mainMessageId = "msg-main"
+
+    const mainMeta: StoredMessageMeta = {
+      id: mainMessageId,
+      sessionID: mainSessionId,
+      role: "assistant",
+      time: { created: nowMs - 11 * 60_000 },
+      agent: "build",
+    }
+    writeJson(path.join(storage.message, mainSessionId, `${mainMessageId}.json`), mainMeta)
+
+    const staleQuestionPart: StoredToolPart = {
+      id: "part-main-question",
+      sessionID: mainSessionId,
+      messageID: mainMessageId,
+      type: "tool",
+      callID: "call-question",
+      tool: "question",
+      state: {
+        status: "running",
+        input: {},
+      },
+    }
+    writeJson(path.join(storage.part, mainMessageId, "0001.json"), staleQuestionPart)
+
+    const sessionMeta: SessionMetadata = {
+      id: mainSessionId,
+      projectID: "proj-1",
+      directory: "/tmp/project",
+      time: { created: nowMs - 12 * 60_000, updated: nowMs - 11 * 60_000 },
+    }
+
+    const view = getMainSessionView({
+      projectRoot: "/tmp/project",
+      sessionId: mainSessionId,
+      storage,
+      sessionMeta,
+      nowMs,
+    })
+
+    expect(view.status).toBe("idle")
+    expect(view.currentTool).toBeNull()
+  })
+
   it("surfaces question for SQLite background tasks and main-session fallback", async () => {
     vi.doMock("../ingest/storage-backend", () => {
       const mainSessionMeta: SessionMetadata = {
@@ -275,5 +323,70 @@ describe("background question bridge", () => {
     if (!viewResult.ok) throw new Error("expected sqlite main session view")
     expect(viewResult.value.status).toBe("question")
     expect(viewResult.value.currentTool).toBe("mcp_question")
+  })
+
+  it("demotes stale running question tools on SQLite main sessions to idle", async () => {
+    vi.doMock("../ingest/storage-backend", () => {
+      const mainSessionMeta: SessionMetadata = {
+        id: "ses-main",
+        projectID: "proj-1",
+        directory: "/tmp/project",
+        time: { created: 100_000, updated: 340_000 },
+      }
+      const mainMeta: StoredMessageMeta = {
+        id: "msg-main",
+        sessionID: "ses-main",
+        role: "assistant",
+        time: { created: 340_000 },
+        agent: "build",
+      }
+      const staleQuestionPart: StoredToolPart = {
+        id: "part-main",
+        sessionID: "ses-main",
+        messageID: "msg-main",
+        type: "tool",
+        callID: "call-main",
+        tool: "question",
+        state: {
+          status: "running",
+          input: {},
+        },
+      }
+
+      return {
+        readMainSessionMetasSqlite: vi.fn(() => ({ ok: true as const, rows: [mainSessionMeta] })),
+        readAllSessionMetasSqlite: vi.fn(() => ({ ok: true as const, rows: [mainSessionMeta] })),
+        readSessionExistsSqlite: vi.fn(() => ({ ok: true as const, rows: [] })),
+        readTodosSqlite: vi.fn(() => ({ ok: true as const, rows: [] })),
+        readRecentMessageMetasSqlite: vi.fn(({ sessionId }: { sessionId: string }) => {
+          if (sessionId === "ses-main") return { ok: true as const, rows: [mainMeta] }
+          return { ok: true as const, rows: [] }
+        }),
+        readToolPartsForMessagesSqlite: vi.fn(({ messageIds }: { messageIds: string[] }) => {
+          const rows: StoredToolPart[] = []
+          if (messageIds.includes("msg-main")) rows.push(staleQuestionPart)
+          return { ok: true as const, rows }
+        }),
+      }
+    })
+
+    const { getMainSessionViewSqlite } = await import("../ingest/sqlite-derive")
+
+    const viewResult = getMainSessionViewSqlite({
+      sqlitePath: "/tmp/opencode.db",
+      sessionId: "ses-main",
+      sessionMeta: {
+        id: "ses-main",
+        projectID: "proj-1",
+        directory: "/tmp/project",
+        time: { created: 100_000, updated: 340_000 },
+      },
+      nowMs: 1_000_000,
+    })
+
+    expect(viewResult.ok).toBe(true)
+    if (!viewResult.ok) throw new Error("expected sqlite main session view")
+    expect(viewResult.value.status).toBe("idle")
+    expect(viewResult.value.currentTool).toBeNull()
   })
 })

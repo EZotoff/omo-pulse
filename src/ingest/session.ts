@@ -10,7 +10,7 @@ import {
 import { pickLatestModelString } from "./model"
 import { getOpenCodeStorageDir, realpathSafe } from "./paths"
 import { deriveBackgroundTasks } from "./background-tasks"
-import { QUESTION_TOOL_NAMES } from "./tool-names"
+import { isPendingQuestionTool } from "./tool-names"
 
 export type SessionMetadata = {
   id: string
@@ -358,10 +358,10 @@ export function getMainSessionView(opts: {
 
   let status: MainSessionView["status"] = "unknown"
   if (activeTool?.status === "pending" || activeTool?.status === "running") {
-    if (shouldSuppressStaleToolActivity(activeTool.tool, hasFreshActivity)) {
+    if (shouldSuppressStaleToolActivity(activeTool.tool, activeTool.status, hasFreshActivity)) {
       activeTool = null
     } else {
-      status = QUESTION_TOOL_NAMES.has(activeTool.tool) ? "question" : "running_tool"
+      status = isPendingQuestionTool(activeTool.tool, activeTool.status) ? "question" : "running_tool"
     }
   }
 
@@ -379,9 +379,7 @@ export function getMainSessionView(opts: {
       mainSessionId: opts.sessionId,
       nowMs,
     })
-    const questionTask = bgTasks.find(
-      (t) => t.status === "question" || ((t.status === "running" || t.status === "queued") && QUESTION_TOOL_NAMES.has(t.lastTool ?? ""))
-    )
+    const questionTask = bgTasks.find((t) => t.status === "question")
     if (questionTask) {
       status = "question"
       if (!activeTool) activeTool = { tool: questionTask.lastTool ?? "question", status: "running" }

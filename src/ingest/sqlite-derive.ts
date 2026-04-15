@@ -23,7 +23,7 @@ import {
 } from "./storage-backend"
 import { aggregateTokenUsage } from "./token-usage-core"
 import { MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS, type ToolCallSummaryResult } from "./tool-calls"
-import { QUESTION_TOOL_NAMES, TASK_TOOL_NAMES } from "./tool-names"
+import { isPendingQuestionTool, TASK_TOOL_NAMES } from "./tool-names"
 import type { TimeSeriesPayload, TimeSeriesSeries } from "./timeseries"
 
 type SqliteDeriveResult<T> =
@@ -198,7 +198,7 @@ function mapToolPartsByMessage(parts: StoredToolPart[]): Map<string, StoredToolP
   return out
 }
 
-function findActiveQuestionTool(
+function findPendingQuestionTool(
   metas: StoredMessageMeta[],
   partsByMessage: Map<string, StoredToolPart[]>,
 ): string | null {
@@ -206,7 +206,7 @@ function findActiveQuestionTool(
     const parts = partsByMessage.get(meta.id) ?? []
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i]
-      if ((part.state.status === "pending" || part.state.status === "running") && QUESTION_TOOL_NAMES.has(part.tool)) {
+      if (isPendingQuestionTool(part.tool, part.state.status)) {
         return part.tool
       }
     }
@@ -486,10 +486,10 @@ export function getMainSessionViewSqlite(opts: {
 
   let status: MainSessionView["status"] = "unknown"
   if (activeTool?.status === "pending" || activeTool?.status === "running") {
-    if (shouldSuppressStaleToolActivity(activeTool.tool, hasFreshActivity)) {
+    if (shouldSuppressStaleToolActivity(activeTool.tool, activeTool.status, hasFreshActivity)) {
       activeTool = null
     } else {
-      status = QUESTION_TOOL_NAMES.has(activeTool.tool) ? "question" : "running_tool"
+      status = isPendingQuestionTool(activeTool.tool, activeTool.status) ? "question" : "running_tool"
     }
   }
 
@@ -657,7 +657,7 @@ export function deriveBackgroundTasksSqlite(opts: {
       if (background && !background.ok) return background
       const backgroundMetas = background && background.ok ? background.value.metas : []
       const backgroundPartsByMessage = background && background.ok ? background.value.partsByMessage : new Map<string, StoredToolPart[]>()
-      const activeQuestionTool = findActiveQuestionTool(backgroundMetas, backgroundPartsByMessage)
+      const pendingQuestionTool = findPendingQuestionTool(backgroundMetas, backgroundPartsByMessage)
 
       let toolCalls = 0
       let lastTool: string | null = null
@@ -685,7 +685,7 @@ export function deriveBackgroundTasksSqlite(opts: {
         status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
       } else if (toolCalls === 0 && lastUpdateAt === null) {
         status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
-      } else if (activeQuestionTool) {
+      } else if (pendingQuestionTool) {
         status = "question"
       } else if (lastUpdateAt && nowMs - lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) {
         status = "running"
@@ -701,7 +701,7 @@ export function deriveBackgroundTasksSqlite(opts: {
         agent,
         status,
         toolCalls: backgroundSessionId ? toolCalls : null,
-        lastTool: activeQuestionTool ?? lastTool,
+        lastTool: pendingQuestionTool ?? lastTool,
         lastModel,
         timeline: status === "unknown" ? "" : formatTimeline(startedAt, timelineEndMs),
         sessionId: backgroundSessionId,

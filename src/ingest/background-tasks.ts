@@ -4,7 +4,7 @@ import { BACKGROUND_RUNNING_WINDOW_MS, shouldKeepQueuedBackgroundTaskActive } fr
 import type { OpenCodeStorageRoots, SessionMetadata, StoredMessageMeta, StoredToolPart } from "./session"
 import { getMessageDir } from "./session"
 import { pickLatestModelString } from "./model"
-import { QUESTION_TOOL_NAMES } from "./tool-names"
+import { isPendingQuestionTool } from "./tool-names"
 
 type FsLike = Pick<typeof fs, "readFileSync" | "readdirSync" | "existsSync" | "statSync"> 
 
@@ -284,7 +284,7 @@ function deriveBackgroundSessionStats(
   storage: OpenCodeStorageRoots,
   metas: StoredMessageMeta[],
   fsLike: FsLike
-): { toolCalls: number; lastTool: string | null; lastUpdateAt: number | null; activeQuestionTool: string | null } {
+): { toolCalls: number; lastTool: string | null; lastUpdateAt: number | null; pendingQuestionTool: string | null } {
   let toolCalls = 0
   let lastTool: string | null = null
   let lastUpdateAt: number | null = null
@@ -296,17 +296,17 @@ function deriveBackgroundSessionStats(
     return String(b.id).localeCompare(String(a.id))
   })
 
-  let activeQuestionTool: string | null = null
+  let pendingQuestionTool: string | null = null
   for (const meta of newestFirst) {
     const parts = readToolPartsForMessage(storage, meta.id, fsLike)
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i]
-      if ((part.state.status === "pending" || part.state.status === "running") && QUESTION_TOOL_NAMES.has(part.tool)) {
-        activeQuestionTool = part.tool
+      if (isPendingQuestionTool(part.tool, part.state.status)) {
+        pendingQuestionTool = part.tool
         break
       }
     }
-    if (activeQuestionTool) break
+    if (pendingQuestionTool) break
   }
 
   // Deterministic ordering by time.created then id.
@@ -327,7 +327,7 @@ function deriveBackgroundSessionStats(
     }
   }
 
-  return { toolCalls, lastTool, lastUpdateAt, activeQuestionTool }
+  return { toolCalls, lastTool, lastUpdateAt, pendingQuestionTool }
 }
 
 function formatIsoNoMs(ts: number): string {
@@ -376,7 +376,7 @@ export function deriveBackgroundTasks(opts: {
   const allSessionMetas = readAllSessionMetas(opts.storage.session, fsLike)
   const sessionMetaById = new Map(allSessionMetas.map((m) => [m.id, m] as const))
   const backgroundMessageCache = new Map<string, StoredMessageMeta[]>()
-  const backgroundStatsCache = new Map<string, { toolCalls: number; lastTool: string | null; lastUpdateAt: number | null; activeQuestionTool: string | null }>()
+  const backgroundStatsCache = new Map<string, { toolCalls: number; lastTool: string | null; lastUpdateAt: number | null; pendingQuestionTool: string | null }>()
   const backgroundModelCache = new Map<string, string | null>()
 
   const readBackgroundMetas = (sessionId: string): StoredMessageMeta[] => {
@@ -505,7 +505,7 @@ export function deriveBackgroundTasks(opts: {
 
       const stats = backgroundSessionId
         ? readBackgroundStats(backgroundSessionId)
-        : { toolCalls: 0, lastTool: null, lastUpdateAt: startedAt, activeQuestionTool: null }
+        : { toolCalls: 0, lastTool: null, lastUpdateAt: startedAt, pendingQuestionTool: null }
       const lastModel = backgroundSessionId ? readBackgroundModel(backgroundSessionId) : null
 
       // Best-effort status: if background session exists and has any tool calls, treat as running unless idle.
@@ -514,7 +514,7 @@ export function deriveBackgroundTasks(opts: {
         status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
       } else if (stats.toolCalls === 0 && stats.lastUpdateAt === null) {
         status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
-      } else if (stats.activeQuestionTool) {
+      } else if (stats.pendingQuestionTool) {
         status = "question"
       } else if (stats.lastUpdateAt && nowMs - stats.lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) {
         status = "running"
@@ -530,7 +530,7 @@ export function deriveBackgroundTasks(opts: {
         agent,
         status,
         toolCalls: backgroundSessionId ? stats.toolCalls : null,
-        lastTool: stats.activeQuestionTool ?? stats.lastTool,
+        lastTool: stats.pendingQuestionTool ?? stats.lastTool,
         lastModel,
         timeline: status === "unknown" ? "" : formatTimeline(startedAt, timelineEndMs),
         sessionId: backgroundSessionId,

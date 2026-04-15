@@ -79,10 +79,6 @@
   opacity: 1;
 }
 
-.project-strip[data-expanded="true"][data-status="question"] {
-  animation: status-pulse 1.5s ease-in-out infinite;
-}
-
 @keyframes danger-border-radiation {
   0% { background-position: 0% 50%; opacity: 0.8; }
   50% { background-position: 100% 50%; opacity: 1; }

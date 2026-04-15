@@ -21,6 +21,7 @@ function setTheme(theme: "dark" | "light") {
 /* ── Formatting helpers ── */
 
 function formatTimeout(ms: number): string {
+  if (ms < 60_000) return `${Math.round(ms / 1_000)}s`
   const minutes = Math.round(ms / 60_000)
   if (minutes < 1) return "<1 min"
   if (minutes === 1) return "1 min"

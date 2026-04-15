@@ -3,7 +3,6 @@ import * as path from "node:path"
 import {
   ACTIVE_BUSY_WINDOW_MS,
   ERROR_STALE_MS,
-  getTerminalErrorMessageCreatedAt,
   hasFreshMainSessionActivity,
   resolveLastUpdatedTime,
   shouldSuppressStaleToolActivity,
@@ -285,34 +284,29 @@ function readLastToolPart(partStorage: string, messageID: string): { tool: strin
   return null
 }
 
-function hasErrorToolPart(partStorage: string, messageID: string): boolean {
+function messageTerminalToolStatus(partStorage: string, messageID: string): "error" | "completed" | null {
   const partDir = path.join(partStorage, messageID)
-  if (!fs.existsSync(partDir)) return false
+  if (!fs.existsSync(partDir)) return null
 
+  let hasError = false
+  let hasCompleted = false
   const files = fs.readdirSync(partDir).filter((f) => f.endsWith(".json"))
   for (const file of files) {
     try {
       const content = fs.readFileSync(path.join(partDir, file), "utf8")
       const part = JSON.parse(content) as Partial<StoredToolPart>
-      if (part.type === "tool" && part.state?.status === "error") {
-        return true
+      if (part.type === "tool") {
+        if (part.state?.status === "error") hasError = true
+        else if (part.state?.status === "completed") hasCompleted = true
       }
     } catch {
       continue
     }
   }
-  return false
-}
 
-function getLatestErrorMessageCreatedAt(
-  partStorage: string,
-  recentMetas: StoredMessageMeta[],
-): number | null {
-  return getTerminalErrorMessageCreatedAt({
-    orderedMessages: recentMetas,
-    getCreatedAt: (meta) => (typeof meta.time?.created === "number" ? meta.time.created : null),
-    hasErrorPart: (meta) => hasErrorToolPart(partStorage, meta.id),
-  })
+  if (hasError) return "error"
+  if (hasCompleted) return "completed"
+  return null
 }
 
 export function getMainSessionView(opts: {
@@ -345,14 +339,22 @@ export function getMainSessionView(opts: {
     }
   }
 
-  let latestErrorMessageCreatedAt: number | null = null
+  let latestTerminalStatus: "error" | "completed" | null = null
+  let latestTerminalAt: number | null = null
   if (!activeTool) {
-    latestErrorMessageCreatedAt = getLatestErrorMessageCreatedAt(opts.storage.part, recentMetas)
+    for (const meta of recentMetas) {
+      const terminal = messageTerminalToolStatus(opts.storage.part, meta.id)
+      if (terminal !== null) {
+        latestTerminalStatus = terminal
+        latestTerminalAt = typeof meta.time?.created === "number" ? meta.time.created : null
+        break
+      }
+    }
   }
 
   const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
   const isStaleActivity = typeof lastUpdated === "number" && !hasFreshActivity
-  const isErrorStale = typeof latestErrorMessageCreatedAt !== "number" || (nowMs - latestErrorMessageCreatedAt > ERROR_STALE_MS)
+  const isTerminalErrorStale = typeof latestTerminalAt !== "number" || (nowMs - latestTerminalAt > ERROR_STALE_MS)
 
   let status: MainSessionView["status"] = "unknown"
   if (activeTool?.status === "pending" || activeTool?.status === "running") {
@@ -363,7 +365,7 @@ export function getMainSessionView(opts: {
     }
   }
 
-  if (status === "unknown" && !isErrorStale) {
+  if (status === "unknown" && !isStaleActivity && latestTerminalStatus === "error" && !isTerminalErrorStale) {
     status = "error"
   } else if (status === "unknown" && !isStaleActivity && recent?.role === "assistant" && typeof recent?.time?.created === "number" && typeof recent?.time?.completed !== "number") {
     status = "thinking"

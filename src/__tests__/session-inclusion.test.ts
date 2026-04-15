@@ -19,23 +19,19 @@ type SessionRow = {
 
 type ActivePartRow = {
   tool: string
+  status?: string
+}
+
+type TerminalPartRow = {
   status: string
-}
-
-type ErrorMessageRow = {
-  created: number
-}
-
-type LatestMessageRow = {
-  created: number
+  time_created: number
 }
 
 type AssistantMessageRow = {
-  role: string
-  time_completed?: number
+  time_completed: number | null
 }
 
-type QueryRows = SessionRow[] | ActivePartRow[] | ErrorMessageRow[] | LatestMessageRow[] | AssistantMessageRow[]
+type QueryRows = SessionRow[] | ActivePartRow[] | TerminalPartRow[] | AssistantMessageRow[]
 
 type MockStatement = {
   all: (...params: unknown[]) => QueryRows
@@ -48,8 +44,7 @@ type MockDatabase = {
 type MockDbConfig = {
   sessionRows?: SessionRow[]
   activePartsBySession?: Record<string, ActivePartRow[]>
-  errorMessagesBySession?: Record<string, ErrorMessageRow[]>
-  latestMessageBySession?: Record<string, LatestMessageRow[]>
+  terminalPartsBySession?: Record<string, TerminalPartRow[]>
   assistantMessagesBySession?: Record<string, AssistantMessageRow[]>
   throwOnQuery?: boolean
 }
@@ -69,20 +64,16 @@ function createMockDb(config: MockDbConfig = {}): MockDatabase {
             return config.sessionRows ?? []
           }
 
-          if (sql.includes("state_status = 'pending' OR state_status = 'running'")) {
+          if (sql.includes("'pending', 'running'")) {
             return sessionId ? (config.activePartsBySession?.[sessionId] ?? []) : []
           }
 
-          if (sql.includes("state_status = 'error'")) {
-            return sessionId ? (config.errorMessagesBySession?.[sessionId] ?? []) : []
+          if (sql.includes("'error', 'completed'")) {
+            return sessionId ? (config.terminalPartsBySession?.[sessionId] ?? []) : []
           }
 
-          if (sql.includes("FROM message") && sql.includes("role = 'assistant'")) {
+          if (sql.includes("json_extract(data, '$.role') = 'assistant'")) {
             return sessionId ? (config.assistantMessagesBySession?.[sessionId] ?? []) : []
-          }
-
-          if (sql.includes("FROM message")) {
-            return sessionId ? (config.latestMessageBySession?.[sessionId] ?? []) : []
           }
 
           return []
@@ -302,11 +293,8 @@ describe("findIncludedSessionsSqlite", () => {
             time_updated: now - 120000,
           },
         ],
-        errorMessagesBySession: {
-          "stale-error": [{ created: now - 120000 }],
-        },
-        latestMessageBySession: {
-          "stale-error": [{ created: now - 120000 }],
+        terminalPartsBySession: {
+          "stale-error": [{ status: "error", time_created: now - 120000 }],
         },
       }),
       "/home/user/project",
@@ -523,11 +511,8 @@ describe("findIncludedSessionsSqlite", () => {
         activePartsBySession: {
           "question-session": [{ tool: "mcp_question", status: "pending" }],
         },
-        errorMessagesBySession: {
-          "error-session": [{ created: now - 30000 }],
-        },
-        latestMessageBySession: {
-          "error-session": [{ created: now - 30000 }],
+        terminalPartsBySession: {
+          "error-session": [{ status: "error", time_created: now - 30000 }],
         },
       }),
       "/home/user/project",

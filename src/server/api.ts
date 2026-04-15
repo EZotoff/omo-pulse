@@ -27,6 +27,9 @@ export function createApi(opts: {
   const api = new Hono()
   const version = opts.version ?? "0.0.0"
   const multiProjectService = opts.multiProjectService
+  const invalidateProjects = (): void => {
+    multiProjectService.invalidate()
+  }
 
   // ---------------------------------------------------------------------------
   // Middleware: no-cache + JSON content type on all API responses
@@ -77,6 +80,7 @@ export function createApi(opts: {
     }
 
     const sourceId = addOrUpdateSource(opts.storageRoot, projectRoot, label)
+    invalidateProjects()
     return c.json({ ok: true, sourceId })
   })
 
@@ -90,7 +94,7 @@ export function createApi(opts: {
     if (!updated) {
       return c.json({ ok: false, error: "Source not found" }, 404)
     }
-    multiProjectService.invalidate()
+    invalidateProjects()
     return c.json({ ok: true, sourceId })
   })
 
@@ -103,7 +107,7 @@ export function createApi(opts: {
     if (!deleted) {
       return c.json({ ok: false, error: "Source not found" }, 404)
     }
-    multiProjectService.invalidate()
+    invalidateProjects()
     return c.json({ ok: true, sourceId })
   })
 

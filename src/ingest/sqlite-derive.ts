@@ -3,7 +3,6 @@ import {
   ACTIVE_BUSY_WINDOW_MS,
   BACKGROUND_RUNNING_WINDOW_MS,
   ERROR_STALE_MS,
-  getTerminalErrorMessageCreatedAt,
   hasFreshMainSessionActivity,
   resolveLastUpdatedTime,
   shouldSuppressStaleToolActivity,
@@ -245,20 +244,6 @@ function readSessionMessagesAndParts(opts: {
   }
 }
 
-function getLatestErrorMessageCreatedAtSqlite(opts: {
-  metas: StoredMessageMeta[]
-  partsByMessage: Map<string, StoredToolPart[]>
-}): number | null {
-  return getTerminalErrorMessageCreatedAt({
-    orderedMessages: opts.metas,
-    getCreatedAt: (meta) => (typeof meta.time?.created === "number" ? meta.time.created : null),
-    hasErrorPart: (meta) => {
-      const parts = opts.partsByMessage.get(meta.id) ?? []
-      return parts.some((part) => part.state.status === "error")
-    },
-  })
-}
-
 function canonicalizeAgent(agent: unknown): CanonicalAgent {
   if (typeof agent !== "string") return "other"
   const trimmed = agent.trim()
@@ -479,17 +464,25 @@ export function getMainSessionViewSqlite(opts: {
     if (activeTool) break
   }
 
-  let latestErrorMessageCreatedAt: number | null = null
+  let latestTerminalStatus: "error" | "completed" | null = null
+  let latestTerminalAt: number | null = null
   if (!activeTool) {
-    latestErrorMessageCreatedAt = getLatestErrorMessageCreatedAtSqlite({
-      metas: session.value.metas,
-      partsByMessage: session.value.partsByMessage,
-    })
+    findLastTerminal: for (const meta of session.value.metas) {
+      const parts = session.value.partsByMessage.get(meta.id) ?? []
+      for (let i = parts.length - 1; i >= 0; i -= 1) {
+        const status = parts[i]?.state.status
+        if (status === "error" || status === "completed") {
+          latestTerminalStatus = status
+          latestTerminalAt = typeof meta.time?.created === "number" ? meta.time.created : null
+          break findLastTerminal
+        }
+      }
+    }
   }
 
   const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
   const isStaleActivity = typeof lastUpdated === "number" && !hasFreshActivity
-  const isErrorStale = typeof latestErrorMessageCreatedAt !== "number" || (nowMs - latestErrorMessageCreatedAt > ERROR_STALE_MS)
+  const isTerminalErrorStale = typeof latestTerminalAt !== "number" || (nowMs - latestTerminalAt > ERROR_STALE_MS)
 
   let status: MainSessionView["status"] = "unknown"
   if (activeTool?.status === "pending" || activeTool?.status === "running") {
@@ -500,7 +493,7 @@ export function getMainSessionViewSqlite(opts: {
     }
   }
 
-  if (status === "unknown" && !isErrorStale) {
+  if (status === "unknown" && !isStaleActivity && latestTerminalStatus === "error" && !isTerminalErrorStale) {
     status = "error"
   } else if (status === "unknown" && !isStaleActivity && recent?.role === "assistant" && typeof recent.time?.created === "number" && typeof recent.time?.completed !== "number") {
     status = "thinking"

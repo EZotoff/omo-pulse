@@ -124,15 +124,6 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
   const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount, unintiatedPlans } = project
   const sourceId = project.sourceId
   const aggregateStatus = project.aggregateStatus ?? mainSession.status
-  const isStale = (() => {
-    const activeStates = ['busy', 'thinking', 'running_tool', 'running_script', 'question', 'error']
-    if (activeStates.includes(aggregateStatus)) return false
-    if (planProgress?.planStale) return true
-    if (!mainSession?.lastUpdated) return true
-    const lastUpdatedTime = new Date(mainSession.lastUpdated).getTime()
-    return Date.now() - lastUpdatedTime > STALE_THRESHOLD_MS
-  })()
-
   const displayStatus = computeDisplayStatus(
     aggregateStatus,
     mainSession.lastUpdated ? new Date(mainSession.lastUpdated).getTime() : 0,
@@ -144,6 +135,15 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
   const finalDisplayStatus = sourceId.startsWith('preview-') && mainSession.status === 'plan_complete'
     ? 'plan_complete'
     : displayStatus
+
+  const isStale = (() => {
+    const activeStates = ['busy', 'thinking', 'running_tool', 'running_script', 'question', 'error']
+    if (activeStates.includes(finalDisplayStatus)) return false
+    if (planProgress?.planStale) return true
+    if (!mainSession?.lastUpdated) return true
+    const lastUpdatedTime = new Date(mainSession.lastUpdated).getTime()
+    return Date.now() - lastUpdatedTime > STALE_THRESHOLD_MS
+  })()
 
   const previewPublicNameMatch = sourceId.startsWith('preview-all-') ? sourceId.match(/^preview-all-(.+)-\d+$/) : null
   const previewPublicName = previewPublicNameMatch?.[1] ?? null

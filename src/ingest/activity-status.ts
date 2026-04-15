@@ -1,4 +1,4 @@
-import { TASK_TOOL_NAMES } from "./tool-names"
+import { isPendingQuestionTool, QUESTION_TOOL_NAMES, TASK_TOOL_NAMES } from "./tool-names"
 
 export const ACTIVE_STALE_MS = 10 * 60_000
 export const ACTIVE_BUSY_WINDOW_MS = 60_000
@@ -20,8 +20,10 @@ export function resolveLastUpdatedTime(primary: number | null, fallback: number 
   return null
 }
 
-export function shouldSuppressStaleToolActivity(toolName: string, hasFreshActivity: boolean): boolean {
-  return !hasFreshActivity && TASK_TOOL_NAMES.has(toolName)
+export function shouldSuppressStaleToolActivity(toolName: string, status: string, hasFreshActivity: boolean): boolean {
+  if (hasFreshActivity) return false
+  if (isPendingQuestionTool(toolName, status)) return false
+  return TASK_TOOL_NAMES.has(toolName) || QUESTION_TOOL_NAMES.has(toolName)
 }
 
 export function getTerminalErrorMessageCreatedAt<T>(opts: {

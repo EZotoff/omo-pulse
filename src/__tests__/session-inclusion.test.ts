@@ -367,6 +367,30 @@ describe("findIncludedSessionsSqlite", () => {
     expect(result.map((session) => session.id)).toEqual(["stale-question"])
   })
 
+  it("does not keep stale running question tools included beyond the normal idle window", () => {
+    const now = Date.now()
+    const result = runFindIncludedSessionsSqlite(
+      createMockDb({
+        sessionRows: [
+          {
+            id: "stale-question",
+            title: "Question",
+            directory: "/home/user/project",
+            time_created: now - 15 * 60_000,
+            time_updated: now - 15 * 60_000,
+          },
+        ],
+        activePartsBySession: {
+          "stale-question": [{ tool: "question", status: "running" }],
+        },
+      }),
+      "/home/user/project",
+      60000,
+    )
+
+    expect(result).toEqual([])
+  })
+
   it("handles mixed sessions: active top-level, stale excluded, child/background excluded", () => {
     const now = Date.now()
     const result = runFindIncludedSessionsSqlite(

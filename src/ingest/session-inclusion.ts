@@ -1,9 +1,9 @@
 import * as path from "node:path"
-import { Database } from "bun:sqlite"
+import type { Database } from "bun:sqlite"
 import { realpathSafe } from "./paths"
-import { ACTIVE_BUSY_WINDOW_MS, ERROR_STALE_MS } from "./activity-status"
+import { ACTIVE_BUSY_WINDOW_MS, ERROR_STALE_MS, hasFreshMainSessionActivity, shouldSuppressStaleToolActivity } from "./activity-status"
 import type { SessionMetadata } from "./session"
-import { QUESTION_TOOL_NAMES } from "./tool-names"
+import { isPendingQuestionTool } from "./tool-names"
 
 // Severity levels for attention-first ordering
 const STATUS_SEVERITY: Record<string, number> = {
@@ -36,18 +36,23 @@ function deriveSessionStatus(db: Database, session: SessionMetadata, nowMs: numb
   try {
     const activeParts = db
       .query(
-        `SELECT json_extract(data, '$.tool') as tool
+        `SELECT json_extract(data, '$.tool') as tool,
+                json_extract(data, '$.state.status') as status
          FROM part 
          WHERE session_id = ? AND json_extract(data, '$.state.status') IN ('pending', 'running')
          ORDER BY time_created DESC LIMIT 1`
-      )
-      .all(session.id) as Array<{ tool: string }>
+       )
+      .all(session.id) as Array<{ tool: string; status: string }>
+
+    const lastUpdated = session.time.updated ?? session.time.created ?? 0
+    const ageMs = nowMs - lastUpdated
+    const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
 
     if (activeParts.length > 0) {
-      if (QUESTION_TOOL_NAMES.has(activeParts[0].tool)) {
-        return "question"
+      const activePart = activeParts[0]
+      if (!shouldSuppressStaleToolActivity(activePart.tool, activePart.status, hasFreshActivity)) {
+        return isPendingQuestionTool(activePart.tool, activePart.status) ? "question" : "running_tool"
       }
-      return "running_tool"
     }
 
     const lastTerminal = db
@@ -59,8 +64,6 @@ function deriveSessionStatus(db: Database, session: SessionMetadata, nowMs: numb
       )
       .all(session.id) as Array<{ time_created: number; status: string }>
 
-    const lastUpdated = session.time.updated ?? session.time.created ?? 0
-    const ageMs = nowMs - lastUpdated
     const isStaleActivity = ageMs > ACTIVE_BUSY_WINDOW_MS
     const latestTerminalStatus = lastTerminal[0]?.status
     const latestTerminalAt = lastTerminal[0]?.time_created

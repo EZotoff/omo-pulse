@@ -1,6 +1,6 @@
 {
   "name": "omo-pulse",
-  "description": "Real-time developer dashboard for monitoring OpenCode AI coding sessions",
+  "description": "Zero-config local dashboard for oh-my-opencode and OpenCode AI coding sessions",
   "repository": {
     "type": "git",
     "url": "https://github.com/ezotoff/omo-pulse.git"
@@ -10,12 +10,14 @@
     "url": "https://github.com/ezotoff/omo-pulse/issues"
   },
   "keywords": [
+    "oh-my-opencode",
     "opencode",
     "dashboard",
     "developer-tools",
     "ai-coding",
     "monitoring",
-    "real-time"
+    "real-time",
+    "zero-config"
   ],
   "author": "EZotoff",
   "license": "MIT",

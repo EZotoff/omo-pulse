@@ -1,6 +1,6 @@
 # omo-pulse
 
-**Real-time dashboard for monitoring [oh-my-opencode](https://github.com/sst/opencode) AI coding sessions across all your projects.**
+**Stop tab-switching between AI agents. One local dashboard for all your [oh-my-opencode](https://github.com/sst/opencode) sessions.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Runtime: Bun](https://img.shields.io/badge/Runtime-Bun-%23f9f1e1?logo=bun)](https://bun.sh)
@@ -8,6 +8,10 @@
 [![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-lightgrey)](https://github.com/sponsors/EZotoff)
 
 ![Dashboard — multi-project view with session activity and token usage](docs/screenshots/details-collapsed.png)
+
+It works without setup or config files. Just run `bun run dev` and see every active session, token burn, and plan progress in real-time. omo-pulse reads directly from your local OpenCode SQLite database. No API keys, no instrumentation, no hassle.
+
+If you run multiple oh-my-opencode projects, you already know the drill: agents run in the background, questions go unnoticed, and token costs surprise you at the end of the day. omo-pulse puts everything on one screen so you actually know what's happening.
 
 ## What is omo-pulse?
 

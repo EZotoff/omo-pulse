@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { DashboardMultiProjectPayload } from "../types"
 
 // ---------------------------------------------------------------------------
@@ -66,6 +66,10 @@ import { createApi } from "../server/api"
 import { createMultiProjectService } from "../server/multi-project"
 import type { ProjectSnapshot } from "../types"
 
+const mockedCreateMultiProjectService = createMultiProjectService as unknown as {
+  mockReturnValue: (value: unknown) => void
+}
+
 // ---------------------------------------------------------------------------
 // Helper: build a minimal ProjectSnapshot fixture
 // ---------------------------------------------------------------------------
@@ -128,7 +132,7 @@ describe("API routes", () => {
         pollIntervalMs: 2000,
       })),
     }
-    vi.mocked(createMultiProjectService).mockReturnValue(mockService)
+    mockedCreateMultiProjectService.mockReturnValue(mockService)
 
     app = createApi({
       storageRoot: "/tmp/test-storage",
@@ -152,10 +156,10 @@ describe("API routes", () => {
   // -------------------------------------------------------------------------
   it("GET /sources returns 200 with sources list", async () => {
     const { listSources, getDefaultSourceId } = await import("../ingest/sources-registry")
-    vi.mocked(listSources).mockReturnValue([
+    ;(listSources as unknown as { mockReturnValue: (value: unknown) => void }).mockReturnValue([
       { id: "src-1", label: "My Project", updatedAt: 1000 },
     ])
-    vi.mocked(getDefaultSourceId).mockReturnValue("src-1")
+    ;(getDefaultSourceId as unknown as { mockReturnValue: (value: unknown) => void }).mockReturnValue("src-1")
 
     const res = await app.request("/sources")
     expect(res.status).toBe(200)

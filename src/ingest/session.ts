@@ -1,16 +1,13 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
 import {
-  ACTIVE_BUSY_WINDOW_MS,
-  ERROR_STALE_MS,
   hasFreshMainSessionActivity,
   resolveLastUpdatedTime,
-  shouldSuppressStaleToolActivity,
 } from "./activity-status"
 import { pickLatestModelString } from "./model"
 import { getOpenCodeStorageDir, getMessageDir, realpathSafe } from "./paths"
 import { deriveBackgroundTasks } from "./background-tasks"
-import { isPendingQuestionTool } from "./tool-names"
+import { deriveMainSessionStatus } from "./session-status"
 
 export type SessionMetadata = {
   id: string
@@ -340,24 +337,21 @@ export function getMainSessionView(opts: {
 
   const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
   const isStaleActivity = typeof lastUpdated === "number" && !hasFreshActivity
-  const isTerminalErrorStale = typeof latestTerminalAt !== "number" || (nowMs - latestTerminalAt > ERROR_STALE_MS)
 
-  let status: MainSessionView["status"] = "unknown"
-  if (activeTool?.status === "pending" || activeTool?.status === "running") {
-    if (shouldSuppressStaleToolActivity(activeTool.tool, activeTool.status, hasFreshActivity)) {
-      activeTool = null
-    } else {
-      status = isPendingQuestionTool(activeTool.tool, activeTool.status) ? "question" : "running_tool"
-    }
-  }
-
-  if (status === "unknown" && !isStaleActivity && latestTerminalStatus === "error" && !isTerminalErrorStale) {
-    status = "error"
-  } else if (status === "unknown" && !isStaleActivity && recent?.role === "assistant" && typeof recent?.time?.created === "number" && typeof recent?.time?.completed !== "number") {
-    status = "thinking"
-  } else if (status === "unknown" && typeof lastUpdated === "number") {
-    status = nowMs - lastUpdated <= ACTIVE_BUSY_WINDOW_MS ? "busy" : "idle"
-  }
+  const derived = deriveMainSessionStatus({
+    activeTool,
+    hasFreshActivity,
+    isStaleActivity,
+    latestTerminalStatus,
+    latestTerminalAt,
+    recentRole: recent?.role ?? null,
+    recentTimeCreated: typeof recent?.time?.created === "number" ? recent.time.created : null,
+    recentTimeCompleted: typeof recent?.time?.completed === "number" ? recent.time.completed : null,
+    lastUpdated,
+    nowMs,
+  })
+  let status = derived.status
+  activeTool = derived.activeTool
 
   if (status === "idle" || status === "busy" || status === "unknown") {
     const bgTasks = deriveBackgroundTasks({

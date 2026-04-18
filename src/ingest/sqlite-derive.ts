@@ -1,11 +1,8 @@
 import type { Database } from "bun:sqlite"
 import {
-  ACTIVE_BUSY_WINDOW_MS,
   BACKGROUND_RUNNING_WINDOW_MS,
-  ERROR_STALE_MS,
   hasFreshMainSessionActivity,
   resolveLastUpdatedTime,
-  shouldSuppressStaleToolActivity,
   shouldKeepQueuedBackgroundTaskActive,
 } from "./activity-status"
 import type { BackgroundTaskRow } from "./background-tasks"
@@ -27,6 +24,7 @@ import { findBackgroundSessionId, findTaskSessionId } from "./sqlite-utils"
 import { aggregateTokenUsage } from "./token-usage-core"
 import { MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS, type ToolCallSummaryResult } from "./tool-calls"
 import { isPendingQuestionTool, TASK_TOOL_NAMES } from "./tool-names"
+import { deriveMainSessionStatus } from "./session-status"
 import type { TimeSeriesPayload, TimeSeriesSeries } from "./timeseries"
 
 type SqliteDeriveResult<T> =
@@ -332,24 +330,21 @@ export function getMainSessionViewSqlite(opts: {
 
   const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
   const isStaleActivity = typeof lastUpdated === "number" && !hasFreshActivity
-  const isTerminalErrorStale = typeof latestTerminalAt !== "number" || (nowMs - latestTerminalAt > ERROR_STALE_MS)
 
-  let status: MainSessionView["status"] = "unknown"
-  if (activeTool?.status === "pending" || activeTool?.status === "running") {
-    if (shouldSuppressStaleToolActivity(activeTool.tool, activeTool.status, hasFreshActivity)) {
-      activeTool = null
-    } else {
-      status = isPendingQuestionTool(activeTool.tool, activeTool.status) ? "question" : "running_tool"
-    }
-  }
-
-  if (status === "unknown" && !isStaleActivity && latestTerminalStatus === "error" && !isTerminalErrorStale) {
-    status = "error"
-  } else if (status === "unknown" && !isStaleActivity && recent?.role === "assistant" && typeof recent.time?.created === "number" && typeof recent.time?.completed !== "number") {
-    status = "thinking"
-  } else if (status === "unknown" && typeof lastUpdated === "number") {
-    status = nowMs - lastUpdated <= ACTIVE_BUSY_WINDOW_MS ? "busy" : "idle"
-  }
+  const derived = deriveMainSessionStatus({
+    activeTool,
+    hasFreshActivity,
+    isStaleActivity,
+    latestTerminalStatus,
+    latestTerminalAt,
+    recentRole: recent?.role ?? null,
+    recentTimeCreated: typeof recent?.time?.created === "number" ? recent.time.created : null,
+    recentTimeCompleted: typeof recent?.time?.completed === "number" ? recent.time.completed : null,
+    lastUpdated,
+    nowMs,
+  })
+  let status = derived.status
+  activeTool = derived.activeTool
 
   if (status === "idle" || status === "busy" || status === "unknown") {
     const bgResult = deriveBackgroundTasksSqlite({

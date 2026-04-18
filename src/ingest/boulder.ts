@@ -26,6 +26,7 @@ export function readBoulderState(projectRoot: string): BoulderState | null {
     const content = fs.readFileSync(filePath, "utf8")
     return JSON.parse(content) as BoulderState
   } catch {
+    // Expected: file may not exist or be malformed
     return null
   }
 }
@@ -49,6 +50,7 @@ export function readBoulderHistory(projectRoot: string): BoulderHistoryEntry[] {
       try {
         entries.push(JSON.parse(line) as BoulderHistoryEntry)
       } catch {
+      // Expected: file may not exist or be malformed
       }
     }
 
@@ -60,6 +62,7 @@ export function readBoulderHistory(projectRoot: string): BoulderHistoryEntry[] {
 
     return entries
   } catch {
+    // Expected: file may not exist or be malformed
     return []
   }
 }
@@ -106,6 +109,7 @@ export function readPlanProgress(projectRoot: string, planPath: string, nowMs?: 
       allowedRoots: [projectRoot],
     })
   } catch {
+    // Expected: file may not exist or be malformed
     return fallback
   }
 
@@ -133,6 +137,7 @@ export function readPlanProgress(projectRoot: string, planPath: string, nowMs?: 
 
     return { ...progress, missing: false, planStale, planComplete }
   } catch {
+    // Expected: file may not exist or be malformed
     return fallback
   }
 }
@@ -145,6 +150,7 @@ export function readPlanSteps(projectRoot: string, planPath: string): { missing:
       allowedRoots: [projectRoot],
     })
   } catch {
+    // Expected: file may not exist or be malformed
     return { missing: true, steps: [] }
   }
 
@@ -156,6 +162,7 @@ export function readPlanSteps(projectRoot: string, planPath: string): { missing:
     const content = fs.readFileSync(planReal, "utf8")
     return { missing: false, steps: getPlanStepsFromMarkdown(content) }
   } catch {
+    // Expected: file may not exist or be malformed
     return { missing: true, steps: [] }
   }
 }
@@ -216,9 +223,11 @@ export function scanUninitiatedPlans(projectRoot: string, activePlanPath: string
           })
         }
       } catch {
+      // Expected: file may not exist or be malformed
       }
     }
   } catch {
+    // Expected: file may not exist or be malformed
     return []
   }
 

@@ -9,6 +9,8 @@ import { getOpenCodeStorageDir, getMessageDir, realpathSafe } from "./paths"
 import { deriveBackgroundTasks } from "./background-tasks"
 import { deriveMainSessionStatus } from "./session-status"
 
+const RECENT_MESSAGES_LIMIT = 200
+
 export type SessionMetadata = {
   id: string
   projectID: string
@@ -105,11 +107,13 @@ export function readMainSessionMetas(
 
           metas.push(meta)
         } catch {
+          // Expected: file may not exist or be malformed
           continue
         }
       }
     }
   } catch {
+    // Expected: file may not exist or be malformed
     return []
   }
 
@@ -161,7 +165,7 @@ export function pickActiveSessionId(opts: {
 
     if (metas.length === 0) {
       const messageDir = getMessageDir(opts.storage.message, id)
-      const recent = readMostRecentMessageMeta(messageDir, 200)
+      const recent = readMostRecentMessageMeta(messageDir, RECENT_MESSAGES_LIMIT)
       const created = typeof recent?.time?.created === "number" ? recent.time.created : 0
       consider(id, created, true)
     }
@@ -181,6 +185,7 @@ function readMostRecentMessageMeta(messageDir: string, maxMessages: number): Sto
         try {
           return fs.statSync(path.join(messageDir, f)).mtimeMs
         } catch {
+          // Expected: file may not exist or be malformed
           return 0
         }
       })(),
@@ -200,6 +205,7 @@ function readMostRecentMessageMeta(messageDir: string, maxMessages: number): Sto
         best = { created, id, meta }
       }
     } catch {
+      // Expected: file may not exist or be malformed
       continue
     }
   }
@@ -218,6 +224,7 @@ function readRecentMessageMetas(messageDir: string, maxMessages: number): Stored
         try {
           return fs.statSync(path.join(messageDir, f)).mtimeMs
         } catch {
+          // Expected: file may not exist or be malformed
           return 0
         }
       })(),
@@ -234,6 +241,7 @@ function readRecentMessageMetas(messageDir: string, maxMessages: number): Stored
       const id = String(meta.id ?? "")
       metas.push({ created, id, meta })
     } catch {
+      // Expected: file may not exist or be malformed
       continue
     }
   }
@@ -261,6 +269,7 @@ function readLastToolPart(partStorage: string, messageID: string): { tool: strin
         return { tool: part.tool, status: typeof status === "string" ? status : "unknown" }
       }
     } catch {
+      // Expected: file may not exist or be malformed
       continue
     }
   }
@@ -283,6 +292,7 @@ function messageTerminalToolStatus(partStorage: string, messageID: string): "err
         else if (part.state?.status === "completed") hasCompleted = true
       }
     } catch {
+      // Expected: file may not exist or be malformed
       continue
     }
   }
@@ -302,7 +312,7 @@ export function getMainSessionView(opts: {
   const nowMs = opts.nowMs ?? Date.now()
 
   const messageDir = getMessageDir(opts.storage.message, opts.sessionId)
-  const recent = readMostRecentMessageMeta(messageDir, 200)
+  const recent = readMostRecentMessageMeta(messageDir, RECENT_MESSAGES_LIMIT)
 
   const lastUpdated = resolveLastUpdatedTime(recent?.time?.created ?? null, opts.sessionMeta?.time.updated ?? null)
   const sessionLabel = opts.sessionMeta?.title ?? opts.sessionId
@@ -310,7 +320,7 @@ export function getMainSessionView(opts: {
 
   // Scan recent messages for any in-flight tool parts
   let activeTool: { tool: string; status: string } | null = null
-  const recentMetas = readRecentMessageMetas(messageDir, 200)
+  const recentMetas = readRecentMessageMetas(messageDir, RECENT_MESSAGES_LIMIT)
   const currentModel = pickLatestModelString(recentMetas)
   
   // Iterate newest -> oldest, early-exit on first tool part with pending/running status

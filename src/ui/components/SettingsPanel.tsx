@@ -163,6 +163,21 @@ export function SettingsPanel({
     [soundConfig, onSoundConfigChange],
   )
 
+  const handleSetStripModeProject = useCallback(() => onSetStripMode("project"), [onSetStripMode])
+  const handleSetStripModeSession = useCallback(() => onSetStripMode("session"), [onSetStripMode])
+  const handleCollapsedHeightChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => onCollapsedHeightChange(Number(e.target.value)),
+    [onCollapsedHeightChange],
+  )
+  const handleGridGapChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => onGridGapChange(Number(e.target.value)),
+    [onGridGapChange],
+  )
+  const handleIdleTimeoutMsChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => onIdleTimeoutMsChange(Number(e.target.value)),
+    [onIdleTimeoutMsChange],
+  )
+
   return (
     <OverlayShell open={open} onClose={onClose} ariaLabel="Settings">
       <div className="settings-panel">
@@ -184,7 +199,7 @@ export function SettingsPanel({
                     name="stripDisplayMode"
                     value="project"
                     checked={stripConfig.stripDisplayMode === "project"}
-                    onChange={() => onSetStripMode("project")}
+                    onChange={handleSetStripModeProject}
                   />
                   <span className="settings-segmented-text">Per-Project (aggregated)</span>
                 </label>
@@ -194,7 +209,7 @@ export function SettingsPanel({
                     name="stripDisplayMode"
                     value="session"
                     checked={stripConfig.stripDisplayMode === "session"}
-                    onChange={() => onSetStripMode("session")}
+                    onChange={handleSetStripModeSession}
                   />
                   <span className="settings-segmented-text">Per-Session (individual indicators)</span>
                 </label>
@@ -242,7 +257,7 @@ export function SettingsPanel({
                 max={300}
                 step={1}
                 value={collapsedHeight}
-                onChange={(e) => onCollapsedHeightChange(Number(e.target.value))}
+                onChange={handleCollapsedHeightChange}
                 aria-label="Collapsed pane height"
               />
               <span className="settings-slider-value">{collapsedHeight}px</span>
@@ -258,7 +273,7 @@ export function SettingsPanel({
                 max={24}
                 step={1}
                 value={gridGap}
-                onChange={(e) => onGridGapChange(Number(e.target.value))}
+                onChange={handleGridGapChange}
                 aria-label="Grid gap between project strips"
               />
               <span className="settings-slider-value">{gridGap}px</span>
@@ -274,7 +289,7 @@ export function SettingsPanel({
                 max={3_600_000}
                 step={30_000}
                 value={idleTimeoutMs}
-                onChange={(e) => onIdleTimeoutMsChange(Number(e.target.value))}
+                onChange={handleIdleTimeoutMsChange}
                 aria-label="Idle timeout duration"
               />
               <span className="settings-slider-value">{formatTimeout(idleTimeoutMs)}</span>

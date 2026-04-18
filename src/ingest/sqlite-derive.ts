@@ -35,6 +35,8 @@ const DESCRIPTION_MAX = 120
 const AGENT_MAX = 30
 const SESSION_ID_MAX = 200
 const TOKEN_USAGE_MESSAGE_LIMIT = 10_000
+const RECENT_MESSAGES_LIMIT = 200
+const TIMESERIES_WINDOW_MS = 300_000
 
 const SERIES_ORDER: Array<Pick<TimeSeriesSeries, "id" | "label" | "tone">> = [
   { id: "overall-main", label: "Overall", tone: "muted" },
@@ -288,7 +290,7 @@ export function getMainSessionViewSqlite(opts: {
   const session = readSessionMessagesAndParts({
     sqlitePath: opts.sqlitePath,
     sessionId: opts.sessionId,
-    limit: 200,
+    limit: RECENT_MESSAGES_LIMIT,
     db: opts.db,
   })
   if (!session.ok) return session
@@ -492,7 +494,7 @@ export function deriveBackgroundTasksSqlite(opts: {
   const main = readSessionMessagesAndParts({
     sqlitePath: opts.sqlitePath,
     sessionId: opts.mainSessionId,
-    limit: 200,
+    limit: RECENT_MESSAGES_LIMIT,
     db: opts.db,
   })
   if (!main.ok) return main
@@ -517,7 +519,7 @@ export function deriveBackgroundTasksSqlite(opts: {
     const loaded = readSessionMessagesAndParts({
       sqlitePath: opts.sqlitePath,
       sessionId,
-      limit: 200,
+      limit: RECENT_MESSAGES_LIMIT,
       db: opts.db,
     })
     if (!loaded.ok) return loaded
@@ -644,7 +646,7 @@ export function deriveTimeSeriesActivitySqlite(opts: {
   db?: Database
   allSessionMetas?: SessionMetadata[]
 }): SqliteDeriveResult<TimeSeriesPayload> {
-  const windowMs = opts.windowMs ?? 300_000
+  const windowMs = opts.windowMs ?? TIMESERIES_WINDOW_MS
   const bucketMs = opts.bucketMs ?? 2_000
   const buckets = Math.floor(windowMs / bucketMs)
   const nowMs = opts.nowMs ?? Date.now()
@@ -669,7 +671,7 @@ export function deriveTimeSeriesActivitySqlite(opts: {
     const loaded = readSessionMessagesAndParts({
       sqlitePath: opts.sqlitePath,
       sessionId,
-      limit: 200,
+      limit: RECENT_MESSAGES_LIMIT,
       db: opts.db,
     })
     if (!loaded.ok) return loaded
@@ -758,7 +760,7 @@ export function deriveTimeSeriesActivitySqliteForSessions(opts: {
   db?: Database
 }): SqliteDeriveResult<TimeSeriesPayload> {
   const nowMs = opts.nowMs ?? Date.now()
-  const windowMs = opts.windowMs ?? 300_000
+  const windowMs = opts.windowMs ?? TIMESERIES_WINDOW_MS
   const bucketMs = opts.bucketMs ?? 2_000
   const payload = createEmptyTimeSeriesPayload({ nowMs, windowMs, bucketMs })
   const sessionIds = normalizeSessionIds(opts.mainSessionIds ?? [])

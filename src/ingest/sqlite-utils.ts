@@ -1,6 +1,9 @@
 import type { SessionMetadata } from "./session"
 import type { SqliteReadFailureReason } from "./storage-backend"
 
+const SESSION_MATCH_WINDOW_BEFORE_MS = 10_000
+const SESSION_MATCH_WINDOW_AFTER_MS = 15 * 60_000
+
 export function classifySqliteError(error: unknown): SqliteReadFailureReason {
   const message = error instanceof Error ? error.message.toLowerCase() : ""
   if (message.includes("database is locked") || message.includes("busy")) return "db_busy"
@@ -33,8 +36,8 @@ export function findBackgroundSessionId(opts: {
     `Task: ${description}`,
   ]
 
-  const windowStart = opts.startedAt - 10_000
-  const windowEnd = opts.startedAt + 15 * 60_000
+  const windowStart = opts.startedAt - SESSION_MATCH_WINDOW_BEFORE_MS
+  const windowEnd = opts.startedAt + SESSION_MATCH_WINDOW_AFTER_MS
 
   const candidates = opts.allSessionMetas.filter(
     (m) =>
@@ -82,8 +85,8 @@ export function findTaskSessionId(opts: {
     `Background: ${description}`,
   ]
 
-  const windowStart = opts.startedAt - 10_000
-  const windowEnd = opts.startedAt + 15 * 60_000
+  const windowStart = opts.startedAt - SESSION_MATCH_WINDOW_BEFORE_MS
+  const windowEnd = opts.startedAt + SESSION_MATCH_WINDOW_AFTER_MS
   const candidates = opts.allSessionMetas.filter(
     (m) =>
       m.parentID === opts.parentSessionId &&

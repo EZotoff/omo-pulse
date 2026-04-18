@@ -78,6 +78,7 @@ export const SESSION_TIMESERIES_CACHE_TTL_MS = 15_000
 export const SESSION_SUMMARY_CACHE_TTL_MS = 10_000
 const INCLUDED_SESSION_IDLE_WINDOW_MS = 300_000
 const MAX_CACHE_ENTRIES = 100
+const DEFAULT_POLL_INTERVAL_MS = 2_000
 
 function evictOldest<K>(map: Map<K, { fetchedAt: number }>, maxSize: number): void {
   if (map.size < maxSize) return
@@ -123,7 +124,8 @@ function buildSessionSummary(projectRoot: string, db: Database, sqlitePath: stri
 
     return summaries.sort(compareSessionsBySeverity)
   } catch {
-    return []
+      // Expected: SQLite or data errors during session summary building
+      return []
   }
 }
 
@@ -206,7 +208,7 @@ export function createMultiProjectService(opts: {
   storageBackend: StorageBackend
   pollIntervalMs?: number
 }): { getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload>; invalidate: () => void } {
-  const pollIntervalMs = opts.pollIntervalMs ?? 2000
+  const pollIntervalMs = opts.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS
   const storeBySourceId = new Map<string, DashboardStore>()
   const storeByProjectRoot = new Map<string, DashboardStore>()
   const sessionTimeSeriesByProjectRoot = new Map<string, { value: SessionTimeSeriesPayload; fetchedAt: number }>()

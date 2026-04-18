@@ -43,6 +43,7 @@ function withReadonlyDb<T>(sqlitePath: string, fn: (db: BunDatabase) => T): { ok
     try {
       db?.close()
     } catch {
+    // Expected: file may not exist or be malformed
     }
   }
 }
@@ -236,6 +237,7 @@ export function readRecentMessageMetasSqlite(opts: {
     try {
       parsed = JSON.parse(data)
     } catch {
+      // Expected: file may not exist or be malformed
       continue
     }
     if (!parsed || typeof parsed !== "object") continue
@@ -303,6 +305,7 @@ export function readToolPartsForMessagesSqlite(opts: {
     try {
       parsed = JSON.parse(data)
     } catch {
+      // Expected: file may not exist or be malformed
       continue
     }
     if (!parsed || typeof parsed !== "object") continue
@@ -464,6 +467,7 @@ export function isSqliteUsable(sqlitePath: string): boolean {
     try {
       db?.close()
     } catch {
+    // Expected: file may not exist or be malformed
     }
   }
 }

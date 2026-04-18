@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import './PlanProgress.css'
 import type { PlanStatus, PlanStep, ProjectSnapshot } from '../../types'
 
@@ -38,7 +39,7 @@ export type PlanProgressProps = {
 }
 
 /* ── Component ── */
-export function PlanProgress({ planProgress, mode, className }: PlanProgressProps) {
+export const PlanProgress = memo(function PlanProgress({ planProgress, mode, className }: PlanProgressProps) {
   const { completed, total, status, name, steps, boulderStatus, completedAt } = planProgress
   const tone = statusTone(status)
 
@@ -141,4 +142,4 @@ export function PlanProgress({ planProgress, mode, className }: PlanProgressProp
       })()}
     </div>
   )
-}
+})

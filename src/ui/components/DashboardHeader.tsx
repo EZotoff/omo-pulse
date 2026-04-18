@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, memo } from "react"
 
 /* ── Props ── */
 
@@ -60,7 +60,7 @@ function LastUpdatedLabel({ lastUpdatedMs }: LastUpdatedLabelProps) {
 
 /* ── Component ── */
 
-export function DashboardHeader({
+export const DashboardHeader = memo(function DashboardHeader({
   connected,
   lastUpdatedMs,
   onExpandAll,
@@ -157,4 +157,4 @@ export function DashboardHeader({
       </div>
     </header>
   )
-}
+})

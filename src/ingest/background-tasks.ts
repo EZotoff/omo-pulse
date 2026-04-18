@@ -10,6 +10,8 @@ import { findBackgroundSessionId, findTaskSessionId } from "./sqlite-utils"
 
 type FsLike = Pick<typeof fs, "readFileSync" | "readdirSync" | "existsSync" | "statSync"> 
 
+const RECENT_MESSAGES_LIMIT = 200
+
 export type BackgroundTaskRow = {
   id: string
   description: string
@@ -91,6 +93,7 @@ function readJsonFile<T>(filePath: string, fsLike: FsLike): T | null {
     const content = fsLike.readFileSync(filePath, "utf8")
     return JSON.parse(content) as T
   } catch {
+    // Expected: file may not exist or be malformed
     return null
   }
 }
@@ -99,6 +102,7 @@ function listJsonFiles(dir: string, fsLike: FsLike): string[] {
   try {
     return fsLike.readdirSync(dir).filter((f) => f.endsWith(".json"))
   } catch {
+    // Expected: file may not exist or be malformed
     return []
   }
 }
@@ -127,6 +131,7 @@ function readRecentMessageMetas(messageDir: string, maxMessages: number, fsLike:
         try {
           return fsLike.statSync(path.join(messageDir, f)).mtimeMs
         } catch {
+          // Expected: file may not exist or be malformed
           return 0
         }
       })(),
@@ -156,6 +161,7 @@ export function readAllSessionMetas(sessionStorage: string, fsLike: FsLike = fs)
       }
     }
   } catch {
+    // Expected: file may not exist or be malformed
     return []
   }
   return metas
@@ -304,7 +310,7 @@ export function deriveBackgroundTasks(opts: {
   const fsLike: FsLike = opts.fs ?? fs
   const nowMs = opts.nowMs ?? Date.now()
   const messageDir = getMessageDir(opts.storage.message, opts.mainSessionId)
-  const metas = readRecentMessageMetas(messageDir, 200, fsLike)
+  const metas = readRecentMessageMetas(messageDir, RECENT_MESSAGES_LIMIT, fsLike)
   const allSessionMetas = readAllSessionMetas(opts.storage.session, fsLike)
   const sessionMetaById = new Map(allSessionMetas.map((m) => [m.id, m] as const))
   const backgroundMessageCache = new Map<string, StoredMessageMeta[]>()
@@ -315,7 +321,7 @@ export function deriveBackgroundTasks(opts: {
     const cached = backgroundMessageCache.get(sessionId)
     if (cached) return cached
     const backgroundMessageDir = getMessageDir(opts.storage.message, sessionId)
-    const recent = readRecentMessageMetas(backgroundMessageDir, 200, fsLike)
+    const recent = readRecentMessageMetas(backgroundMessageDir, RECENT_MESSAGES_LIMIT, fsLike)
     backgroundMessageCache.set(sessionId, recent)
     return recent
   }

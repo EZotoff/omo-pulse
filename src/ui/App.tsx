@@ -404,6 +404,16 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
     [currentOrderIds, reorder]
   )
 
+  const handleSettingsOpen = useCallback(() => setActiveOverlay('settings'), [])
+  const handleManageProjectsOpen = useCallback(() => setActiveOverlay('projectManagement'), [])
+  const handleEmptyManageProjects = useCallback(() => setActiveOverlay('projectManagement'), [])
+  const handleTestSound = useCallback((event: "idle" | "complete" | "error" | "question") => {
+    if (event === 'idle') playWaiting()
+    if (event === 'complete') playAllClear()
+    if (event === 'error') playAttention()
+    if (event === 'question') playQuestion()
+  }, [playWaiting, playAllClear, playAttention, playQuestion])
+
   return (
     <div className="page" data-density={density}>
       <DashboardHeader
@@ -413,8 +423,8 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         onCollapseAll={collapseAll}
         columns={columns}
         onSetColumns={setColumns}
-        onSettingsOpen={() => setActiveOverlay('settings')}
-        onManageProjectsOpen={() => setActiveOverlay('projectManagement')}
+        onSettingsOpen={handleSettingsOpen}
+        onManageProjectsOpen={handleManageProjectsOpen}
         zoom={zoom}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
@@ -427,7 +437,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
           <div className="dashboard-empty">
             <span className="dashboard-empty__icon">⊘</span>
             <span>No registered projects found</span>
-            <button type="button" className="dashboard-empty__action" onClick={() => setActiveOverlay('projectManagement')}>
+            <button type="button" className="dashboard-empty__action" onClick={handleEmptyManageProjects}>
               Manage Projects
             </button>
           </div>
@@ -435,7 +445,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
           <div className="dashboard-empty">
             <span className="dashboard-empty__icon">⊘</span>
             <span>All projects hidden — adjust visibility in Manage Projects</span>
-            <button type="button" className="dashboard-empty__action" onClick={() => setActiveOverlay('projectManagement')}>
+            <button type="button" className="dashboard-empty__action" onClick={handleEmptyManageProjects}>
               Manage Projects
             </button>
           </div>
@@ -497,15 +507,10 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         onSetStripMode={setStripMode}
         soundConfig={soundConfig}
         onSoundConfigChange={setSoundConfig}
-        onTestSound={(event) => {
-          if (event === 'idle') playWaiting()
-          if (event === 'complete') playAllClear()
-          if (event === 'error') playAttention()
-          if (event === 'question') playQuestion()
-        }}
+        onTestSound={handleTestSound}
         open={activeOverlay === 'settings'}
         onClose={handleCloseOverlay}
-        onOpenProjectManagement={() => setActiveOverlay('projectManagement')}
+        onOpenProjectManagement={handleManageProjectsOpen}
         collapsedHeight={collapsedHeight}
         onCollapsedHeightChange={setCollapsedHeight}
         gridGap={gridGap}
@@ -524,7 +529,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         onReorder={reorder}
         onProjectAdded={refresh}
         onRefresh={refresh}
-        onOpenSettings={() => setActiveOverlay('settings')}
+        onOpenSettings={handleSettingsOpen}
       />
     </div>
   )

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import type React from "react"
 import { formatRelativeTime } from "./ProjectStrip"
 import type { ProjectSnapshot } from "../../types"
@@ -45,7 +45,7 @@ export function ProjectCard({
     }
   }, [isEditing, label])
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!editLabel.trim() || editLabel === label) {
       setIsEditing(false)
       return
@@ -67,18 +67,18 @@ export function ProjectCard({
     } finally {
       setIsSubmitting(false)
     }
-  }
+  }, [editLabel, label, project.sourceId, onRefresh])
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       handleSave()
     } else if (e.key === "Escape") {
       setIsEditing(false)
       setEditLabel(label)
     }
-  }
+  }, [handleSave, label])
 
-  const handleRemove = async () => {
+  const handleRemove = useCallback(async () => {
     setIsSubmitting(true)
     try {
       const res = await fetch(`/api/sources/${project.sourceId}`, {
@@ -92,7 +92,7 @@ export function ProjectCard({
     } finally {
       setIsSubmitting(false)
     }
-  }
+  }, [project.sourceId, onRefresh])
 
 
   return (

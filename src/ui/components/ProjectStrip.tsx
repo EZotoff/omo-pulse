@@ -134,7 +134,7 @@ type StripHeaderContentProps = {
   slots?: ProjectStripProps["children"]
 }
 
-function StripHeaderContent({ project, finalDisplayStatus, isStale, stripConfig, mainSession, gitUncommittedCount, unintiatedPlans, children, slots }: StripHeaderContentProps) {
+const StripHeaderContent = memo(function StripHeaderContent({ project, finalDisplayStatus, isStale, stripConfig, mainSession, gitUncommittedCount, unintiatedPlans, children, slots }: StripHeaderContentProps) {
   const slotContent = slots ?? children
   return (
     <>
@@ -193,7 +193,7 @@ function StripHeaderContent({ project, finalDisplayStatus, isStale, stripConfig,
       {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{mainSession.lastUpdated ? formatRelativeTime(new Date(mainSession.lastUpdated).getTime()) : "—"}</span>}
     </>
   )
-}
+})
 
 type StripMetricsProps = {
   project: ProjectSnapshot
@@ -204,7 +204,7 @@ type StripMetricsProps = {
   tokenUsage: ProjectSnapshot["tokenUsage"]
 }
 
-function StripMetrics({ project, mainSession, lastUpdatedMs, stripConfig, backgroundTasks, tokenUsage }: StripMetricsProps) {
+const StripMetrics = memo(function StripMetrics({ project, mainSession, lastUpdatedMs, stripConfig, backgroundTasks, tokenUsage }: StripMetricsProps) {
   return (
     <>
       <div className="strip-section">
@@ -314,7 +314,7 @@ function StripMetrics({ project, mainSession, lastUpdatedMs, stripConfig, backgr
       )}
     </>
   )
-}
+})
 
 type StripSessionsProps = {
   project: ProjectSnapshot
@@ -325,7 +325,7 @@ type StripSessionsProps = {
   slots?: ProjectStripProps["children"]
 }
 
-function StripSessions({ project, planProgress, unintiatedPlans, expandedUninitiatedPlans, onToggleUninitiatedPlan, slots }: StripSessionsProps) {
+const StripSessions = memo(function StripSessions({ project, planProgress, unintiatedPlans, expandedUninitiatedPlans, onToggleUninitiatedPlan, slots }: StripSessionsProps) {
   return (
     <>
       <div className="strip-section">
@@ -409,7 +409,7 @@ function StripSessions({ project, planProgress, unintiatedPlans, expandedUniniti
       )}
     </>
   )
-}
+})
 
 function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idleTimeoutMs, children }: ProjectStripProps) {
   const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount, unintiatedPlans } = project

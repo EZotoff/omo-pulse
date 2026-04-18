@@ -136,6 +136,8 @@ function mainStatusPill(status: string): string {
 // Shared sub-functions for payload builders
 // ---------------------------------------------------------------------------
 
+const DEFAULT_POLL_INTERVAL_MS = 2_000
+
 const DEFAULT_PLAN_PROGRESS = {
   total: 0,
   completed: 0,
@@ -496,7 +498,7 @@ export function createDashboardStore(opts: {
   pollIntervalMs?: number
 }): DashboardStore {
   const storage = getStorageRoots(opts.storageRoot)
-  const pollIntervalMs = opts.pollIntervalMs ?? 2000
+  const pollIntervalMs = opts.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS
 
   let lastComputedAt = 0
   let cached: DashboardPayload | null = null

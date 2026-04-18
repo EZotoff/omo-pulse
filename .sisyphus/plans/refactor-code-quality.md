@@ -1366,7 +1366,7 @@ Max Concurrent: 6 (Wave 4)
   - Files: `src/server/dashboard.ts`
   - Pre-commit: `bun run test && bunx tsc --noEmit`
 
-- [ ] 16. Split `deriveBackgroundTasksSqlite` + `deriveBackgroundTasks`
+- [x] 16. Split `deriveBackgroundTasksSqlite` + `deriveBackgroundTasks`
 
   **What to do**:
   - `deriveBackgroundTasksSqlite` (181 lines) mixes 4 concerns: session lookup, task extraction, status derivation, result assembly
@@ -1427,7 +1427,7 @@ Max Concurrent: 6 (Wave 4)
   - Files: `src/ingest/background-tasks.ts`
   - Pre-commit: `bun run test && bunx tsc --noEmit`
 
-- [ ] 17. Split `ProjectStripInner` into sub-components
+- [x] 17. Split `ProjectStripInner` into sub-components
 
   **What to do**:
   - `ProjectStripInner` (src/ui/components/ProjectStrip.tsx, 461 lines, 5 concerns): header section, session list, sparkline/metrics, plan progress, action buttons
@@ -1522,7 +1522,7 @@ Max Concurrent: 6 (Wave 4)
   - Files: `src/ui/components/ProjectStrip.tsx`
   - Pre-commit: `bun run test && bunx tsc --noEmit && bunx playwright test`
 
-- [ ] 18. Consolidate status derivation logic
+- [x] 18. Consolidate status derivation logic
 
   **What to do**:
   - Status derivation exists in 3 places: `session.ts` (file-based), `session-inclusion.ts` (SQLite), and `sqlite-derive.ts` (SQLite variant)
@@ -1602,7 +1602,7 @@ Max Concurrent: 6 (Wave 4)
 
 ### Wave 4 — Code Smells & React Performance
 
-- [ ] 19. Classify + fix 23 empty catch blocks across 6 files
+- [x] 19. Classify + fix 23 empty catch blocks across 6 files
 
   **What to do**:
   - Find all ~23 empty catch blocks across: `storage-backend.ts`, `session.ts`, `background-tasks.ts`, `boulder.ts`, `multi-project.ts`, `per-session-timeseries.ts`
@@ -1676,7 +1676,7 @@ Max Concurrent: 6 (Wave 4)
   - Files: `src/ingest/storage-backend.ts`, `src/ingest/session.ts`, `src/ingest/background-tasks.ts`, `src/ingest/boulder.ts`, `src/server/multi-project.ts`, `src/ingest/per-session-timeseries.ts`
   - Pre-commit: `bun run test && bunx tsc --noEmit`
 
-- [ ] 20. Extract magic numbers to named constants
+- [x] 20. Extract magic numbers to named constants
 
   **What to do**:
   - Find all magic numbers across the codebase: `ACTIVE_STALE_MS`, `ERROR_STALE_MS`, polling intervals, slice bounds, limit values, timeout durations
@@ -1732,7 +1732,7 @@ Max Concurrent: 6 (Wave 4)
   - Files: Multiple files across `src/ingest/`, `src/server/`
   - Pre-commit: `bun run test && bunx tsc --noEmit`
 
-- [ ] 21. Improve type safety — validate JSON.parse, remove unsafe casts
+- [x] 21. Improve type safety — validate JSON.parse, remove unsafe casts
 
   **What to do**:
   - `token-usage.ts:18` — `as unknown` cast — investigate and add proper type validation or type guard
@@ -1801,7 +1801,7 @@ Max Concurrent: 6 (Wave 4)
   - Files: `src/ingest/token-usage.ts`, `src/ingest/background-tasks.ts`, `src/ingest/sqlite-derive.ts`
   - Pre-commit: `bun run test && bunx tsc --noEmit`
 
-- [ ] 22. Memoize inline callbacks with `useCallback` in App.tsx, SettingsPanel.tsx, ProjectCard.tsx
+- [x] 22. Memoize inline callbacks with `useCallback` in App.tsx, SettingsPanel.tsx, ProjectCard.tsx
 
   **What to do**:
   - `App.tsx` lines 416-417, 438, 468, 500-505 — inline arrow functions in JSX → extract to `useCallback` hooks
@@ -1867,7 +1867,7 @@ Max Concurrent: 6 (Wave 4)
   - Files: `src/ui/App.tsx`, `src/ui/components/SettingsPanel.tsx`, `src/ui/components/ProjectCard.tsx`
   - Pre-commit: `bun run test && bunx tsc --noEmit`
 
-- [ ] 23. Add `memo()` to extracted sub-components + leaf components
+- [x] 23. Add `memo()` to extracted sub-components + leaf components
 
   **What to do**:
   - Wrap sub-components extracted from `ProjectStripInner` in Task 17 with `React.memo()`
@@ -1932,7 +1932,7 @@ Max Concurrent: 6 (Wave 4)
   - Files: `src/ui/components/ProjectStrip.tsx`, `src/ui/components/PlanProgress.tsx`, `src/ui/components/DashboardHeader.tsx`
   - Pre-commit: `bun run test && bunx tsc --noEmit`
 
-- [ ] 24. Remove dead code
+- [x] 24. Remove dead code
 
   **What to do**:
   - Remove dead `dirty` flag remnants if not already handled in Task 8 — verify with `grep -n "dirty" src/server/dashboard.ts`

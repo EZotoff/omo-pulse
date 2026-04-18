@@ -24,6 +24,8 @@ export type TimeSeriesPayload = {
   series: TimeSeriesSeries[]
 }
 
+const RECENT_MESSAGES_LIMIT = 200
+
 const SERIES_ORDER: Array<Pick<TimeSeriesSeries, "id" | "label" | "tone">> = [
   { id: "overall-main", label: "Overall", tone: "muted" },
   { id: "agent:sisyphus", label: "Sisyphus", tone: "teal" },
@@ -109,7 +111,7 @@ function bucketMessageTools(opts: {
   overall: number[]
   perAgent?: Record<Exclude<CanonicalAgent, "other">, number[]>
 }): void {
-  const metas = readRecentMessageMetas(opts.messageDir, 200)
+  const metas = readRecentMessageMetas(opts.messageDir, RECENT_MESSAGES_LIMIT)
   const ordered = [...metas].sort((a, b) => {
     const at = getCreated(a)
     const bt = getCreated(b)
@@ -147,7 +149,7 @@ function bucketBackgroundTools(opts: {
 }): void {
   for (const sessionId of opts.sessionIds) {
     const messageDir = getMessageDir(opts.storage.message, sessionId)
-    const metas = readRecentMessageMetas(messageDir, 200)
+    const metas = readRecentMessageMetas(messageDir, RECENT_MESSAGES_LIMIT)
     const ordered = [...metas].sort((a, b) => {
       const at = getCreated(a)
       const bt = getCreated(b)

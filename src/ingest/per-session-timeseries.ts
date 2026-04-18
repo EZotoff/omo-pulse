@@ -20,6 +20,7 @@ function withReadonlyDb<T>(sqlitePath: string, fn: (db: Database) => T): DeriveR
     try {
       db?.close()
     } catch {
+    // Expected: file may not exist or be malformed
     }
   }
 }
@@ -127,6 +128,7 @@ export function derivePerSessionTimeSeries(opts: {
       try {
         parsed = JSON.parse(row.data)
       } catch {
+        // Expected: file may not exist or be malformed
         continue
       }
       if (!parsed || typeof parsed !== "object") continue

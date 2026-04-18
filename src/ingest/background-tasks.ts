@@ -217,6 +217,84 @@ function isTaskTool(toolName: string): boolean {
   return TASK_TOOL_NAMES.has(toolName)
 }
 
+function resolveBackgroundSessionIdFiles(opts: {
+  part: StoredToolPart
+  runInBackground: boolean
+  rawDescription: string | null
+  subagentType: string | null
+  category: string | null
+  startedAt: number
+  mainSessionId: string
+  allSessionMetas: SessionMetadata[]
+  storage: OpenCodeStorageRoots
+  fsLike: FsLike
+}): string | null {
+  let backgroundSessionId: string | null = readToolStateSessionId(opts.part)
+
+  if (opts.runInBackground) {
+    if (!backgroundSessionId && opts.rawDescription) {
+      backgroundSessionId = findBackgroundSessionId({
+        allSessionMetas: opts.allSessionMetas,
+        parentSessionId: opts.mainSessionId,
+        description: opts.rawDescription,
+        subagentType: opts.subagentType,
+        category: opts.category,
+        startedAt: opts.startedAt,
+      })
+    }
+  } else {
+    const resume = (opts.part.state?.input as Record<string, unknown> | undefined)?.resume
+    if (typeof resume === "string" && resume.trim() !== "") {
+      const resumeMessageDir = getMessageDir(opts.storage.message, resume.trim())
+      if (opts.fsLike.existsSync(resumeMessageDir) && opts.fsLike.readdirSync(resumeMessageDir).length > 0) {
+        backgroundSessionId = resume.trim()
+      }
+    }
+    if (!backgroundSessionId && opts.rawDescription) {
+      backgroundSessionId = findBackgroundSessionId({
+        allSessionMetas: opts.allSessionMetas,
+        parentSessionId: opts.mainSessionId,
+        description: opts.rawDescription,
+        subagentType: opts.subagentType,
+        category: opts.category,
+        startedAt: opts.startedAt,
+      })
+      if (!backgroundSessionId) {
+        backgroundSessionId = findTaskSessionId({
+          allSessionMetas: opts.allSessionMetas,
+          parentSessionId: opts.mainSessionId,
+          description: opts.rawDescription,
+          subagentType: opts.subagentType,
+          category: opts.category,
+          startedAt: opts.startedAt,
+        })
+      }
+    }
+  }
+
+  return backgroundSessionId
+}
+
+function deriveBackgroundTaskStatusFiles(opts: {
+  backgroundSessionId: string | null
+  toolCalls: number
+  lastUpdateAt: number | null
+  pendingQuestionTool: string | null
+  startedAt: number
+  nowMs: number
+}): BackgroundTaskRow["status"] {
+  if (!opts.backgroundSessionId) {
+    return shouldKeepQueuedBackgroundTaskActive(opts.startedAt, opts.nowMs) ? "queued" : "unknown"
+  }
+  if (opts.toolCalls === 0 && opts.lastUpdateAt === null) {
+    return shouldKeepQueuedBackgroundTaskActive(opts.startedAt, opts.nowMs) ? "queued" : "unknown"
+  }
+  if (opts.pendingQuestionTool) return "question"
+  if (opts.lastUpdateAt && opts.nowMs - opts.lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) return "running"
+  if (opts.toolCalls > 0) return "completed"
+  return "unknown"
+}
+
 export function deriveBackgroundTasks(opts: {
   storage: OpenCodeStorageRoots
   mainSessionId: string
@@ -261,7 +339,6 @@ export function deriveBackgroundTasks(opts: {
 
   const rows: BackgroundTaskRow[] = []
 
-  // Iterate newest-first to cap list and keep latest tasks.
   const ordered = [...metas].sort((a, b) => (b.time?.created ?? 0) - (a.time?.created ?? 0))
   for (const meta of ordered) {
     const messageCreatedAt = meta.time?.created ?? null
@@ -294,57 +371,20 @@ export function deriveBackgroundTasks(opts: {
       const category = clampString((input as Record<string, unknown>).category, AGENT_MAX)
       const agent = subagentType ?? (category ? `sisyphus-junior (${category})` : "unknown")
 
-      let backgroundSessionId: string | null = null
-
-      // Use tool-call start time when available; message meta created can be much earlier.
       const startedAt = readStartTimeFromToolPart(part) ?? messageCreatedAt
 
-      backgroundSessionId = readToolStateSessionId(part)
-      
-      if (runInBackground) {
-        if (!backgroundSessionId && rawDescription) {
-          backgroundSessionId = findBackgroundSessionId({
-            allSessionMetas,
-            parentSessionId: opts.mainSessionId,
-            description: rawDescription,
-            subagentType,
-            category,
-            startedAt,
-          })
-        }
-      } else {
-        // For sync tasks, check if resume is specified
-        const resume = (input as Record<string, unknown>).resume
-        if (typeof resume === "string" && resume.trim() !== "") {
-          // Check if resumed session exists (has readable messages dir)
-          const resumeMessageDir = getMessageDir(opts.storage.message, resume.trim())
-          if (fsLike.existsSync(resumeMessageDir) && fsLike.readdirSync(resumeMessageDir).length > 0) {
-            backgroundSessionId = resume.trim()
-          }
-        }
-        
-        if (!backgroundSessionId && rawDescription) {
-          backgroundSessionId = findBackgroundSessionId({
-            allSessionMetas,
-            parentSessionId: opts.mainSessionId,
-            description: rawDescription,
-            subagentType,
-            category,
-            startedAt,
-          })
-          
-          if (!backgroundSessionId) {
-            backgroundSessionId = findTaskSessionId({
-              allSessionMetas,
-              parentSessionId: opts.mainSessionId,
-              description: rawDescription,
-              subagentType,
-              category,
-              startedAt,
-            })
-          }
-        }
-      }
+      const backgroundSessionId = resolveBackgroundSessionIdFiles({
+        part,
+        runInBackground: runInBackground === true,
+        rawDescription,
+        subagentType,
+        category,
+        startedAt,
+        mainSessionId: opts.mainSessionId,
+        allSessionMetas,
+        storage: opts.storage,
+        fsLike,
+      })
 
       const description = (
         clampString(rawDescription, DESCRIPTION_MAX) ??
@@ -362,19 +402,14 @@ export function deriveBackgroundTasks(opts: {
         : { toolCalls: 0, lastTool: null, lastUpdateAt: startedAt, pendingQuestionTool: null }
       const lastModel = backgroundSessionId ? readBackgroundModel(backgroundSessionId) : null
 
-      // Best-effort status: if background session exists and has any tool calls, treat as running unless idle.
-      let status: BackgroundTaskRow["status"] = "unknown"
-      if (!backgroundSessionId) {
-        status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
-      } else if (stats.toolCalls === 0 && stats.lastUpdateAt === null) {
-        status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
-      } else if (stats.pendingQuestionTool) {
-        status = "question"
-      } else if (stats.lastUpdateAt && nowMs - stats.lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) {
-        status = "running"
-      } else if (stats.toolCalls > 0) {
-        status = "completed"
-      }
+      const status = deriveBackgroundTaskStatusFiles({
+        backgroundSessionId,
+        toolCalls: stats.toolCalls,
+        lastUpdateAt: stats.lastUpdateAt,
+        pendingQuestionTool: stats.pendingQuestionTool,
+        startedAt,
+        nowMs,
+      })
 
       const timelineEndMs = status === "completed" ? (stats.lastUpdateAt ?? nowMs) : nowMs
 

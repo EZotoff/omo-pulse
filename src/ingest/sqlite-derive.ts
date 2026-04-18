@@ -382,6 +382,110 @@ export function getMainSessionViewSqlite(opts: {
   }
 }
 
+function resolveBackgroundSessionIdSqlite(opts: {
+  part: StoredToolPart
+  runInBackground: boolean
+  rawDescription: string
+  subagentType: string | null
+  category: string | null
+  startedAt: number
+  mainSessionId: string
+  allSessionMetas: SessionMetadata[]
+  readBackgroundSession: (sessionId: string) => SqliteDeriveResult<{ metas: StoredMessageMeta[]; partsByMessage: Map<string, StoredToolPart[]> }>
+}): SqliteDeriveResult<string | null> {
+  let backgroundSessionId: string | null = readToolStateSessionId(opts.part)
+
+  if (opts.runInBackground) {
+    if (!backgroundSessionId && opts.rawDescription) {
+      backgroundSessionId = findBackgroundSessionId({
+        allSessionMetas: opts.allSessionMetas,
+        parentSessionId: opts.mainSessionId,
+        description: opts.rawDescription,
+        subagentType: opts.subagentType,
+        category: opts.category,
+        startedAt: opts.startedAt,
+      })
+    }
+  } else {
+    const rec = (opts.part.state?.input ?? {}) as Record<string, unknown>
+    const resume = typeof rec.resume === "string" ? rec.resume.trim() : ""
+    if (resume) {
+      const resumed = opts.readBackgroundSession(resume)
+      if (!resumed.ok) return resumed
+      if (resumed.value.metas.length > 0) backgroundSessionId = resume
+    }
+    if (!backgroundSessionId && opts.rawDescription) {
+      backgroundSessionId = findBackgroundSessionId({
+        allSessionMetas: opts.allSessionMetas,
+        parentSessionId: opts.mainSessionId,
+        description: opts.rawDescription,
+        subagentType: opts.subagentType,
+        category: opts.category,
+        startedAt: opts.startedAt,
+      })
+      if (!backgroundSessionId) {
+        backgroundSessionId = findTaskSessionId({
+          allSessionMetas: opts.allSessionMetas,
+          parentSessionId: opts.mainSessionId,
+          description: opts.rawDescription,
+          subagentType: opts.subagentType,
+          category: opts.category,
+          startedAt: opts.startedAt,
+        })
+      }
+    }
+  }
+
+  return { ok: true, value: backgroundSessionId }
+}
+
+function computeBackgroundTaskStatsSqlite(
+  backgroundMetas: StoredMessageMeta[],
+  backgroundPartsByMessage: Map<string, StoredToolPart[]>
+): { toolCalls: number; lastTool: string | null; lastUpdateAt: number | null } {
+  let toolCalls = 0
+  let lastTool: string | null = null
+  let lastUpdateAt: number | null = null
+
+  const statsOrdered = [...backgroundMetas].sort((a, b) => {
+    const at = a.time?.created ?? 0
+    const bt = b.time?.created ?? 0
+    if (at !== bt) return at - bt
+    return String(a.id).localeCompare(String(b.id))
+  })
+  for (const backgroundMeta of statsOrdered) {
+    const created = backgroundMeta.time?.created
+    if (typeof created === "number") lastUpdateAt = created
+    const backgroundParts = backgroundPartsByMessage.get(backgroundMeta.id) ?? []
+    for (const backgroundPart of backgroundParts) {
+      toolCalls += 1
+      lastTool = backgroundPart.tool
+    }
+  }
+
+  return { toolCalls, lastTool, lastUpdateAt }
+}
+
+function deriveBackgroundTaskStatus(opts: {
+  backgroundSessionId: string | null
+  toolCalls: number
+  lastUpdateAt: number | null
+  pendingQuestionTool: string | null
+  startedAt: number
+  nowMs: number
+}): BackgroundTaskRow["status"] {
+  if (!opts.backgroundSessionId) {
+    return shouldKeepQueuedBackgroundTaskActive(opts.startedAt, opts.nowMs) ? "queued" : "unknown"
+  }
+  if (opts.toolCalls === 0 && opts.lastUpdateAt === null) {
+    return shouldKeepQueuedBackgroundTaskActive(opts.startedAt, opts.nowMs) ? "queued" : "unknown"
+  }
+  if (opts.pendingQuestionTool) return "question"
+  if (opts.lastUpdateAt && opts.nowMs - opts.lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) return "running"
+  if (opts.toolCalls > 0) return "completed"
+  return "unknown"
+}
+
 export function deriveBackgroundTasksSqlite(opts: {
   sqlitePath: string
   mainSessionId: string
@@ -450,50 +554,21 @@ export function deriveBackgroundTasksSqlite(opts: {
       const category = clampString(rec.category, AGENT_MAX)
       const agent = subagentType ?? (category ? `sisyphus-junior (${category})` : "unknown")
 
-      let backgroundSessionId: string | null = null
       const startedAt = readStartTimeFromToolPart(part) ?? messageCreatedAt
 
-      backgroundSessionId = readToolStateSessionId(part)
-
-      if (runInBackground) {
-        if (!backgroundSessionId && rawDescription) {
-          backgroundSessionId = findBackgroundSessionId({
-            allSessionMetas,
-            parentSessionId: opts.mainSessionId,
-            description: rawDescription,
-            subagentType,
-            category,
-            startedAt,
-          })
-        }
-      } else {
-        const resume = typeof rec.resume === "string" ? rec.resume.trim() : ""
-        if (resume) {
-          const resumed = readBackgroundSession(resume)
-          if (!resumed.ok) return resumed
-          if (resumed.value.metas.length > 0) backgroundSessionId = resume
-        }
-        if (!backgroundSessionId && rawDescription) {
-          backgroundSessionId = findBackgroundSessionId({
-            allSessionMetas,
-            parentSessionId: opts.mainSessionId,
-            description: rawDescription,
-            subagentType,
-            category,
-            startedAt,
-          })
-          if (!backgroundSessionId) {
-            backgroundSessionId = findTaskSessionId({
-              allSessionMetas,
-              parentSessionId: opts.mainSessionId,
-              description: rawDescription,
-              subagentType,
-              category,
-              startedAt,
-            })
-          }
-        }
-      }
+      const resolvedId = resolveBackgroundSessionIdSqlite({
+        part,
+        runInBackground: runInBackground === true,
+        rawDescription,
+        subagentType,
+        category,
+        startedAt,
+        mainSessionId: opts.mainSessionId,
+        allSessionMetas,
+        readBackgroundSession,
+      })
+      if (!resolvedId.ok) return resolvedId
+      const backgroundSessionId = resolvedId.value
 
       const description = (
         clampString(rawDescription, DESCRIPTION_MAX) ??
@@ -512,40 +587,10 @@ export function deriveBackgroundTasksSqlite(opts: {
       const backgroundPartsByMessage = background && background.ok ? background.value.partsByMessage : new Map<string, StoredToolPart[]>()
       const pendingQuestionTool = findPendingQuestionTool(backgroundMetas, backgroundPartsByMessage)
 
-      let toolCalls = 0
-      let lastTool: string | null = null
-      let lastUpdateAt: number | null = null
-
-      const statsOrdered = [...backgroundMetas].sort((a, b) => {
-        const at = a.time?.created ?? 0
-        const bt = b.time?.created ?? 0
-        if (at !== bt) return at - bt
-        return String(a.id).localeCompare(String(b.id))
-      })
-      for (const backgroundMeta of statsOrdered) {
-        const created = backgroundMeta.time?.created
-        if (typeof created === "number") lastUpdateAt = created
-        const backgroundParts = backgroundPartsByMessage.get(backgroundMeta.id) ?? []
-        for (const backgroundPart of backgroundParts) {
-          toolCalls += 1
-          lastTool = backgroundPart.tool
-        }
-      }
-
+      const { toolCalls, lastTool, lastUpdateAt } = computeBackgroundTaskStatsSqlite(backgroundMetas, backgroundPartsByMessage)
       const lastModel = backgroundMetas.length > 0 ? pickLatestModelString(backgroundMetas) : null
-      let status: BackgroundTaskRow["status"] = "unknown"
-      if (!backgroundSessionId) {
-        status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
-      } else if (toolCalls === 0 && lastUpdateAt === null) {
-        status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
-      } else if (pendingQuestionTool) {
-        status = "question"
-      } else if (lastUpdateAt && nowMs - lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) {
-        status = "running"
-      } else if (toolCalls > 0) {
-        status = "completed"
-      }
 
+      const status = deriveBackgroundTaskStatus({ backgroundSessionId, toolCalls, lastUpdateAt, pendingQuestionTool, startedAt, nowMs })
       const timelineEndMs = status === "completed" ? (lastUpdateAt ?? nowMs) : nowMs
 
       rows.push({

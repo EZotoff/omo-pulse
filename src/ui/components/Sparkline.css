@@ -25,23 +25,23 @@
 
 /* Tone colors — gradient fills + glow vars */
 .sparkline-bar--teal {
-  --glow-color: rgba(0, 212, 170, 0.6);
+  --glow-color: var(--sparkline-glow-teal);
 }
 
 .sparkline-bar--red {
-  --glow-color: rgba(255, 107, 107, 0.6);
+  --glow-color: var(--sparkline-glow-red);
 }
 
 .sparkline-bar--green {
-  --glow-color: rgba(78, 205, 196, 0.6);
+  --glow-color: var(--sparkline-glow-green);
 }
 
 .sparkline-bar--sand {
-  --glow-color: rgba(217, 70, 239, 0.6);
+  --glow-color: var(--sparkline-glow-sand);
 }
 
 .sparkline-bar--muted {
-  --glow-color: rgba(102, 102, 128, 0.4);
+  --glow-color: var(--sparkline-glow-muted);
 }
 
 /* ── Hover interaction (CSS-only) ── */
@@ -59,26 +59,26 @@
 }
 
 .sparkline-glow--teal {
-  fill: rgba(6, 182, 212, 0.8);
+  fill: var(--sparkline-fill-teal);
   filter: drop-shadow(0 0 6px rgba(6, 182, 212, var(--sparkline-glow-intensity, 0.7)));
 }
 
 .sparkline-glow--red {
-  fill: rgba(239, 68, 68, 0.8);
+  fill: var(--sparkline-fill-red);
   filter: drop-shadow(0 0 6px rgba(239, 68, 68, var(--sparkline-glow-intensity, 0.7)));
 }
 
 .sparkline-glow--green {
-  fill: rgba(16, 185, 129, 0.8);
+  fill: var(--sparkline-fill-green);
   filter: drop-shadow(0 0 6px rgba(16, 185, 129, var(--sparkline-glow-intensity, 0.7)));
 }
 
 .sparkline-glow--sand {
-  fill: rgba(217, 70, 239, 0.8);
+  fill: var(--sparkline-fill-sand);
   filter: drop-shadow(0 0 6px rgba(217, 70, 239, var(--sparkline-glow-intensity, 0.7)));
 }
 
 .sparkline-glow--muted {
-  fill: rgba(148, 163, 184, 0.5);
-  filter: drop-shadow(0 0 4px rgba(148, 163, 184, 0.4));
+  fill: var(--sparkline-fill-muted);
+  filter: drop-shadow(0 0 4px var(--sparkline-drop-shadow-muted));
 }

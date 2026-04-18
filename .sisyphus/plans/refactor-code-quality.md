@@ -1229,7 +1229,7 @@ Max Concurrent: 6 (Wave 4)
 
 ### Wave 3 — Function & Component Splitting
 
-- [ ] 14. Split `buildDashboardPayload` into sub-functions
+- [x] 14. Split `buildDashboardPayload` into sub-functions
 
   **What to do**:
   - `buildDashboardPayload` (src/server/dashboard.ts:297, 194 lines) mixes 6 concerns: session data, background tasks, timeseries, token usage, todos, plan/boulder data
@@ -1307,7 +1307,7 @@ Max Concurrent: 6 (Wave 4)
   - Files: `src/server/dashboard.ts`
   - Pre-commit: `bun run test && bunx tsc --noEmit`
 
-- [ ] 15. Split `buildDashboardPayloadFiles` into sub-functions
+- [x] 15. Split `buildDashboardPayloadFiles` into sub-functions
 
   **What to do**:
   - `buildDashboardPayloadFiles` (src/server/dashboard.ts:150, 140 lines) — same treatment as Task 14 but for the file-based variant

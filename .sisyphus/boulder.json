@@ -1,9 +1,32 @@
 {
-  "active_plan": "/home/ezotoff/AI_projects/ez-omo-dash/.sisyphus/plans/dashboard-v3-upgrades.md",
-  "started_at": "2026-03-01T17:30:44.521Z",
+  "active_plan": "/home/ezotoff/AI_projects/ez-omo-dash/.sisyphus/plans/refactor-code-quality.md",
+  "started_at": "2026-04-18T16:11:44.288Z",
   "session_ids": [
-    "ses_3558c286effeoTkGhqOuOlBIxf"
+    "ses_25ea33cf8ffemb8dXVNlOcgy0o"
   ],
-  "plan_name": "dashboard-v3-upgrades",
-  "agent": "atlas"
+  "session_origins": {
+    "ses_25ea33cf8ffemb8dXVNlOcgy0o": "direct"
+  },
+  "plan_name": "refactor-code-quality",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "Characterization tests for dashboard payload functions",
+      "session_id": "ses_25ea06a82ffeX04VnNb3yTRO3r",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-18T16:20:08.014Z"
+    },
+    "todo:4": {
+      "task_key": "todo:4",
+      "task_label": "4",
+      "task_title": "Extract shared formatting utils to `src/ingest/format-utils.ts`",
+      "session_id": "ses_25e54896affepmoMAEx9UBI8Sb",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-18T18:07:42.982Z"
+    }
+  }
 }

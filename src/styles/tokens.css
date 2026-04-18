@@ -19,6 +19,16 @@
   /* Borders */
   --border-primary: #2a2a3e;
   --border-secondary: #1e1e30;
+  --border-subtle: #1e1e30;
+  
+  --accent-primary-alpha: rgba(0, 212, 170, 0.5);
+
+  --z-base: 1;
+  --z-raised: 2;
+  --z-sticky: 6;
+  --z-dropdown: 10;
+  --z-overlay: 900;
+  --z-overlay-above: 901;
 
   /* Typography */
   --font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -106,6 +116,8 @@
 
   --border-primary: #d8d8e8;
   --border-secondary: #e8e8f0;
+  --border-subtle: #e8e8f0;
+  --accent-primary-alpha: rgba(15, 155, 122, 0.4);
 
   --status-busy: #0f9b7a;
   --status-idle: #8888a0;

@@ -1,9 +1,9 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
-import type { BoulderHistoryEntry, BoulderState, UnintiatedPlan } from "~/types"
+import type { BoulderHistoryEntry, BoulderState, PlanStep, UninitiatedPlan } from "~/types"
 import { assertAllowedPath } from "./paths"
 
-export type { BoulderState }
+export type { BoulderState, PlanStep }
 
 export type PlanProgress = {
   total: number
@@ -12,11 +12,6 @@ export type PlanProgress = {
   missing: boolean
   planStale: boolean
   planComplete: boolean
-}
-
-export type PlanStep = {
-  checked: boolean
-  text: string
 }
 
 export function readBoulderState(projectRoot: string): BoulderState | null {
@@ -165,7 +160,7 @@ export function readPlanSteps(projectRoot: string, planPath: string): { missing:
   }
 }
 
-export function scanUnintiatedPlans(projectRoot: string, activePlanPath: string | null): UnintiatedPlan[] {
+export function scanUninitiatedPlans(projectRoot: string, activePlanPath: string | null): UninitiatedPlan[] {
   const plansDir = path.join(projectRoot, ".sisyphus", "plans")
 
   if (!fs.existsSync(plansDir)) {
@@ -182,7 +177,7 @@ export function scanUnintiatedPlans(projectRoot: string, activePlanPath: string 
     }
   }
 
-  const results: UnintiatedPlan[] = []
+  const results: UninitiatedPlan[] = []
 
   try {
     const files = fs.readdirSync(plansDir, { withFileTypes: true })

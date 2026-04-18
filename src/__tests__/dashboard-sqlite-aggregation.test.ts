@@ -5,7 +5,7 @@ const {
   mockReadBoulderHistory,
   mockReadPlanProgress,
   mockReadPlanSteps,
-  mockScanUnintiatedPlans,
+  mockScanUninitiatedPlans,
   mockPickActiveSessionIdSqlite,
   mockGetMainSessionViewSqlite,
   mockDeriveBackgroundTasksSqlite,
@@ -19,7 +19,7 @@ const {
   mockReadBoulderHistory: vi.fn(),
   mockReadPlanProgress: vi.fn(),
   mockReadPlanSteps: vi.fn(),
-  mockScanUnintiatedPlans: vi.fn(),
+  mockScanUninitiatedPlans: vi.fn(),
   mockPickActiveSessionIdSqlite: vi.fn(),
   mockGetMainSessionViewSqlite: vi.fn(),
   mockDeriveBackgroundTasksSqlite: vi.fn(),
@@ -35,7 +35,7 @@ vi.mock("../ingest/boulder", () => ({
   readBoulderHistory: mockReadBoulderHistory,
   readPlanProgress: mockReadPlanProgress,
   readPlanSteps: mockReadPlanSteps,
-  scanUnintiatedPlans: mockScanUnintiatedPlans,
+  scanUninitiatedPlans: mockScanUninitiatedPlans,
 }))
 
 vi.mock("../ingest/sqlite-derive", () => ({
@@ -69,7 +69,7 @@ describe("buildDashboardPayload SQLite uninitiated plans", () => {
     })
     mockReadPlanSteps.mockReturnValue({ missing: true, steps: [] })
     mockReadBoulderHistory.mockReturnValue([])
-    mockScanUnintiatedPlans.mockReturnValue([
+    mockScanUninitiatedPlans.mockReturnValue([
       {
         name: "new-feature",
         path: ".sisyphus/plans/new-feature.md",

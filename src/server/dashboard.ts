@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite"
 import * as fs from "node:fs"
 import { deriveBackgroundTasks } from "../ingest/background-tasks"
 import * as boulderModule from "../ingest/boulder"
-import { type PlanStep, readBoulderState, readPlanProgress, readPlanSteps, scanUnintiatedPlans } from "../ingest/boulder"
+import { type PlanStep, readBoulderState, readPlanProgress, readPlanSteps, scanUninitiatedPlans } from "../ingest/boulder"
 import {
   getMainSessionView,
   getStorageRoots,
@@ -26,7 +26,7 @@ import { readMainSessionMetasSqlite } from "../ingest/storage-backend"
 import { deriveTimeSeriesActivity, type TimeSeriesPayload } from "../ingest/timeseries"
 import { deriveTokenUsage } from "../ingest/token-usage"
 import { deriveToolCalls } from "../ingest/tool-calls"
-import type { PlanHistory, UnintiatedPlan } from "../types"
+import type { PlanHistory, UninitiatedPlan } from "../types"
 
 // ---------------------------------------------------------------------------
 // Payload types
@@ -54,7 +54,7 @@ export type DashboardPayload = {
     boulderStatus?: string
     completedAt?: string
   }
-  unintiatedPlans: UnintiatedPlan[]
+  unintiatedPlans: UninitiatedPlan[]
   planHistory?: PlanHistory
   backgroundTasks: Array<{
     id: string
@@ -174,7 +174,7 @@ function buildDashboardPayloadFiles(opts: {
   const planPath = boulder?.active_plan ?? ""
   const plan = boulder ? readPlanProgress(opts.projectRoot, boulder.active_plan, nowMs) : { total: 0, completed: 0, isComplete: false, missing: true, planStale: false, planComplete: false }
   const planSteps = boulder ? readPlanSteps(opts.projectRoot, boulder.active_plan) : { missing: true, steps: [] as PlanStep[] }
-  const unintiatedPlans = scanUnintiatedPlans(opts.projectRoot, boulder?.active_plan ?? null)
+  const unintiatedPlans = scanUninitiatedPlans(opts.projectRoot, boulder?.active_plan ?? null)
   const planHistory = readBoulderHistorySafe(opts.projectRoot)
 
   const sessionId = pickActiveSessionId({
@@ -336,7 +336,7 @@ export function buildDashboardPayload(opts: {
   const planPath = boulder?.active_plan ?? ""
   const plan = boulder ? readPlanProgress(opts.projectRoot, boulder.active_plan, nowMs) : { total: 0, completed: 0, isComplete: false, missing: true, planStale: false, planComplete: false }
   const planSteps = boulder ? readPlanSteps(opts.projectRoot, boulder.active_plan) : { missing: true, steps: [] as PlanStep[] }
-  const unintiatedPlans = scanUnintiatedPlans(opts.projectRoot, boulder?.active_plan ?? null)
+  const unintiatedPlans = scanUninitiatedPlans(opts.projectRoot, boulder?.active_plan ?? null)
   const planHistory = readBoulderHistorySafe(opts.projectRoot)
 
   let db: Database

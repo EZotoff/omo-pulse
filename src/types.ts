@@ -25,7 +25,7 @@ export type PlanStep = {
 }
 
 /** Uninitiated plan (zero-completion state) */
-export type UnintiatedPlan = {
+export type UninitiatedPlan = {
   name: string
   path: string
   total: number
@@ -184,7 +184,7 @@ export type ProjectSnapshot = {
     boulderStatus?: "active" | "completed"
     completedAt?: string
   }
-  unintiatedPlans: UnintiatedPlan[]
+  unintiatedPlans: UninitiatedPlan[]
   planHistory?: PlanHistory
   timeSeries: TimeSeriesPayload
   backgroundTasks: BackgroundTaskSummary[]

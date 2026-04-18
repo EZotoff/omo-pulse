@@ -81,9 +81,24 @@ export function loadRegistry(storageRoot: string): SourcesRegistry {
   }
 }
 
+const listSourcesCache = new Map<string, { mtime: number; result: SourceListItem[] }>()
+
 export function listSources(storageRoot: string): SourceListItem[] {
+  const registryPath = getRegistryPath(storageRoot)
+  let mtime = 0
+  try {
+    mtime = fs.statSync(registryPath).mtimeMs
+  } catch {
+    // File doesn't exist — will return empty result below
+  }
+
+  const cached = listSourcesCache.get(storageRoot)
+  if (cached && cached.mtime === mtime) {
+    return cached.result
+  }
+
   const registry = loadRegistry(storageRoot)
-  return Object.values(registry.sources)
+  const result = Object.values(registry.sources)
     .map((source) => ({
       id: source.id,
       label: source.label,
@@ -93,6 +108,9 @@ export function listSources(storageRoot: string): SourceListItem[] {
       if (b.updatedAt !== a.updatedAt) return b.updatedAt - a.updatedAt
       return a.id.localeCompare(b.id)
     })
+
+  listSourcesCache.set(storageRoot, { mtime, result })
+  return result
 }
 
 export function getDefaultSourceId(storageRoot: string): string | null {

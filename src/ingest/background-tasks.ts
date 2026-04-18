@@ -1,10 +1,12 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
 import { BACKGROUND_RUNNING_WINDOW_MS, shouldKeepQueuedBackgroundTaskActive } from "./activity-status"
+import { formatElapsed, formatIsoNoMs, formatTimeline } from "./format-utils"
 import type { OpenCodeStorageRoots, SessionMetadata, StoredMessageMeta, StoredToolPart } from "./session"
 import { getMessageDir } from "./session"
 import { pickLatestModelString } from "./model"
 import { isPendingQuestionTool } from "./tool-names"
+import { findBackgroundSessionId, findTaskSessionId } from "./sqlite-utils"
 
 type FsLike = Pick<typeof fs, "readFileSync" | "readdirSync" | "existsSync" | "statSync"> 
 
@@ -159,127 +161,6 @@ export function readAllSessionMetas(sessionStorage: string, fsLike: FsLike = fs)
   return metas
 }
 
-function findBackgroundSessionId(opts: {
-  allSessionMetas: SessionMetadata[]
-  parentSessionId: string
-  description: string
-  subagentType?: string | null
-  category?: string | null
-  startedAt: number
-}): string | null {
-  const description = opts.description
-  const subagentType = typeof opts.subagentType === "string" && opts.subagentType.trim() ? opts.subagentType.trim() : null
-
-  // OpenCode/oh-my-opencode session title formats have changed over time.
-  // Prefer exact matches, but allow safe fallbacks within a bounded time window.
-  const expectedTitles = [
-    // Legacy
-    `Background: ${description}`,
-    // Current (observed): "<description> (@<subagent> subagent)"
-    ...(subagentType ? [`${description} (@${subagentType} subagent)`] : []),
-    // Best-effort fallback (older sync style can leak into bg)
-    `Task: ${description}`,
-  ]
-
-  const windowStart = opts.startedAt - 10_000
-  // Background tasks can remain queued before a child session is created.
-  const windowEnd = opts.startedAt + 15 * 60_000
-
-  const candidates = opts.allSessionMetas.filter(
-    (m) =>
-      m.parentID === opts.parentSessionId &&
-      m.time?.created >= windowStart &&
-      m.time?.created <= windowEnd
-  )
-
-  // Prefer exact title matches (most precise).
-  const exact = candidates.filter((m) => typeof m.title === "string" && expectedTitles.includes(m.title))
-  const pool = exact.length > 0
-    ? exact
-    : candidates.filter((m) => {
-        const t = typeof m.title === "string" ? m.title : ""
-        if (!t) return false
-        if (subagentType && t.startsWith(description) && t.includes(`@${subagentType}`)) return true
-        return t.startsWith(description)
-      })
-
-  const poolFallback = pool.length > 0 ? pool : candidates
-
-  // Deterministic tie-breaking: max by time.created, then lexicographic id
-  poolFallback.sort((a, b) => {
-    const at = a.time?.created ?? 0
-    const bt = b.time?.created ?? 0
-
-    // Prefer the closest session to the tool start time (covers long queue delays).
-    const ad = Math.abs(at - opts.startedAt)
-    const bd = Math.abs(bt - opts.startedAt)
-    if (ad !== bd) return ad - bd
-
-    // Then prefer newer.
-    if (bt !== at) return bt - at
-
-    // Finally stable by id.
-    return String(a.id).localeCompare(String(b.id))
-  })
-  return poolFallback[0]?.id ?? null
-}
-
-function findTaskSessionId(opts: {
-  allSessionMetas: SessionMetadata[]
-  parentSessionId: string
-  description: string
-  subagentType?: string | null
-  category?: string | null
-  startedAt: number
-}): string | null {
-  const description = opts.description
-  const subagentType = typeof opts.subagentType === "string" && opts.subagentType.trim() ? opts.subagentType.trim() : null
-
-  const expectedTitles = [
-    // Legacy
-    `Task: ${description}`,
-    // Current (observed): "<description> (@<subagent> subagent)"
-    ...(subagentType ? [`${description} (@${subagentType} subagent)`] : []),
-    // Best-effort fallback
-    `Background: ${description}`,
-  ]
-
-  const windowStart = opts.startedAt - 10_000
-  const windowEnd = opts.startedAt + 15 * 60_000
-
-  const candidates = opts.allSessionMetas.filter(
-    (m) =>
-      m.parentID === opts.parentSessionId &&
-      m.time?.created >= windowStart &&
-      m.time?.created <= windowEnd
-  )
-
-  const exact = candidates.filter((m) => typeof m.title === "string" && expectedTitles.includes(m.title))
-  const pool = exact.length > 0
-    ? exact
-    : candidates.filter((m) => {
-        const t = typeof m.title === "string" ? m.title : ""
-        if (!t) return false
-        if (subagentType && t.startsWith(description) && t.includes(`@${subagentType}`)) return true
-        return t.startsWith(description)
-      })
-
-  const poolFallback = pool.length > 0 ? pool : candidates
-
-  poolFallback.sort((a, b) => {
-    const at = a.time?.created ?? 0
-    const bt = b.time?.created ?? 0
-
-    const ad = Math.abs(at - opts.startedAt)
-    const bd = Math.abs(bt - opts.startedAt)
-    if (ad !== bd) return ad - bd
-
-    if (bt !== at) return bt - at
-    return String(a.id).localeCompare(String(b.id))
-  })
-  return poolFallback[0]?.id ?? null
-}
-
 function deriveBackgroundSessionStats(
   storage: OpenCodeStorageRoots,
   metas: StoredMessageMeta[],
@@ -328,33 +209,6 @@ function deriveBackgroundSessionStats(
   }
 
   return { toolCalls, lastTool, lastUpdateAt, pendingQuestionTool }
-}
-
-function formatIsoNoMs(ts: number): string {
-  const iso = new Date(ts).toISOString()
-  return iso.replace(/\.\d{3}Z$/, "Z")
-}
-
-function formatElapsed(ms: number): string {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
-  const seconds = totalSeconds % 60
-  const totalMinutes = Math.floor(totalSeconds / 60)
-  const minutes = totalMinutes % 60
-  const totalHours = Math.floor(totalMinutes / 60)
-  const hours = totalHours % 24
-  const days = Math.floor(totalHours / 24)
-
-  if (days > 0) return hours > 0 ? `${days}d${hours}h` : `${days}d`
-  if (totalHours > 0) return minutes > 0 ? `${totalHours}h${minutes}m` : `${totalHours}h`
-  if (totalMinutes > 0) return seconds > 0 ? `${totalMinutes}m${seconds}s` : `${totalMinutes}m`
-  return `${seconds}s`
-}
-
-function formatTimeline(startAt: number | null, endAtMs: number): string {
-  if (typeof startAt !== "number") return ""
-  const start = formatIsoNoMs(startAt)
-  const elapsed = formatElapsed(endAtMs - startAt)
-  return `${start}: ${elapsed}`
 }
 
 const TASK_TOOL_NAMES = new Set(["delegate_task", "task", "call_omo_agent", "background_task"])

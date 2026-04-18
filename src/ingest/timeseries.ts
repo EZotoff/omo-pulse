@@ -1,5 +1,7 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
+import type { CanonicalAgent } from "../types"
+import { canonicalizeAgent } from "./format-utils"
 import type { OpenCodeStorageRoots, StoredMessageMeta } from "./session"
 import { getMessageDir } from "./session"
 import { readAllSessionMetas } from "./background-tasks"
@@ -21,8 +23,6 @@ export type TimeSeriesPayload = {
   serverNowMs: number
   series: TimeSeriesSeries[]
 }
-
-type CanonicalAgent = "sisyphus" | "prometheus" | "atlas" | "other"
 
 const SERIES_ORDER: Array<Pick<TimeSeriesSeries, "id" | "label" | "tone">> = [
   { id: "overall-main", label: "Overall", tone: "muted" },
@@ -88,18 +88,6 @@ function countToolParts(partStorage: string, messageId: string): number {
     if (part && part.type === "tool") count += 1
   }
   return count
-}
-
-function canonicalizeAgent(agent: unknown): CanonicalAgent {
-  if (typeof agent !== "string") return "other"
-  const trimmed = agent.trim()
-  if (!trimmed) return "other"
-  const lowered = trimmed.toLowerCase()
-  if (lowered.startsWith("sisyphus-junior")) return "sisyphus"
-  if (lowered.startsWith("sisyphus")) return "sisyphus"
-  if (lowered.startsWith("prometheus")) return "prometheus"
-  if (lowered.startsWith("atlas")) return "atlas"
-  return "other"
 }
 
 function addToBucket(values: number[], bucketIndex: number, count: number): void {

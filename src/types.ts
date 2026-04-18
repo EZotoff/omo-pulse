@@ -15,6 +15,8 @@ export type SourceRegistryEntry = {
 /** Session status from MainSessionView */
 export type SessionStatus = "busy" | "idle" | "thinking" | "running_tool" | "question" | "plan_complete" | "error" | "unknown"
 
+export type CanonicalAgent = "sisyphus" | "prometheus" | "atlas" | "other"
+
 /** Plan status based on progress */
 export type PlanStatus = "not started" | "in progress" | "complete"
 

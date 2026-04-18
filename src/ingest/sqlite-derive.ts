@@ -9,6 +9,7 @@ import {
   shouldKeepQueuedBackgroundTaskActive,
 } from "./activity-status"
 import type { BackgroundTaskRow } from "./background-tasks"
+import { canonicalizeAgent, formatElapsed, formatIsoNoMs, formatTimeline, normalizeSessionIds } from "./format-utils"
 import { pickLatestModelString } from "./model"
 import type { MainSessionView, SessionMetadata, StoredMessageMeta, StoredToolPart } from "./session"
 import {
@@ -21,6 +22,7 @@ import {
   type SqliteReadFailureReason,
   type TodoItem,
 } from "./storage-backend"
+import { findBackgroundSessionId, findTaskSessionId } from "./sqlite-utils"
 import { aggregateTokenUsage } from "./token-usage-core"
 import { MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS, type ToolCallSummaryResult } from "./tool-calls"
 import { isPendingQuestionTool, TASK_TOOL_NAMES } from "./tool-names"
@@ -35,8 +37,6 @@ const AGENT_MAX = 30
 const SESSION_ID_MAX = 200
 const TOKEN_USAGE_MESSAGE_LIMIT = 10_000
 
-type CanonicalAgent = "sisyphus" | "prometheus" | "atlas" | "other"
-
 const SERIES_ORDER: Array<Pick<TimeSeriesSeries, "id" | "label" | "tone">> = [
   { id: "overall-main", label: "Overall", tone: "muted" },
   { id: "agent:sisyphus", label: "Sisyphus", tone: "teal" },
@@ -44,21 +44,6 @@ const SERIES_ORDER: Array<Pick<TimeSeriesSeries, "id" | "label" | "tone">> = [
   { id: "agent:atlas", label: "Atlas", tone: "green" },
   { id: "background-total", label: "Background tasks (total)", tone: "muted" },
 ]
-
-function normalizeSessionIds(values: Array<string | null | undefined>): string[] {
-  const sessionIds: string[] = []
-  const seen = new Set<string>()
-
-  for (const value of values) {
-    if (typeof value !== "string") continue
-    const id = value.trim()
-    if (!id || seen.has(id)) continue
-    seen.add(id)
-    sessionIds.push(id)
-  }
-
-  return sessionIds
-}
 
 function createEmptyTimeSeriesPayload(opts: {
   nowMs: number
@@ -154,33 +139,6 @@ function stripSessionTitlePrefix(title: string): string {
   return /^(undefined|null)(\b|\s)/i.test(stripped) ? "" : stripped
 }
 
-function formatIsoNoMs(ts: number): string {
-  const iso = new Date(ts).toISOString()
-  return iso.replace(/\.\d{3}Z$/, "Z")
-}
-
-function formatElapsed(ms: number): string {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
-  const seconds = totalSeconds % 60
-  const totalMinutes = Math.floor(totalSeconds / 60)
-  const minutes = totalMinutes % 60
-  const totalHours = Math.floor(totalMinutes / 60)
-  const hours = totalHours % 24
-  const days = Math.floor(totalHours / 24)
-
-  if (days > 0) return hours > 0 ? `${days}d${hours}h` : `${days}d`
-  if (totalHours > 0) return minutes > 0 ? `${totalHours}h${minutes}m` : `${totalHours}h`
-  if (totalMinutes > 0) return seconds > 0 ? `${totalMinutes}m${seconds}s` : `${totalMinutes}m`
-  return `${seconds}s`
-}
-
-function formatTimeline(startAt: number | null, endAtMs: number): string {
-  if (typeof startAt !== "number") return ""
-  const start = formatIsoNoMs(startAt)
-  const elapsed = formatElapsed(endAtMs - startAt)
-  return `${start}: ${elapsed}`
-}
-
 function isTaskTool(toolName: string): boolean {
   return TASK_TOOL_NAMES.has(toolName)
 }
@@ -244,18 +202,6 @@ function readSessionMessagesAndParts(opts: {
   }
 }
 
-function canonicalizeAgent(agent: unknown): CanonicalAgent {
-  if (typeof agent !== "string") return "other"
-  const trimmed = agent.trim()
-  if (!trimmed) return "other"
-  const lowered = trimmed.toLowerCase()
-  if (lowered.startsWith("sisyphus-junior")) return "sisyphus"
-  if (lowered.startsWith("sisyphus")) return "sisyphus"
-  if (lowered.startsWith("prometheus")) return "prometheus"
-  if (lowered.startsWith("atlas")) return "atlas"
-  return "other"
-}
-
 function addToBucket(values: number[], bucketIndex: number, count: number): void {
   if (bucketIndex < 0 || bucketIndex >= values.length) return
   values[bucketIndex] += count
@@ -268,103 +214,6 @@ function getCreated(meta: StoredMessageMeta): number {
 
 function zeroBuckets(size: number): number[] {
   return Array.from({ length: size }, () => 0)
-}
-
-function findBackgroundSessionId(opts: {
-  allSessionMetas: SessionMetadata[]
-  parentSessionId: string
-  description: string
-  subagentType?: string | null
-  category?: string | null
-  startedAt: number
-}): string | null {
-  const description = opts.description
-  const subagentType = typeof opts.subagentType === "string" && opts.subagentType.trim() ? opts.subagentType.trim() : null
-  const expectedTitles = [
-    `Background: ${description}`,
-    ...(subagentType ? [`${description} (@${subagentType} subagent)`] : []),
-    `Task: ${description}`,
-  ]
-
-  const windowStart = opts.startedAt - 10_000
-  const windowEnd = opts.startedAt + 15 * 60_000
-
-  const candidates = opts.allSessionMetas.filter(
-    (m) =>
-      m.parentID === opts.parentSessionId &&
-      m.time?.created >= windowStart &&
-      m.time?.created <= windowEnd,
-  )
-
-  const exact = candidates.filter((m) => typeof m.title === "string" && expectedTitles.includes(m.title))
-  const pool = exact.length > 0
-    ? exact
-    : candidates.filter((m) => {
-        const t = typeof m.title === "string" ? m.title : ""
-        if (!t) return false
-        if (subagentType && t.startsWith(description) && t.includes(`@${subagentType}`)) return true
-        return t.startsWith(description)
-      })
-
-  const poolFallback = pool.length > 0 ? pool : candidates
-  poolFallback.sort((a, b) => {
-    const at = a.time?.created ?? 0
-    const bt = b.time?.created ?? 0
-    const ad = Math.abs(at - opts.startedAt)
-    const bd = Math.abs(bt - opts.startedAt)
-    if (ad !== bd) return ad - bd
-    if (bt !== at) return bt - at
-    return String(a.id).localeCompare(String(b.id))
-  })
-  return poolFallback[0]?.id ?? null
-}
-
-function findTaskSessionId(opts: {
-  allSessionMetas: SessionMetadata[]
-  parentSessionId: string
-  description: string
-  subagentType?: string | null
-  category?: string | null
-  startedAt: number
-}): string | null {
-  const description = opts.description
-  const subagentType = typeof opts.subagentType === "string" && opts.subagentType.trim() ? opts.subagentType.trim() : null
-  const expectedTitles = [
-    `Task: ${description}`,
-    ...(subagentType ? [`${description} (@${subagentType} subagent)`] : []),
-    `Background: ${description}`,
-  ]
-
-  const windowStart = opts.startedAt - 10_000
-  const windowEnd = opts.startedAt + 15 * 60_000
-  const candidates = opts.allSessionMetas.filter(
-    (m) =>
-      m.parentID === opts.parentSessionId &&
-      m.time?.created >= windowStart &&
-      m.time?.created <= windowEnd,
-  )
-
-  const exact = candidates.filter((m) => typeof m.title === "string" && expectedTitles.includes(m.title))
-  const pool = exact.length > 0
-    ? exact
-    : candidates.filter((m) => {
-        const t = typeof m.title === "string" ? m.title : ""
-        if (!t) return false
-        if (subagentType && t.startsWith(description) && t.includes(`@${subagentType}`)) return true
-        return t.startsWith(description)
-      })
-
-  const poolFallback = pool.length > 0 ? pool : candidates
-  poolFallback.sort((a, b) => {
-    const at = a.time?.created ?? 0
-    const bt = b.time?.created ?? 0
-    const ad = Math.abs(at - opts.startedAt)
-    const bd = Math.abs(bt - opts.startedAt)
-    if (ad !== bd) return ad - bd
-    if (bt !== at) return bt - at
-    return String(a.id).localeCompare(String(b.id))
-  })
-  return poolFallback[0]?.id ?? null
 }
 
 export function pickActiveSessionIdSqlite(opts: {

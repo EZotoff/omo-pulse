@@ -12,6 +12,7 @@ import {
   readMainSessionMetas,
   type SessionMetadata,
 } from "../ingest/session"
+import { formatElapsed, formatIsoNoMs, formatTimeline } from "../ingest/format-utils"
 import {
   deriveBackgroundTasksSqlite,
   deriveTimeSeriesActivitySqlite,
@@ -129,33 +130,6 @@ function mainStatusPill(status: string): string {
   if (status === "question") return "question"
   if (status === "plan_complete") return "plan complete"
   return "unknown"
-}
-
-function formatIsoNoMs(ts: number): string {
-  const iso = new Date(ts).toISOString()
-  return iso.replace(/\.\d{3}Z$/, "Z")
-}
-
-function formatElapsed(ms: number): string {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
-  const seconds = totalSeconds % 60
-  const totalMinutes = Math.floor(totalSeconds / 60)
-  const minutes = totalMinutes % 60
-  const totalHours = Math.floor(totalMinutes / 60)
-  const hours = totalHours % 24
-  const days = Math.floor(totalHours / 24)
-
-  if (days > 0) return hours > 0 ? `${days}d${hours}h` : `${days}d`
-  if (totalHours > 0) return minutes > 0 ? `${totalHours}h${minutes}m` : `${totalHours}h`
-  if (totalMinutes > 0) return seconds > 0 ? `${totalMinutes}m${seconds}s` : `${totalMinutes}m`
-  return `${seconds}s`
-}
-
-function formatTimeline(startAt: number | null, endAtMs: number): string {
-  if (typeof startAt !== "number") return ""
-  const start = formatIsoNoMs(startAt)
-  const elapsed = formatElapsed(endAtMs - startAt)
-  return `${start}: ${elapsed}`
 }
 
 // ---------------------------------------------------------------------------
@@ -511,7 +485,7 @@ export function buildDashboardPayload(opts: {
 }
 
 // ---------------------------------------------------------------------------
-// DashboardStore — dirty-flag caching with poll interval (read-only, no watchers)
+// DashboardStore — poll-interval caching (read-only, no watchers)
 // ---------------------------------------------------------------------------
 
 export function createDashboardStore(opts: {
@@ -524,13 +498,12 @@ export function createDashboardStore(opts: {
   const pollIntervalMs = opts.pollIntervalMs ?? 2000
 
   let lastComputedAt = 0
-  let dirty = true
   let cached: DashboardPayload | null = null
 
   return {
     getSnapshot() {
       const now = Date.now()
-      if (!cached || dirty || now - lastComputedAt > pollIntervalMs) {
+      if (!cached || now - lastComputedAt > pollIntervalMs) {
         cached = buildDashboardPayload({
           projectRoot: opts.projectRoot,
           storage,
@@ -538,7 +511,6 @@ export function createDashboardStore(opts: {
           storageBackend: opts.storageBackend,
         })
         lastComputedAt = now
-        dirty = false
       }
       return cached
     },

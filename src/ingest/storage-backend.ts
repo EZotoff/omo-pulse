@@ -1,6 +1,7 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
 import { Database as BunDatabase } from "bun:sqlite"
+import { classifySqliteError } from "./sqlite-utils"
 import type { SessionMetadata, StoredMessageMeta, StoredToolPart } from "./session"
 import { realpathSafe } from "./paths"
 import { getDataDir, getOpenCodeStorageDirFromDataDir, type Env } from "./paths"
@@ -29,22 +30,6 @@ export type SqliteReadResult<T> =
 
 export function getOpenCodeSqlitePath(dataDir: string): string {
   return path.join(dataDir, "opencode", "opencode.db")
-}
-
-function classifySqliteError(error: unknown): SqliteReadFailureReason {
-  const message = error instanceof Error ? error.message.toLowerCase() : ""
-  if (message.includes("database is locked") || message.includes("busy")) return "db_busy"
-  if (
-    message.includes("database disk image is malformed") ||
-    message.includes("not a database") ||
-    message.includes("corrupt")
-  ) {
-    return "db_corrupt"
-  }
-  if (message.includes("unable to open database file") || message.includes("cannot open")) {
-    return "db_unopenable"
-  }
-  return "db_query_failed"
 }
 
 function withReadonlyDb<T>(sqlitePath: string, fn: (db: BunDatabase) => T): { ok: true; value: T } | { ok: false; reason: SqliteReadFailureReason } {
@@ -439,26 +424,37 @@ export function isSqliteUsable(sqlitePath: string): boolean {
   }
 }
 
+const BACKEND_CACHE_TTL_MS = 30_000
+let cachedBackend: StorageBackend | null = null
+let cachedBackendAt = 0
+
 export function selectStorageBackend(opts?: {
   env?: Env
   homedir?: string
   dataDir?: string
 }): StorageBackend {
+  const now = Date.now()
+  if (cachedBackend && now - cachedBackendAt < BACKEND_CACHE_TTL_MS) {
+    return cachedBackend
+  }
+
   const dataDir = opts?.dataDir ?? getDataDir(opts?.env, opts?.homedir)
   const sqlitePath = getOpenCodeSqlitePath(dataDir)
   if (isSqliteUsable(sqlitePath)) {
-    return {
+    cachedBackend = {
       kind: "sqlite",
       dataDir,
       sqlitePath,
     }
+  } else {
+    cachedBackend = {
+      kind: "files",
+      dataDir,
+      storageRoot: getOpenCodeStorageDirFromDataDir(dataDir),
+    }
   }
-
-  return {
-    kind: "files",
-    dataDir,
-    storageRoot: getOpenCodeStorageDirFromDataDir(dataDir),
-  }
+  cachedBackendAt = now
+  return cachedBackend
 }
 
 export function getLegacyStorageRootForBackend(backend: StorageBackend): string {

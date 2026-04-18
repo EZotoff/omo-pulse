@@ -12,10 +12,14 @@ import {
 } from "../ingest/session";
 import { findIncludedSessionsSqlite } from "../ingest/session-inclusion";
 
-vi.mock("../ingest/paths", () => ({
-	realpathSafe: vi.fn((p: string) => p),
-	getOpenCodeStorageDir: vi.fn(() => "/tmp/opencode/storage"),
-}));
+vi.mock("../ingest/paths", async () => {
+	const actual = await vi.importActual<typeof import("../ingest/paths")>("../ingest/paths");
+	return {
+		...actual,
+		realpathSafe: vi.fn((p: string) => p),
+		getOpenCodeStorageDir: vi.fn(() => "/tmp/opencode/storage"),
+	};
+});
 
 type SessionRow = {
 	id: string;
@@ -71,42 +75,67 @@ function createMockDb(config: MockDbConfig = {}): MockDatabase {
 		query: (sql: string) => {
 			return {
 				all: (...params: unknown[]): QueryRows => {
-					const sessionId =
-						typeof params[0] === "string" ? params[0] : undefined;
+					const isBatch = sql.includes("session_id IN")
+					const sessionIds = params.filter((p): p is string => typeof p === "string")
 
 					if (sql.includes("FROM session WHERE directory")) {
-						return config.sessionRows ?? [];
+						return config.sessionRows ?? []
 					}
 
 					if (sql.includes("'pending', 'running'")) {
-						if (
-							sessionId &&
-							(config.throwOnActiveQueryForSessionIds ?? []).includes(sessionId)
-						) {
-							throw new Error(`failed active part query for ${sessionId}`);
+						const throwIds = config.throwOnActiveQueryForSessionIds ?? []
+						if (!isBatch) {
+							const sessionId = sessionIds[0]
+							if (sessionId && throwIds.includes(sessionId)) {
+								throw new Error(`failed active part query for ${sessionId}`)
+							}
+							return sessionId ? (config.activePartsBySession?.[sessionId] ?? []) : []
 						}
-						return sessionId
-							? (config.activePartsBySession?.[sessionId] ?? [])
-							: [];
+						const rows: Array<ActivePartRow & { session_id: string }> = []
+						for (const sid of sessionIds) {
+							if (throwIds.includes(sid)) continue
+							for (const part of (config.activePartsBySession?.[sid] ?? [])) {
+								rows.push({ ...part, session_id: sid })
+							}
+						}
+						return rows
 					}
 
 					if (sql.includes("'error', 'completed'")) {
-						return sessionId
-							? (config.terminalPartsBySession?.[sessionId] ?? [])
-							: [];
+						const source = config.terminalPartsBySession ?? {}
+						if (isBatch) {
+							const rows: Array<TerminalPartRow & { session_id: string }> = []
+							for (const sid of sessionIds) {
+								for (const part of (source[sid] ?? [])) {
+									rows.push({ ...part, session_id: sid })
+								}
+							}
+							return rows
+						}
+						const sessionId = sessionIds[0]
+						return sessionId ? (source[sessionId] ?? []) : []
 					}
 
 					if (sql.includes("json_extract(data, '$.role') = 'assistant'")) {
-						return sessionId
-							? (config.assistantMessagesBySession?.[sessionId] ?? [])
-							: [];
+						const source = config.assistantMessagesBySession ?? {}
+						if (isBatch) {
+							const rows: Array<AssistantMessageRow & { session_id: string }> = []
+							for (const sid of sessionIds) {
+								for (const msg of (source[sid] ?? [])) {
+									rows.push({ ...msg, session_id: sid })
+								}
+							}
+							return rows
+						}
+						const sessionId = sessionIds[0]
+						return sessionId ? (source[sessionId] ?? []) : []
 					}
 
-					return [];
+					return []
 				},
-			};
+			}
 		},
-	};
+	}
 }
 
 function runFindIncludedSessionsSqlite(
@@ -260,9 +289,9 @@ describe("status derivation characterization: SQLite session inclusion path", ()
 			"ses-question",
 			"ses-running",
 			"ses-thinking",
+			"ses-unknown",
 			"ses-busy",
 			"ses-idle",
-			"ses-unknown",
 		]);
 	});
 

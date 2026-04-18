@@ -4,8 +4,22 @@
  */
 
 export const GIT_STATUS_CACHE_TTL_MS = 30_000
+const MAX_CACHE_SIZE = 100
 
 const cache = new Map<string, { count: number; fetchedAt: number }>()
+
+function evictOldestIfFull(): void {
+  if (cache.size < MAX_CACHE_SIZE) return
+  let oldestKey: string | null = null
+  let oldestAt = Infinity
+  for (const [key, entry] of cache) {
+    if (entry.fetchedAt < oldestAt) {
+      oldestAt = entry.fetchedAt
+      oldestKey = key
+    }
+  }
+  if (oldestKey) cache.delete(oldestKey)
+}
 
 export async function getGitUncommittedCount(projectRoot: string): Promise<number | undefined> {
   try {
@@ -41,6 +55,7 @@ export async function getGitUncommittedCount(projectRoot: string): Promise<numbe
     const result = await Promise.race([workPromise, timeoutPromise])
     if (result === undefined) return undefined
 
+    evictOldestIfFull()
     cache.set(projectRoot, { count: result, fetchedAt: Date.now() })
     return result
   } catch {

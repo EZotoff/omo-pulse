@@ -8,7 +8,7 @@ import {
   shouldSuppressStaleToolActivity,
 } from "./activity-status"
 import { pickLatestModelString } from "./model"
-import { getOpenCodeStorageDir, realpathSafe } from "./paths"
+import { getOpenCodeStorageDir, getMessageDir, realpathSafe } from "./paths"
 import { deriveBackgroundTasks } from "./background-tasks"
 import { isPendingQuestionTool } from "./tool-names"
 
@@ -66,21 +66,7 @@ export function defaultStorageRoots(): OpenCodeStorageRoots {
   return getStorageRoots(getOpenCodeStorageDir())
 }
 
-export function getMessageDir(messageStorage: string, sessionID: string): string {
-  const directPath = path.join(messageStorage, sessionID)
-  if (fs.existsSync(directPath)) return directPath
-
-  try {
-    for (const dir of fs.readdirSync(messageStorage)) {
-      const sessionPath = path.join(messageStorage, dir, sessionID)
-      if (fs.existsSync(sessionPath)) return sessionPath
-    }
-  } catch {
-    return ""
-  }
-
-  return ""
-}
+export { getMessageDir } from "./paths"
 
 export function sessionExists(messageStorage: string, sessionID: string): boolean {
   return getMessageDir(messageStorage, sessionID) !== ""

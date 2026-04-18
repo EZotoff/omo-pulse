@@ -58,22 +58,56 @@ function createMockDb(config: MockDbConfig = {}): MockDatabase {
 
       return {
         all: (...params: unknown[]): QueryRows => {
-          const sessionId = typeof params[0] === "string" ? params[0] : undefined
+          const isBatch = sql.includes("session_id IN")
+          const sessionIds = params.filter((p): p is string => typeof p === "string")
 
           if (sql.includes("FROM session WHERE directory")) {
             return config.sessionRows ?? []
           }
 
           if (sql.includes("'pending', 'running'")) {
-            return sessionId ? (config.activePartsBySession?.[sessionId] ?? []) : []
+            const source = config.activePartsBySession ?? {}
+            if (isBatch) {
+              const rows: Array<ActivePartRow & { session_id: string }> = []
+              for (const sid of sessionIds) {
+                for (const part of (source[sid] ?? [])) {
+                  rows.push({ ...part, session_id: sid })
+                }
+              }
+              return rows
+            }
+            const sessionId = sessionIds[0]
+            return sessionId ? (source[sessionId] ?? []) : []
           }
 
           if (sql.includes("'error', 'completed'")) {
-            return sessionId ? (config.terminalPartsBySession?.[sessionId] ?? []) : []
+            const source = config.terminalPartsBySession ?? {}
+            if (isBatch) {
+              const rows: Array<TerminalPartRow & { session_id: string }> = []
+              for (const sid of sessionIds) {
+                for (const part of (source[sid] ?? [])) {
+                  rows.push({ ...part, session_id: sid })
+                }
+              }
+              return rows
+            }
+            const sessionId = sessionIds[0]
+            return sessionId ? (source[sessionId] ?? []) : []
           }
 
           if (sql.includes("json_extract(data, '$.role') = 'assistant'")) {
-            return sessionId ? (config.assistantMessagesBySession?.[sessionId] ?? []) : []
+            const source = config.assistantMessagesBySession ?? {}
+            if (isBatch) {
+              const rows: Array<AssistantMessageRow & { session_id: string }> = []
+              for (const sid of sessionIds) {
+                for (const msg of (source[sid] ?? [])) {
+                  rows.push({ ...msg, session_id: sid })
+                }
+              }
+              return rows
+            }
+            const sessionId = sessionIds[0]
+            return sessionId ? (source[sessionId] ?? []) : []
           }
 
           return []

@@ -18,6 +18,7 @@ import {
   readRecentMessageMetasSqlite,
   readSessionExistsSqlite,
   readTodosSqlite,
+  readTodosSqliteForSessionIds,
   readToolPartsForMessagesSqlite,
   type SqliteReadFailureReason,
   type TodoItem,
@@ -386,6 +387,7 @@ export function deriveBackgroundTasksSqlite(opts: {
   mainSessionId: string
   nowMs?: number
   db?: Database
+  allSessionMetas?: SessionMetadata[]
 }): SqliteDeriveResult<BackgroundTaskRow[]> {
   const nowMs = opts.nowMs ?? Date.now()
   const main = readSessionMessagesAndParts({
@@ -396,7 +398,9 @@ export function deriveBackgroundTasksSqlite(opts: {
   })
   if (!main.ok) return main
 
-  const allSessionMetasResult = readAllSessionMetasSqlite({ sqlitePath: opts.sqlitePath, db: opts.db })
+  const allSessionMetasResult = opts.allSessionMetas
+    ? { ok: true as const, rows: opts.allSessionMetas }
+    : readAllSessionMetasSqlite({ sqlitePath: opts.sqlitePath, db: opts.db })
   if (!allSessionMetasResult.ok) return allSessionMetasResult
   const allSessionMetas = allSessionMetasResult.rows
   const sessionMetaById = new Map(allSessionMetas.map((m) => [m.id, m] as const))
@@ -570,14 +574,19 @@ export function deriveBackgroundTasksSqliteForSessions(opts: {
   db?: Database
 }): SqliteDeriveResult<BackgroundTaskRow[]> {
   const sessionIds = normalizeSessionIds(opts.mainSessionIds ?? [])
-  const rows: BackgroundTaskRow[] = []
+  if (sessionIds.length === 0) return { ok: true, value: [] }
 
+  const allSessionMetasResult = readAllSessionMetasSqlite({ sqlitePath: opts.sqlitePath, db: opts.db })
+  if (!allSessionMetasResult.ok) return allSessionMetasResult
+
+  const rows: BackgroundTaskRow[] = []
   for (const sessionId of sessionIds) {
     const result = deriveBackgroundTasksSqlite({
       sqlitePath: opts.sqlitePath,
       mainSessionId: sessionId,
       nowMs: opts.nowMs,
       db: opts.db,
+      allSessionMetas: allSessionMetasResult.rows,
     })
     if (!result.ok) return result
     rows.push(...result.value)
@@ -593,6 +602,7 @@ export function deriveTimeSeriesActivitySqlite(opts: {
   windowMs?: number
   bucketMs?: number
   db?: Database
+  allSessionMetas?: SessionMetadata[]
 }): SqliteDeriveResult<TimeSeriesPayload> {
   const windowMs = opts.windowMs ?? 300_000
   const bucketMs = opts.bucketMs ?? 2_000
@@ -607,8 +617,10 @@ export function deriveTimeSeriesActivitySqlite(opts: {
   const atlas = zeroBuckets(buckets)
   const background = zeroBuckets(buckets)
 
-  const allSessionMetas = readAllSessionMetasSqlite({ sqlitePath: opts.sqlitePath, db: opts.db })
-  if (!allSessionMetas.ok) return allSessionMetas
+  const allSessionMetasResult = opts.allSessionMetas
+    ? { ok: true as const, rows: opts.allSessionMetas }
+    : readAllSessionMetasSqlite({ sqlitePath: opts.sqlitePath, db: opts.db })
+  if (!allSessionMetasResult.ok) return allSessionMetasResult
 
   const perSessionCache = new Map<string, { metas: StoredMessageMeta[]; partsByMessage: Map<string, StoredToolPart[]> }>()
   const loadSession = (sessionId: string): SqliteDeriveResult<{ metas: StoredMessageMeta[]; partsByMessage: Map<string, StoredToolPart[]> }> => {
@@ -661,7 +673,7 @@ export function deriveTimeSeriesActivitySqlite(opts: {
     const mainResult = bucketSession(opts.mainSessionId, true, false)
     if (!mainResult.ok) return mainResult
 
-    const childSessions = allSessionMetas.rows
+    const childSessions = allSessionMetasResult.rows
       .filter((meta) => meta.parentID === opts.mainSessionId)
       .sort((a, b) => {
         const at = a.time?.updated ?? 0
@@ -710,6 +722,10 @@ export function deriveTimeSeriesActivitySqliteForSessions(opts: {
   const bucketMs = opts.bucketMs ?? 2_000
   const payload = createEmptyTimeSeriesPayload({ nowMs, windowMs, bucketMs })
   const sessionIds = normalizeSessionIds(opts.mainSessionIds ?? [])
+  if (sessionIds.length === 0) return { ok: true, value: payload }
+
+  const allSessionMetasResult = readAllSessionMetasSqlite({ sqlitePath: opts.sqlitePath, db: opts.db })
+  if (!allSessionMetasResult.ok) return allSessionMetasResult
 
   for (const sessionId of sessionIds) {
     const result = deriveTimeSeriesActivitySqlite({
@@ -719,6 +735,7 @@ export function deriveTimeSeriesActivitySqliteForSessions(opts: {
       windowMs,
       bucketMs,
       db: opts.db,
+      allSessionMetas: allSessionMetasResult.rows,
     })
     if (!result.ok) return result
     mergeTimeSeriesPayload(payload, result.value)
@@ -876,17 +893,18 @@ export function deriveTodosSqliteForSessions(opts: {
   db?: Database
 }): SqliteDeriveResult<TodoItem[]> {
   const sessionIds = normalizeSessionIds(opts.sessionIds ?? [])
-  const rows: TodoItem[] = []
+  if (sessionIds.length === 0) return { ok: true, value: [] }
 
-  for (const sessionId of sessionIds) {
-    const result = deriveTodosSqlite({
-      sqlitePath: opts.sqlitePath,
-      sessionId,
-      db: opts.db,
-    })
-    if (!result.ok) return result
-    rows.push(...result.value)
+  const result = readTodosSqliteForSessionIds({
+    sqlitePath: opts.sqlitePath,
+    sessionIds,
+    db: opts.db,
+  })
+  if (!result.ok) return result
+
+  const { sessionId: _, ...todoRest } = result.rows[0] ?? {}
+  return {
+    ok: true,
+    value: result.rows.map(({ sessionId: _sid, ...item }) => item),
   }
-
-  return { ok: true, value: rows }
 }

@@ -26,70 +26,42 @@ function normalizePath(dir: string): string {
   return path.normalize(real)
 }
 
-/**
- * Derive session status from SQLite message and part records.
- * Private helper: used only for ordering sessions within findIncludedSessionsSqlite.
- * Mirrors status derivation logic from sqlite-derive.ts with minimal scope.
- * Critically: distinguishes "busy" vs "idle" using ACTIVE_BUSY_WINDOW_MS threshold.
- */
-function deriveSessionStatus(db: Database, session: SessionMetadata, nowMs: number): string {
-  try {
-    const activeParts = db
-      .query(
-        `SELECT json_extract(data, '$.tool') as tool,
-                json_extract(data, '$.state.status') as status
-         FROM part 
-         WHERE session_id = ? AND json_extract(data, '$.state.status') IN ('pending', 'running')
-         ORDER BY time_created DESC LIMIT 1`
-       )
-      .all(session.id) as Array<{ tool: string; status: string }>
+function deriveSessionStatusFromMaps(
+  sessionId: string,
+  lastUpdated: number,
+  nowMs: number,
+  activePartsMap: Map<string, Array<{ tool: string; status: string }>>,
+  terminalPartsMap: Map<string, Array<{ time_created: number; status: string }>>,
+  assistantMsgsMap: Map<string, Array<{ time_completed: number | null }>>,
+): string {
+  const activeParts = activePartsMap.get(sessionId) ?? []
+  const ageMs = nowMs - lastUpdated
+  const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
 
-    const lastUpdated = session.time.updated ?? session.time.created ?? 0
-    const ageMs = nowMs - lastUpdated
-    const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
-
-    if (activeParts.length > 0) {
-      const activePart = activeParts[0]
-      if (!shouldSuppressStaleToolActivity(activePart.tool, activePart.status, hasFreshActivity)) {
-        return isPendingQuestionTool(activePart.tool, activePart.status) ? "question" : "running_tool"
-      }
+  if (activeParts.length > 0) {
+    const activePart = activeParts[0]
+    if (!shouldSuppressStaleToolActivity(activePart.tool, activePart.status, hasFreshActivity)) {
+      return isPendingQuestionTool(activePart.tool, activePart.status) ? "question" : "running_tool"
     }
-
-    const lastTerminal = db
-      .query(
-        `SELECT time_created, json_extract(data, '$.state.status') as status
-         FROM part 
-         WHERE session_id = ? AND json_extract(data, '$.state.status') IN ('error', 'completed')
-         ORDER BY time_created DESC LIMIT 1`
-      )
-      .all(session.id) as Array<{ time_created: number; status: string }>
-
-    const isStaleActivity = ageMs > ACTIVE_BUSY_WINDOW_MS
-    const latestTerminalStatus = lastTerminal[0]?.status
-    const latestTerminalAt = lastTerminal[0]?.time_created
-    const isTerminalErrorStale = typeof latestTerminalAt !== "number" || (nowMs - latestTerminalAt > ERROR_STALE_MS)
-
-    if (!isStaleActivity && latestTerminalStatus === "error" && !isTerminalErrorStale) {
-      return "error"
-    }
-
-    const recentMessages = db
-      .query(
-        `SELECT json_extract(data, '$.time.completed') as time_completed
-         FROM message 
-         WHERE session_id = ? AND json_extract(data, '$.role') = 'assistant'
-         ORDER BY time_created DESC LIMIT 1`
-      )
-      .all(session.id) as Array<{ time_completed: number | null }>
-
-    if (recentMessages.length > 0 && recentMessages[0].time_completed === null) {
-      return "thinking"
-    }
-
-    return ageMs <= ACTIVE_BUSY_WINDOW_MS ? "busy" : "idle"
-  } catch {
-    return "unknown"
   }
+
+  const lastTerminal = terminalPartsMap.get(sessionId) ?? []
+  const isStaleActivity = ageMs > ACTIVE_BUSY_WINDOW_MS
+  const latestTerminalStatus = lastTerminal[0]?.status
+  const latestTerminalAt = lastTerminal[0]?.time_created
+  const isTerminalErrorStale = typeof latestTerminalAt !== "number" || (nowMs - latestTerminalAt > ERROR_STALE_MS)
+
+  if (!isStaleActivity && latestTerminalStatus === "error" && !isTerminalErrorStale) {
+    return "error"
+  }
+
+  const recentMessages = assistantMsgsMap.get(sessionId) ?? []
+
+  if (recentMessages.length > 0 && recentMessages[0].time_completed === null) {
+    return "thinking"
+  }
+
+  return ageMs <= ACTIVE_BUSY_WINDOW_MS ? "busy" : "idle"
 }
 
 export function isSessionIncluded(
@@ -125,8 +97,7 @@ export function findIncludedSessionsSqlite(
       time_updated: unknown
     }>
 
-    const sessions: SessionMetadata[] = []
-    const statusCache = new Map<string, string>()
+    const candidates: SessionMetadata[] = []
     for (const row of sessionRows) {
       if (typeof row.id !== "string" || typeof row.directory !== "string") continue
 
@@ -138,16 +109,88 @@ export function findIncludedSessionsSqlite(
       const timeCreated = typeof row.time_created === "number" ? row.time_created : 0
       const timeUpdated = typeof row.time_updated === "number" ? row.time_updated : timeCreated
 
-      const meta: SessionMetadata = {
+      candidates.push({
         id: sessionId,
         projectID: "",
         directory: row.directory as string,
         title,
         parentID,
         time: { created: timeCreated, updated: timeUpdated },
-      }
+      })
+    }
 
-      const status = deriveSessionStatus(db, meta, nowMs)
+    if (candidates.length === 0) return []
+
+    const candidateIds = candidates.map(s => s.id)
+
+    // Batch query 1: active parts (pending/running)
+    const activePartsMap = new Map<string, Array<{ tool: string; status: string }>>()
+    const placeholders = candidateIds.map(() => "?").join(",")
+    const activeRows = db
+      .query(
+        `SELECT session_id, json_extract(data, '$.tool') as tool,
+                json_extract(data, '$.state.status') as status
+         FROM part 
+         WHERE session_id IN (${placeholders}) AND json_extract(data, '$.state.status') IN ('pending', 'running')
+         ORDER BY time_created DESC`
+      )
+      .all(...candidateIds) as Array<{ session_id: string; tool: string; status: string }>
+    for (const row of activeRows) {
+      if (!activePartsMap.has(row.session_id)) {
+        activePartsMap.set(row.session_id, [])
+      }
+      if ((activePartsMap.get(row.session_id)?.length ?? 0) < 1) {
+        activePartsMap.get(row.session_id)!.push({ tool: row.tool, status: row.status })
+      }
+    }
+
+    // Batch query 2: terminal parts (error/completed)
+    const terminalPartsMap = new Map<string, Array<{ time_created: number; status: string }>>()
+    const terminalRows = db
+      .query(
+        `SELECT session_id, time_created, json_extract(data, '$.state.status') as status
+         FROM part 
+         WHERE session_id IN (${placeholders}) AND json_extract(data, '$.state.status') IN ('error', 'completed')
+         ORDER BY time_created DESC`
+      )
+      .all(...candidateIds) as Array<{ session_id: string; time_created: number; status: string }>
+    for (const row of terminalRows) {
+      if (!terminalPartsMap.has(row.session_id)) {
+        terminalPartsMap.set(row.session_id, [])
+      }
+      if ((terminalPartsMap.get(row.session_id)?.length ?? 0) < 1) {
+        terminalPartsMap.get(row.session_id)!.push({ time_created: row.time_created, status: row.status })
+      }
+    }
+
+    // Batch query 3: recent assistant messages
+    const assistantMsgsMap = new Map<string, Array<{ time_completed: number | null }>>()
+    const assistantRows = db
+      .query(
+        `SELECT session_id, json_extract(data, '$.time.completed') as time_completed
+         FROM message 
+         WHERE session_id IN (${placeholders}) AND json_extract(data, '$.role') = 'assistant'
+         ORDER BY time_created DESC`
+      )
+      .all(...candidateIds) as Array<{ session_id: string; time_completed: number | null }>
+    for (const row of assistantRows) {
+      if (!assistantMsgsMap.has(row.session_id)) {
+        assistantMsgsMap.set(row.session_id, [])
+      }
+      if ((assistantMsgsMap.get(row.session_id)?.length ?? 0) < 1) {
+        assistantMsgsMap.get(row.session_id)!.push({ time_completed: row.time_completed })
+      }
+    }
+
+    // Filter + derive status from batched maps
+    const sessions: SessionMetadata[] = []
+    const statusCache = new Map<string, string>()
+    for (const meta of candidates) {
+      const lastUpdated = meta.time.updated ?? meta.time.created ?? 0
+      const status = deriveSessionStatusFromMaps(
+        meta.id, lastUpdated, nowMs,
+        activePartsMap, terminalPartsMap, assistantMsgsMap,
+      )
       if (
         isSessionIncluded(meta, idleWindowMs, nowMs) ||
         isAttentionStatus(status)

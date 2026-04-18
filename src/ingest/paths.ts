@@ -68,6 +68,22 @@ export type AssertAllowedPathOptions = {
   baseDir?: string
 }
 
+export function getMessageDir(messageStorage: string, sessionID: string): string {
+  const directPath = path.join(messageStorage, sessionID)
+  if (fs.existsSync(directPath)) return directPath
+
+  try {
+    for (const dir of fs.readdirSync(messageStorage)) {
+      const sessionPath = path.join(messageStorage, dir, sessionID)
+      if (fs.existsSync(sessionPath)) return sessionPath
+    }
+  } catch {
+    return ""
+  }
+
+  return ""
+}
+
 export function assertAllowedPath(opts: AssertAllowedPathOptions): string {
   const baseDir = opts.baseDir ?? process.cwd()
   const candidateAbs = path.resolve(baseDir, opts.candidatePath)

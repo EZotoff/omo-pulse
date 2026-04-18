@@ -77,6 +77,20 @@ export const MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS = 5_000
 export const SESSION_TIMESERIES_CACHE_TTL_MS = 15_000
 export const SESSION_SUMMARY_CACHE_TTL_MS = 10_000
 const INCLUDED_SESSION_IDLE_WINDOW_MS = 300_000
+const MAX_CACHE_ENTRIES = 100
+
+function evictOldest<K>(map: Map<K, { fetchedAt: number }>, maxSize: number): void {
+  if (map.size < maxSize) return
+  let oldestKey: K | null = null
+  let oldestAt = Infinity
+  for (const [key, entry] of map) {
+    if (entry.fetchedAt < oldestAt) {
+      oldestAt = entry.fetchedAt
+      oldestKey = key
+    }
+  }
+  if (oldestKey !== null) map.delete(oldestKey)
+}
 
 function buildSessionSummary(projectRoot: string, db: Database, sqlitePath: string, nowMs: number): SessionSummary[] {
   try {
@@ -210,6 +224,7 @@ export function createMultiProjectService(opts: {
 
     if (!sqlitePath) {
       const empty = buildEmptySessionTimeSeries(nowMs)
+      evictOldest(sessionTimeSeriesByProjectRoot, MAX_CACHE_ENTRIES)
       sessionTimeSeriesByProjectRoot.set(projectRoot, { value: empty, fetchedAt: nowMs })
       return empty
     }
@@ -217,6 +232,7 @@ export function createMultiProjectService(opts: {
     try {
       const result = derivePerSessionTimeSeries({ sqlitePath, projectRoot, nowMs })
       if (result.ok) {
+        evictOldest(sessionTimeSeriesByProjectRoot, MAX_CACHE_ENTRIES)
         sessionTimeSeriesByProjectRoot.set(projectRoot, { value: result.value, fetchedAt: nowMs })
         return result.value
       }
@@ -225,6 +241,7 @@ export function createMultiProjectService(opts: {
     }
 
     const empty = buildEmptySessionTimeSeries(nowMs)
+    evictOldest(sessionTimeSeriesByProjectRoot, MAX_CACHE_ENTRIES)
     sessionTimeSeriesByProjectRoot.set(projectRoot, { value: empty, fetchedAt: nowMs })
     return empty
   }
@@ -235,6 +252,7 @@ export function createMultiProjectService(opts: {
       return cached.value
     }
     const value = buildSessionSummary(projectRoot, db, sqlitePath, nowMs)
+    evictOldest(sessionSummaryByProjectRoot, MAX_CACHE_ENTRIES)
     sessionSummaryByProjectRoot.set(projectRoot, { value, fetchedAt: nowMs })
     return value
   }

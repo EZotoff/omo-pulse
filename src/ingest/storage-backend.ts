@@ -388,6 +388,50 @@ export function readTodosSqlite(opts: {
   return { ok: true, rows }
 }
 
+export function readTodosSqliteForSessionIds(opts: {
+  sqlitePath: string
+  sessionIds: string[]
+  db?: BunDatabase
+}): SqliteReadResult<TodoItem & { sessionId: string }> {
+  if (opts.sessionIds.length === 0) return { ok: true, rows: [] }
+
+  const placeholders = opts.sessionIds.map(() => "?").join(",")
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) => {
+    try {
+      return db
+        .query(`SELECT session_id, content, status, priority, position FROM todo WHERE session_id IN (${placeholders}) ORDER BY position ASC`)
+        .all(...opts.sessionIds) as Array<{
+          session_id: unknown
+          content: unknown
+          status: unknown
+          priority: unknown
+          position: unknown
+        }>
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : ""
+      if (message.includes("no such table")) {
+        return []
+      }
+      throw error
+    }
+  })
+  if (!result.ok) return result
+
+  const rows: Array<TodoItem & { sessionId: string }> = []
+  for (const row of result.value) {
+    const sessionId = asString(row.session_id)
+    const content = asString(row.content)
+    const status = asString(row.status)
+    const priority = asString(row.priority)
+    const position = asFiniteNumber(row.position)
+    if (!sessionId || !content || !status || !priority || position === null) continue
+
+    rows.push({ sessionId, content, status, priority, position })
+  }
+
+  return { ok: true, rows }
+}
+
 export function isSqliteUsable(sqlitePath: string): boolean {
   if (!fs.existsSync(sqlitePath)) return false
 

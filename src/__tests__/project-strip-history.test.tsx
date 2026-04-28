@@ -27,6 +27,8 @@ describe("ProjectStrip plan history rendering", () => {
       planStale: false,
       planComplete: false
     },
+    sessions: [],
+    aggregateStatus: "idle" as const,
     unintiatedPlans: [],
     timeSeries: { windowMs: 0, bucketMs: 0, buckets: 0, anchorMs: 0, serverNowMs: 0, series: [] },
     backgroundTasks: [],
@@ -44,7 +46,8 @@ describe("ProjectStrip plan history rendering", () => {
     showBackgroundTasks: true,
     showGitWorktrees: true,
     showAvatar: true,
-    showProjectName: true
+    showProjectName: true,
+    stripDisplayMode: "project"
   }
 
   const children = {

@@ -59,16 +59,85 @@ vi.mock("../ingest/sqlite-derive", () => ({
   deriveToolCallsSqlite: vi.fn(() => ({ ok: false, reason: "db_unopenable" })),
 }))
 
+vi.mock("../server/control-plane/plan-b", () => ({
+  EXECUTION_PHASE_ORDER: [
+    "select_executable",
+    "preflight",
+    "dispatch",
+    "monitor",
+    "reconcile",
+  ],
+  createPlanBLedgerSqlite: vi.fn(() => ({ kind: "mock-ledger-db" })),
+  listExecutions: vi.fn(() => []),
+  getExecution: vi.fn(() => null),
+  getTier: vi.fn(() => "shadow"),
+  requestTierChange: vi.fn(() => "shadow"),
+  approveTierChange: vi.fn(() => "tier1"),
+  emergencyDowngrade: vi.fn(() => "shadow"),
+  observeAndRunPlanBControlLoop: vi.fn(async () => ({
+    sourceId: "proj-1",
+    tier: "shadow",
+    normalized: {},
+    driftReport: null,
+    decisions: [],
+  })),
+}))
+
 // ---------------------------------------------------------------------------
 // Import AFTER mocking
 // ---------------------------------------------------------------------------
 import { createApi } from "../server/api"
 import { createMultiProjectService } from "../server/multi-project"
+import {
+  approveTierChange,
+  createPlanBLedgerSqlite,
+  emergencyDowngrade,
+  EXECUTION_PHASE_ORDER,
+  getExecution,
+  getTier,
+  listExecutions,
+  observeAndRunPlanBControlLoop,
+  requestTierChange,
+} from "../server/control-plane/plan-b"
 import type { ProjectSnapshot } from "../types"
 
 const mockedCreateMultiProjectService = createMultiProjectService as unknown as {
   mockReturnValue: (value: unknown) => void
 }
+
+const mockedCreatePlanBLedgerSqlite =
+  createPlanBLedgerSqlite as unknown as {
+    mockReturnValue: (value: unknown) => void
+  }
+
+const mockedListExecutions = listExecutions as unknown as {
+  mockReturnValue: (value: unknown) => void
+}
+
+const mockedGetExecution = getExecution as unknown as {
+  mockReturnValue: (value: unknown) => void
+}
+
+const mockedGetTier = getTier as unknown as {
+  mockReturnValue: (value: unknown) => void
+}
+
+const mockedRequestTierChange = requestTierChange as unknown as {
+  mockReturnValue: (value: unknown) => void
+}
+
+const mockedApproveTierChange = approveTierChange as unknown as {
+  mockReturnValue: (value: unknown) => void
+}
+
+const mockedEmergencyDowngrade = emergencyDowngrade as unknown as {
+  mockReturnValue: (value: unknown) => void
+}
+
+const mockedObserveAndRunPlanBControlLoop =
+  observeAndRunPlanBControlLoop as unknown as {
+    mockResolvedValue: (value: unknown) => void
+  }
 
 // ---------------------------------------------------------------------------
 // Helper: build a minimal ProjectSnapshot fixture
@@ -105,6 +174,9 @@ function makeProjectSnapshot(overrides: Partial<ProjectSnapshot> = {}): ProjectS
       serverNowMs: 1000000,
       series: [],
     },
+    sessions: [],
+    aggregateStatus: "idle" as const,
+    unintiatedPlans: [],
     backgroundTasks: [],
     sessionTimeSeries: {
       windowMs: 300000,
@@ -124,6 +196,22 @@ describe("API routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+
+    const mockPlanBLedgerDb = { kind: "mock-ledger-db" }
+    mockedCreatePlanBLedgerSqlite.mockReturnValue(mockPlanBLedgerDb)
+    mockedListExecutions.mockReturnValue([])
+    mockedGetExecution.mockReturnValue(null)
+    mockedGetTier.mockReturnValue("shadow")
+    mockedRequestTierChange.mockReturnValue("shadow")
+    mockedApproveTierChange.mockReturnValue("tier1")
+    mockedEmergencyDowngrade.mockReturnValue("shadow")
+    mockedObserveAndRunPlanBControlLoop.mockResolvedValue({
+      sourceId: "proj-1",
+      tier: "shadow",
+      normalized: {},
+      driftReport: null,
+      decisions: [],
+    })
 
     const mockService = {
       getMultiProjectPayload: vi.fn(async (): Promise<DashboardMultiProjectPayload> => ({
@@ -220,5 +308,310 @@ describe("API routes", () => {
   it("responses include Cache-Control: no-cache header", async () => {
     const res = await app.request("/health")
     expect(res.headers.get("Cache-Control")).toBe("no-cache")
+  })
+
+  // -------------------------------------------------------------------------
+  // GET /control-plane/executions — empty
+  // -------------------------------------------------------------------------
+  it("GET /control-plane/executions returns empty executions array", async () => {
+    const res = await app.request("/control-plane/executions")
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toEqual({ ok: true, executions: [] })
+  })
+
+  // -------------------------------------------------------------------------
+  // GET /control-plane/executions — with data
+  // -------------------------------------------------------------------------
+  it("GET /control-plane/executions returns mocked executions", async () => {
+    mockedListExecutions.mockReturnValue([
+      {
+        id: "exec-1",
+        decisionId: "dec-1",
+        state: "dispatched",
+        phase: "dispatch",
+        idempotencyKey: "idem-1",
+        error: null,
+        createdAt: "2026-04-24T00:00:00.000Z",
+        updatedAt: "2026-04-24T00:00:01.000Z",
+      },
+    ])
+
+    const res = await app.request("/control-plane/executions")
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+    expect(body.executions).toHaveLength(1)
+    expect(body.executions[0].id).toBe("exec-1")
+  })
+
+  // -------------------------------------------------------------------------
+  // GET /control-plane/executions/:id — not found
+  // -------------------------------------------------------------------------
+  it("GET /control-plane/executions/:id returns 404 when execution is missing", async () => {
+    const res = await app.request("/control-plane/executions/not-found")
+    expect(res.status).toBe(404)
+    const body = await res.json()
+    expect(body).toEqual({
+      ok: false,
+      error: "Execution not found",
+      executionId: "not-found",
+    })
+  })
+
+  // -------------------------------------------------------------------------
+  // GET /control-plane/executions/:id — found
+  // -------------------------------------------------------------------------
+  it("GET /control-plane/executions/:id returns execution with phases", async () => {
+    mockedGetExecution.mockReturnValue({
+      id: "exec-1",
+      decisionId: "dec-1",
+      state: "succeeded",
+      phase: "reconcile",
+      idempotencyKey: "idem-1",
+      error: null,
+      createdAt: "2026-04-24T00:00:00.000Z",
+      updatedAt: "2026-04-24T00:00:02.000Z",
+    })
+
+    const res = await app.request("/control-plane/executions/exec-1")
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+    expect(body.execution.id).toBe("exec-1")
+    expect(body.phases).toEqual(EXECUTION_PHASE_ORDER)
+  })
+
+  // -------------------------------------------------------------------------
+  // GET /control-plane/tier
+  // -------------------------------------------------------------------------
+  it("GET /control-plane/tier returns current tier", async () => {
+    mockedGetTier.mockReturnValue("shadow")
+
+    const res = await app.request("/control-plane/tier")
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toEqual({ ok: true, tier: "shadow" })
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /control-plane/tier — invalid tier
+  // -------------------------------------------------------------------------
+  it("POST /control-plane/tier returns 400 for invalid tier", async () => {
+    const res = await app.request("/control-plane/tier", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tier: "tier2" }),
+    })
+
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body).toEqual({
+      ok: false,
+      error: 'tier must be "shadow" or "tier1"',
+    })
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /control-plane/tier — operator approval required for tier1
+  // -------------------------------------------------------------------------
+  it("POST /control-plane/tier requires approved:true for tier1", async () => {
+    const res = await app.request("/control-plane/tier", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tier: "tier1" }),
+    })
+
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body).toEqual({
+      ok: false,
+      error: "approved: true is required for tier1 promotion",
+    })
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /control-plane/tier — promote to tier1
+  // -------------------------------------------------------------------------
+  it("POST /control-plane/tier promotes to tier1 when approved", async () => {
+    mockedGetTier.mockReturnValue("shadow")
+    mockedApproveTierChange.mockReturnValue("tier1")
+
+    const res = await app.request("/control-plane/tier", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tier: "tier1", approved: true, reason: "operator" }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toEqual({ ok: true, tier: "tier1" })
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /control-plane/execute — missing target
+  // -------------------------------------------------------------------------
+  it("POST /control-plane/execute returns 400 when target is missing", async () => {
+    const res = await app.request("/control-plane/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sourceId: "proj-1", decisionType: "mark_plan_stale" }),
+    })
+
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.ok).toBe(false)
+    expect(body.error).toContain("sourceId, decisionType, and targetId")
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /control-plane/execute — invalid decisionType yields advisory_only
+  // -------------------------------------------------------------------------
+  it("POST /control-plane/execute returns advisory_only when requested decision target is absent", async () => {
+    mockedGetTier.mockReturnValue("tier1")
+    mockedObserveAndRunPlanBControlLoop.mockResolvedValue({
+      sourceId: "proj-1",
+      tier: "tier1",
+      normalized: { sourceId: "proj-1" },
+      driftReport: null,
+      decisions: [],
+    })
+
+    const res = await app.request("/control-plane/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sourceId: "proj-1",
+        decisionType: "unknown_decision",
+        targetId: "target-1",
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+    expect(body.executionId).toBeNull()
+    expect(body.status).toBe("advisory_only")
+    expect(body.result.action).toBe("advisory_only")
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /control-plane/execute — source missing
+  // -------------------------------------------------------------------------
+  it("POST /control-plane/execute returns 404 when source is not found", async () => {
+    mockedObserveAndRunPlanBControlLoop.mockResolvedValue({
+      sourceId: "missing-source",
+      tier: "shadow",
+      normalized: null,
+      driftReport: null,
+      decisions: [],
+    })
+
+    const res = await app.request("/control-plane/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sourceId: "missing-source",
+        decisionType: "mark_plan_stale",
+        targetId: "proj-1",
+      }),
+    })
+
+    expect(res.status).toBe(404)
+    const body = await res.json()
+    expect(body).toEqual({
+      ok: false,
+      error: "Source not found",
+      sourceId: "missing-source",
+    })
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /control-plane/execute — dispatched happy path
+  // -------------------------------------------------------------------------
+  it("POST /control-plane/execute returns executionId for dispatched decision", async () => {
+    mockedGetTier.mockReturnValue("tier1")
+    mockedObserveAndRunPlanBControlLoop.mockResolvedValue({
+      sourceId: "proj-1",
+      tier: "tier1",
+      normalized: { sourceId: "proj-1" },
+      driftReport: null,
+      decisions: [
+        {
+          decisionId: "dec-1",
+          decisionType: "mark_plan_stale",
+          targetId: "proj-1",
+          primitive: "update_ledger_status",
+          preflightResult: { approved: true },
+          action: "dispatched",
+          reason: null,
+          executionId: "exec-1",
+          outcomeMatched: true,
+        },
+      ],
+    })
+
+    const res = await app.request("/control-plane/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sourceId: "proj-1",
+        decisionType: "mark_plan_stale",
+        targetId: "proj-1",
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+    expect(body.executionId).toBe("exec-1")
+    expect(body.status).toBe("dispatched")
+    expect(body.result.decisionType).toBe("mark_plan_stale")
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /control-plane/execute — preflight failure advisory_only
+  // -------------------------------------------------------------------------
+  it("POST /control-plane/execute returns advisory_only when preflight denies execution", async () => {
+    mockedGetTier.mockReturnValue("tier1")
+    mockedObserveAndRunPlanBControlLoop.mockResolvedValue({
+      sourceId: "proj-1",
+      tier: "tier1",
+      normalized: { sourceId: "proj-1" },
+      driftReport: null,
+      decisions: [
+        {
+          decisionId: "dec-2",
+          decisionType: "mark_plan_stale",
+          targetId: "proj-1",
+          primitive: "update_ledger_status",
+          preflightResult: {
+            approved: false,
+            reason: "Observation too stale",
+          },
+          action: "advisory_only",
+          reason: "Observation too stale",
+          executionId: null,
+          outcomeMatched: null,
+        },
+      ],
+    })
+
+    const res = await app.request("/control-plane/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sourceId: "proj-1",
+        decisionType: "mark_plan_stale",
+        targetId: "proj-1",
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+    expect(body.executionId).toBeNull()
+    expect(body.status).toBe("advisory_only")
+    expect(body.result.reason).toBe("Observation too stale")
   })
 })

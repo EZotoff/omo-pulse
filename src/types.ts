@@ -13,7 +13,7 @@ export type SourceRegistryEntry = {
 }
 
 /** Session status from MainSessionView */
-export type SessionStatus = "busy" | "idle" | "thinking" | "running_tool" | "question" | "plan_complete" | "error" | "unknown"
+export type SessionStatus = "busy" | "idle" | "thinking" | "running_tool" | "bg_agent" | "question" | "plan_complete" | "error" | "unknown"
 
 export type CanonicalAgent = "sisyphus" | "prometheus" | "atlas" | "other"
 

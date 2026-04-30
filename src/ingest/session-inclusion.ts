@@ -1,7 +1,7 @@
 import * as path from "node:path"
 import type { Database } from "bun:sqlite"
 import { realpathSafe } from "./paths"
-import { ACTIVE_BUSY_WINDOW_MS, ERROR_STALE_MS, hasFreshMainSessionActivity, shouldSuppressStaleToolActivity } from "./activity-status"
+import { ACTIVE_BUSY_WINDOW_MS, hasFreshMainSessionActivity, shouldSuppressStaleToolActivity } from "./activity-status"
 import type { SessionMetadata } from "./session"
 import { isPendingQuestionTool } from "./tool-names"
 
@@ -45,15 +45,7 @@ function deriveSessionStatusFromMaps(
     }
   }
 
-  const lastTerminal = terminalPartsMap.get(sessionId) ?? []
   const isStaleActivity = ageMs > ACTIVE_BUSY_WINDOW_MS
-  const latestTerminalStatus = lastTerminal[0]?.status
-  const latestTerminalAt = lastTerminal[0]?.time_created
-  const isTerminalErrorStale = typeof latestTerminalAt !== "number" || (nowMs - latestTerminalAt > ERROR_STALE_MS)
-
-  if (!isStaleActivity && latestTerminalStatus === "error" && !isTerminalErrorStale) {
-    return "error"
-  }
 
   const recentMessages = assistantMsgsMap.get(sessionId) ?? []
 

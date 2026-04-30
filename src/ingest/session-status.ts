@@ -1,4 +1,4 @@
-import { ACTIVE_BUSY_WINDOW_MS, ERROR_STALE_MS, shouldSuppressStaleToolActivity } from "./activity-status"
+import { ACTIVE_BUSY_WINDOW_MS, shouldSuppressStaleToolActivity } from "./activity-status"
 import { isPendingQuestionTool } from "./tool-names"
 import type { MainSessionView } from "./session"
 
@@ -51,12 +51,7 @@ export function deriveMainSessionStatus(opts: DeriveMainSessionStatusOpts): Deri
     }
   }
 
-  const isTerminalErrorStale =
-    typeof latestTerminalAt !== "number" || nowMs - latestTerminalAt > ERROR_STALE_MS
-
-  if (status === "unknown" && !isStaleActivity && latestTerminalStatus === "error" && !isTerminalErrorStale) {
-    status = "error"
-  } else if (
+  if (
     status === "unknown" &&
     !isStaleActivity &&
     recentRole === "assistant" &&

@@ -8,6 +8,7 @@ export const ATTENTION_FIRST_PRIORITY: Record<SessionStatus, number> = {
   plan_complete: 4,
   busy: 5,
   running_tool: 5,
+  bg_agent: 5,
   unknown: 6,
 }
 

@@ -139,6 +139,10 @@ function resolveSnapshotLastUpdatedMs(payload: DashboardPayload, sessions: Sessi
   return Number.isFinite(fallback) ? fallback : nowMs
 }
 
+function hasRunningBackgroundTasks(payload: DashboardPayload): boolean {
+  return payload.backgroundTasks.some((t) => t.status === "running")
+}
+
 function transformPayloadToSnapshot(
   sourceId: string,
   label: string,
@@ -170,13 +174,18 @@ function transformPayloadToSnapshot(
         status: mainSessionStatus,
       }
 
+  let aggregateStatus: SessionStatus = sessions.length > 0 ? computeAggregateStatus(sessions) : mainSession.status
+  if ((aggregateStatus === "idle" || aggregateStatus === "plan_complete") && hasRunningBackgroundTasks(payload)) {
+    aggregateStatus = "bg_agent"
+  }
+
   return {
     sourceId,
     label,
     projectRoot,
     mainSession,
     sessions,
-    aggregateStatus: sessions.length > 0 ? computeAggregateStatus(sessions) : mainSession.status,
+    aggregateStatus,
     planProgress: {
       name: payload.planProgress.name,
       completed: payload.planProgress.completed,

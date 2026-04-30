@@ -120,7 +120,7 @@ export const DashboardHeader = memo(function DashboardHeader({
               )}
               <div className="header-zoom__controls">
                 {onZoomOut && (
-                  <button className="header-btn header-btn--xs" onClick={onZoomOut} type="button" title="Zoom out" aria-label="Zoom out" disabled={zoom !== undefined && zoom <= 0.5}>
+                  <button className="header-btn header-btn--xs" onClick={onZoomOut} type="button" title="Zoom out" aria-label="Zoom out" disabled={zoom !== undefined && zoom <= 0.1}>
                     −
                   </button>
                 )}

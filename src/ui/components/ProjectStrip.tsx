@@ -114,7 +114,7 @@ export type ProjectStripProps = {
 const MAX_SESSION_DOTS = 5;
 
 export function getSessionFamily(status: string): 'active' | 'attention' | 'danger' | 'idle' {
-  if (['busy', 'thinking', 'running_tool', 'running_script'].includes(status)) return 'active'
+  if (['busy', 'thinking', 'running_tool', 'running_script', 'bg_agent'].includes(status)) return 'active'
   if (status === 'question') return 'attention'
   if (status === 'error') return 'danger'
   return 'idle'

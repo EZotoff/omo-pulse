@@ -9,6 +9,7 @@ import type {
 const STATUS_EMOJI: Record<SessionStatus, string> = {
   busy: "🟢",
   running_tool: "🟢",
+  bg_agent: "🟢",
   thinking: "🟡",
   idle: "⚪",
   question: "❓",

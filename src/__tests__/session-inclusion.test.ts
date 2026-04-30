@@ -307,14 +307,14 @@ describe("findIncludedSessionsSqlite", () => {
     expect(result.map((session) => session.id)).toEqual(["stale-question"])
   })
 
-  it("excludes stale error sessions once error and activity are both stale", () => {
+  it("excludes stale sessions outside idle window regardless of terminal tool status", () => {
     const now = Date.now()
     const result = runFindIncludedSessionsSqlite(
       createMockDb({
         sessionRows: [
           {
-            id: "stale-error",
-            title: "Error",
+            id: "stale-session",
+            title: "Stale",
             directory: "/home/user/project",
             time_created: now - 120000,
             time_updated: now - 120000,
@@ -327,9 +327,6 @@ describe("findIncludedSessionsSqlite", () => {
             time_updated: now - 120000,
           },
         ],
-        terminalPartsBySession: {
-          "stale-error": [{ status: "error", time_created: now - 120000 }],
-        },
       }),
       "/home/user/project",
       60000,
@@ -539,14 +536,14 @@ describe("findIncludedSessionsSqlite", () => {
     expect(result[2].id).toBe("ses-c")
   })
 
-  it("orders sessions by severity-first (error > question > busy), then recency", () => {
+  it("orders sessions by severity-first (question > busy), then recency", () => {
     const now = Date.now()
     const result = runFindIncludedSessionsSqlite(
       createMockDb({
         sessionRows: [
           {
-            id: "error-session",
-            title: "Error Session",
+            id: "older-busy",
+            title: "Older Busy",
             directory: "/home/user/project",
             time_created: now - 30000,
             time_updated: now - 30000,
@@ -569,18 +566,15 @@ describe("findIncludedSessionsSqlite", () => {
         activePartsBySession: {
           "question-session": [{ tool: "mcp_question", status: "pending" }],
         },
-        terminalPartsBySession: {
-          "error-session": [{ status: "error", time_created: now - 30000 }],
-        },
       }),
       "/home/user/project",
       60000,
     )
 
     expect(result).toHaveLength(3)
-    expect(result[0].id).toBe("error-session")
-    expect(result[1].id).toBe("question-session")
-    expect(result[2].id).toBe("busy-session")
+    expect(result[0].id).toBe("question-session")
+    expect(result[1].id).toBe("busy-session")
+    expect(result[2].id).toBe("older-busy")
   })
 
   it("orders idle sessions (>60s old) after busy sessions (<=60s old) based on canonical ACTIVE_BUSY_WINDOW_MS", () => {

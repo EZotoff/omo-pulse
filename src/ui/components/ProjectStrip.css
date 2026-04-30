@@ -41,6 +41,7 @@
 /* ::before — active states: full opacity */
 .project-strip[data-status="busy"]::before,
 .project-strip[data-status="running_tool"]::before,
+.project-strip[data-status="bg_agent"]::before,
 .project-strip[data-status="running_script"]::before,
 .project-strip[data-status="thinking"]::before {
   opacity: 0.7;
@@ -248,6 +249,17 @@
 
 /* running_tool — slightly deeper feel */
 .strip-status-dot[data-status="running_tool"] {
+  color: var(--status-tool-new);
+  background: 
+    radial-gradient(circle at 35% 35%, var(--dot-highlight-dim) 0%, transparent 60%),
+    conic-gradient(from 0deg, rgba(2, 108, 159, 0.15) 0%, var(--status-tool-new) 100%);
+  border-color: transparent;
+  box-shadow: inset 0 2px 5px var(--status-active-inset), 0 0 6px 1px rgba(6, 182, 212, 0.3);
+  animation: none;
+}
+
+/* bg_agent — matches running_tool (background agent activity) */
+.strip-status-dot[data-status="bg_agent"] {
   color: var(--status-tool-new);
   background: 
     radial-gradient(circle at 35% 35%, var(--dot-highlight-dim) 0%, transparent 60%),
@@ -929,7 +941,8 @@
 /* ── Status border colors (via data-status on .project-strip root) ── */
 
 .project-strip[data-status="busy"],
-.project-strip[data-status="running_tool"] {
+.project-strip[data-status="running_tool"],
+.project-strip[data-status="bg_agent"] {
   border-color: var(--status-busy-new);
   --strip-glow-color: var(--status-border-glow);
 }
@@ -943,6 +956,7 @@
 }
 .project-strip[data-status="busy"],
 .project-strip[data-status="running_tool"],
+.project-strip[data-status="bg_agent"],
 .project-strip[data-status="running_script"],
 .project-strip[data-status="thinking"] {
   opacity: 0.78;
@@ -980,6 +994,7 @@
 /* ── Enhanced strip glow — expanded active only ── */
 .project-strip[data-expanded="true"][data-status="busy"],
 .project-strip[data-expanded="true"][data-status="running_tool"],
+.project-strip[data-expanded="true"][data-status="bg_agent"],
 .project-strip[data-expanded="true"][data-status="thinking"] {
   box-shadow: 0 0 15px 2px var(--status-border-glow-faint), inset 0 1px 0 var(--status-border-glow-inset);
 }

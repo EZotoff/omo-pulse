@@ -219,19 +219,13 @@ afterEach(() => {
 });
 
 describe("status derivation characterization: SQLite session inclusion path", () => {
-	it("derives and orders all seven main-session statuses by severity", () => {
+	it("derives and orders all main-session statuses by severity", () => {
 		vi.spyOn(Date, "now").mockReturnValue(NOW_MS);
 		const age = (ms: number): number => NOW_MS - ms;
 
 		const sessions = runFindIncludedSessionsSqlite(
 			createMockDb({
 				sessionRows: [
-					{
-						id: "ses-error",
-						directory: PROJECT_ROOT,
-						time_created: age(20_000),
-						time_updated: age(20_000),
-					},
 					{
 						id: "ses-question",
 						directory: PROJECT_ROOT,
@@ -246,6 +240,12 @@ describe("status derivation characterization: SQLite session inclusion path", ()
 					},
 					{
 						id: "ses-thinking",
+						directory: PROJECT_ROOT,
+						time_created: age(20_000),
+						time_updated: age(20_000),
+					},
+					{
+						id: "ses-busy-fresh",
 						directory: PROJECT_ROOT,
 						time_created: age(20_000),
 						time_updated: age(20_000),
@@ -273,9 +273,6 @@ describe("status derivation characterization: SQLite session inclusion path", ()
 					"ses-question": [{ tool: "mcp_question", status: "pending" }],
 					"ses-running": [{ tool: "bash", status: "running" }],
 				},
-				terminalPartsBySession: {
-					"ses-error": [{ status: "error", time_created: age(10_000) }],
-				},
 				assistantMessagesBySession: {
 					"ses-thinking": [{ time_completed: null }],
 				},
@@ -285,17 +282,17 @@ describe("status derivation characterization: SQLite session inclusion path", ()
 		);
 
 		expect(sessions.map((session) => session.id)).toEqual([
-			"ses-error",
 			"ses-question",
 			"ses-running",
 			"ses-thinking",
-			"ses-unknown",
+			"ses-busy-fresh",
 			"ses-busy",
+			"ses-unknown",
 			"ses-idle",
 		]);
 	});
 
-	it("demotes stale terminal errors to idle when no other activity is fresh", () => {
+	it("returns idle for stale sessions regardless of terminal tool status", () => {
 		vi.spyOn(Date, "now").mockReturnValue(NOW_MS);
 		const age = (ms: number): number => NOW_MS - ms;
 
@@ -309,22 +306,19 @@ describe("status derivation characterization: SQLite session inclusion path", ()
 						time_updated: age(20_000),
 					},
 					{
-						id: "ses-stale-error",
+						id: "ses-stale",
 						directory: PROJECT_ROOT,
 						time_created: age(90_000),
 						time_updated: age(90_000),
 					},
 				],
-				terminalPartsBySession: {
-					"ses-stale-error": [{ status: "error", time_created: age(90_000) }],
-				},
 			}),
 			120_000,
 		);
 
 		expect(sessions.map((session) => session.id)).toEqual([
 			"ses-busy",
-			"ses-stale-error",
+			"ses-stale",
 		]);
 	});
 });
@@ -392,7 +386,7 @@ describe("status derivation characterization: file-based getMainSessionView path
 		expect(view.status).toBe("running_tool");
 	});
 
-	it("returns error when a fresh terminal tool status is error", () => {
+	it("returns busy when a terminal tool error exists but session is still active", () => {
 		const storage = makeTempStorage();
 		const message = makeAssistantMessage(
 			"msg-error",
@@ -420,7 +414,7 @@ describe("status derivation characterization: file-based getMainSessionView path
 			nowMs: NOW_MS,
 		});
 
-		expect(view.status).toBe("error");
+		expect(view.status).toBe("busy");
 	});
 
 	it("returns thinking for fresh assistant messages without completion time", () => {

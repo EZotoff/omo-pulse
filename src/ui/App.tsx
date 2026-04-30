@@ -162,7 +162,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   /* ── Zoom ── */
   const [zoom, setZoom] = useState<number>(() => {
     const saved = safeGetItem('dashboard-zoom')
-    return saved ? parseFloat(saved) : 1
+    return saved ? parseFloat(saved) : 1.8
   })
 
   useEffect(() => {
@@ -175,11 +175,11 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   }, [])
 
   const handleZoomOut = useCallback(() => {
-    setZoom((z) => Math.max(0.5, Math.round((z - 0.1) * 10) / 10))
+    setZoom((z) => Math.max(0.1, Math.round((z - 0.1) * 10) / 10))
   }, [])
 
   const handleZoomReset = useCallback(() => {
-    setZoom(1)
+    setZoom(1.8)
   }, [])
 
   /* ── Collapsed pane height & grid gap ── */

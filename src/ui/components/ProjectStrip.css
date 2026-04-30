@@ -870,13 +870,6 @@
   padding: 0 4px;
   font-size: 0.6rem;
 }
-[data-density="dense"] .strip-worktree-badge,
-[data-density="dense"] .strip-worktree-indicator {
-  min-width: 16px;
-  min-height: 18px;
-  padding: 1px 3px;
-  font-size: 10px;
-}
 [data-density="dense"] .queued-plan-badge {
   height: 16px;
   min-width: 16px;
@@ -947,13 +940,6 @@
   min-width: 14px;
   padding: 0 3px;
   font-size: 0.55rem;
-}
-[data-density="ultra-dense"] .strip-worktree-badge,
-[data-density="ultra-dense"] .strip-worktree-indicator {
-  min-width: 14px;
-  min-height: 16px;
-  padding: 1px 3px;
-  font-size: 9px;
 }
 [data-density="ultra-dense"] .queued-plan-badge {
   height: 14px;
@@ -1121,8 +1107,8 @@
 
 .project-strip[data-stale="true"] {
   opacity: 0.6;
-  border-color: var(--border-primary, #2a2a3e) !important;
-  animation: none !important;
+  border-color: var(--border-primary, #2a2a3e);
+  animation: none;
 }
 .project-strip[data-stale="true"]::before {
   opacity: 0;
@@ -1133,7 +1119,7 @@
 }
 .project-strip[data-stale="true"] .strip-status-dot {
   opacity: 0.4;
-  animation: none !important;
+  animation: none;
 }
 /* Stale+idle: flat stone-base, no texture */
 .project-strip[data-stale="true"] .strip-status-dot[data-status="idle"] {
@@ -1141,12 +1127,12 @@
   box-shadow: none;
   border-color: transparent;
   opacity: 0.4;
-  animation: none !important;
+  animation: none;
 }
 .strip-status-dot[data-stale="true"] {
   color: var(--text-muted);
   box-shadow: none;
-  animation: none !important;
+  animation: none;
 }
 
 
@@ -1158,10 +1144,10 @@
   .strip-status-dot,
   .strip-status-dot::before,
   .strip-status-dot::after {
-    animation: none !important;
+    animation: none;
   }
   .project-strip::after {
-    opacity: 0 !important;
+    opacity: 0;
   }
 }
 
@@ -1395,4 +1381,20 @@
   background: color-mix(in srgb, var(--status-danger) 18%, transparent);
   border-color: color-mix(in srgb, var(--status-danger) 36%, transparent);
   color: color-mix(in srgb, var(--status-danger) 72%, white 28%);
+}
+
+[data-density="dense"] .strip-worktree-badge,
+[data-density="dense"] .strip-worktree-indicator {
+  min-width: 16px;
+  min-height: 18px;
+  padding: 1px 3px;
+  font-size: 10px;
+}
+
+[data-density="ultra-dense"] .strip-worktree-badge,
+[data-density="ultra-dense"] .strip-worktree-indicator {
+  min-width: 14px;
+  min-height: 16px;
+  padding: 1px 3px;
+  font-size: 9px;
 }

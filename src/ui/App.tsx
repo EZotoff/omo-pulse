@@ -593,12 +593,6 @@ function ProjectStripWithChildren({ project, expanded, onToggleExpand, stripConf
             timeSeries={project.timeSeries}
           />
         ),
-        fullSparkline: (
-          <Sparkline
-            mode="full"
-            timeSeries={project.timeSeries}
-          />
-        ),
         compactPlan: (
           <PlanProgress
             planProgress={project.planProgress}

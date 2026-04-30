@@ -1,4 +1,4 @@
-/** Agent colour tone — shared across Sparkline & SessionSwimlane */
+/** Agent colour tone — used by Sparkline */
 export type AgentTone = "teal" | "red" | "green" | "sand"
 
 export type PreviewMode =

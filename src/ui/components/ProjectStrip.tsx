@@ -102,7 +102,7 @@ export type ProjectStripProps = {
   idleTimeoutMs?: number
   children?: {
     miniSparkline: React.ReactNode
-    fullSparkline: React.ReactNode
+    fullSparkline?: React.ReactNode
     compactPlan: React.ReactNode
     fullPlan: React.ReactNode
     sessionSwimlane?: React.ReactNode
@@ -112,6 +112,14 @@ export type ProjectStripProps = {
 /* ── Component ── */
 
 const MAX_SESSION_DOTS = 5;
+
+function resolveProjectName(project: ProjectSnapshot): string {
+  const projectWithOptionalName = project as ProjectSnapshot & { name?: string }
+  if (typeof projectWithOptionalName.name === "string" && projectWithOptionalName.name.trim().length > 0) {
+    return projectWithOptionalName.name
+  }
+  return project.label
+}
 
 export function getSessionFamily(status: string): 'active' | 'attention' | 'danger' | 'idle' {
   if (['busy', 'thinking', 'running_tool', 'running_script', 'bg_agent'].includes(status)) return 'active'
@@ -201,10 +209,9 @@ type StripMetricsProps = {
   lastUpdatedMs: number
   stripConfig?: StripConfigState
   backgroundTasks: ProjectSnapshot["backgroundTasks"]
-  tokenUsage: ProjectSnapshot["tokenUsage"]
 }
 
-const StripMetrics = memo(function StripMetrics({ project, mainSession, lastUpdatedMs, stripConfig, backgroundTasks, tokenUsage }: StripMetricsProps) {
+const StripMetrics = memo(function StripMetrics({ project, mainSession, lastUpdatedMs, stripConfig, backgroundTasks }: StripMetricsProps) {
   return (
     <>
       <div className="strip-section">
@@ -292,31 +299,50 @@ const StripMetrics = memo(function StripMetrics({ project, mainSession, lastUpda
           )}
         </div>
       )}
+    </>
+  )
+})
+
+type StripTopRowProps = {
+  stripConfig?: StripConfigState
+  tokenUsage: ProjectSnapshot["tokenUsage"]
+  slots?: ProjectStripProps["children"]
+}
+
+const StripTopRow = memo(function StripTopRow({ stripConfig, tokenUsage, slots }: StripTopRowProps) {
+  return (
+    <div className="strip-top-row">
+      <div className="strip-top-row-activity">
+        <div className="strip-section">
+          <span className="strip-section-label">Activity</span>
+          <div className="swimlane-slot">{slots?.sessionSwimlane}</div>
+        </div>
+      </div>
 
       {stripConfig?.showTokenUsage !== false && tokenUsage && (
-        <div className="strip-section">
+        <div className="strip-section strip-section--token-usage">
           <span className="strip-section-label">Token Usage</span>
           <div className="strip-tokens">
             <div className="strip-token-item">
-              <span className="strip-token-label">in</span>
+              <span className="strip-token-label">Input</span>
               <span className="strip-token-value">{formatTokenCount(tokenUsage.inputTokens)}</span>
             </div>
             <div className="strip-token-item">
-              <span className="strip-token-label">out</span>
+              <span className="strip-token-label">Output</span>
               <span className="strip-token-value">{formatTokenCount(tokenUsage.outputTokens)}</span>
             </div>
             <div className="strip-token-item">
-              <span className="strip-token-label">total</span>
+              <span className="strip-token-label">Total</span>
               <span className="strip-token-value">{formatTokenCount(tokenUsage.totalTokens)}</span>
             </div>
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 })
 
-type StripSessionsProps = {
+type StripPlansProps = {
   project: ProjectSnapshot
   planProgress: ProjectSnapshot["planProgress"]
   unintiatedPlans: ProjectSnapshot["unintiatedPlans"]
@@ -325,19 +351,9 @@ type StripSessionsProps = {
   slots?: ProjectStripProps["children"]
 }
 
-const StripSessions = memo(function StripSessions({ project, planProgress, unintiatedPlans, expandedUninitiatedPlans, onToggleUninitiatedPlan, slots }: StripSessionsProps) {
+const StripPlans = memo(function StripPlans({ project, planProgress, unintiatedPlans, expandedUninitiatedPlans, onToggleUninitiatedPlan, slots }: StripPlansProps) {
   return (
     <>
-      <div className="strip-section">
-        <span className="strip-section-label">Activity</span>
-        <div className="sparkline-slot sparkline-slot--full">{slots?.fullSparkline}</div>
-      </div>
-
-      <div className="strip-section">
-        <span className="strip-section-label">Session Activity</span>
-        <div className="swimlane-slot">{slots?.sessionSwimlane}</div>
-      </div>
-
       <div className="strip-section">
         <span className="strip-section-label">Plan — {planProgress.name || "unnamed"}</span>
         <div className="plan-slot plan-slot--full">{slots?.fullPlan}</div>
@@ -414,6 +430,7 @@ const StripSessions = memo(function StripSessions({ project, planProgress, unint
 function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idleTimeoutMs, children }: ProjectStripProps) {
   const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount, unintiatedPlans } = project
   const sourceId = project.sourceId
+  const projectName = resolveProjectName(project)
   const aggregateStatus = project.aggregateStatus ?? mainSession.status
   const displayStatus = computeDisplayStatus(
     aggregateStatus,
@@ -583,21 +600,32 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
         style={bodyStyle}
       >
         <div className="strip-body-inner">
-          <StripSessions
-            project={project}
-            planProgress={planProgress}
-            unintiatedPlans={unintiatedPlans}
-            expandedUninitiatedPlans={expandedUninitiatedPlans}
-            onToggleUninitiatedPlan={toggleUninitiatedPlan}
+          <div className="strip-project-header">
+            <span className="strip-project-name">{projectName}</span>
+            <span className="strip-project-path" title={project.projectRoot}>{project.projectRoot}</span>
+          </div>
+
+          <StripTopRow
+            stripConfig={stripConfig}
+            tokenUsage={tokenUsage}
             slots={children}
           />
+
           <StripMetrics
             project={project}
             mainSession={mainSession}
             lastUpdatedMs={lastUpdatedMs}
             stripConfig={stripConfig}
             backgroundTasks={backgroundTasks}
-            tokenUsage={tokenUsage}
+          />
+
+          <StripPlans
+            project={project}
+            planProgress={planProgress}
+            unintiatedPlans={unintiatedPlans}
+            expandedUninitiatedPlans={expandedUninitiatedPlans}
+            onToggleUninitiatedPlan={toggleUninitiatedPlan}
+            slots={children}
           />
         </div>
         {expanded && !released && (

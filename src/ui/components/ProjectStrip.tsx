@@ -1,5 +1,5 @@
 import type React from "react"
-import { memo, useRef, useEffect, useCallback, useState } from "react"
+import { memo, useCallback, useEffect, useRef, useState } from "react"
 import type { ProjectSnapshot, StripConfigState } from "../../types"
 import { useProjectPaneHeights } from "../hooks/useProjectPaneHeights"
 import { getInitials } from "../utils/avatar"

@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useRef, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type {
   DashboardMultiProjectPayload,
   PlanStatus,
@@ -6,24 +6,6 @@ import type {
   SoundConfig,
   StripConfigState,
 } from "../types"
-import { DashboardHeader } from "./components/DashboardHeader"
-import { ProjectStrip } from "./components/ProjectStrip"
-import { Sparkline } from "./components/Sparkline"
-import { PlanProgress } from "./components/PlanProgress"
-import { SessionSwimlane } from "./components/SessionSwimlane"
-import { SettingsPanel } from "./components/SettingsPanel"
-import { ColumnResizeHandle } from "./components/ColumnResizeHandle"
-import { ProjectManagementPanel } from "./components/ProjectManagementPanel"
-import { useStripConfig } from "./hooks/useStripConfig"
-import { PreviewNav } from "./components/PreviewNav"
-import type { PreviewMode } from "./types"
-
-import "./App.css"
-import { useExpandState } from "./hooks/useExpandState"
-import { useDensityMode } from "./hooks/useDensityMode"
-import { useSoundNotifications } from "./hooks/useSoundNotifications"
-import { useProjectOrder } from "./hooks/useProjectOrder"
-import { useProjectVisibility } from "./hooks/useProjectVisibility"
 import { ATTENTION_FIRST_PRIORITY } from "../ingest/status-rollup"
 import {
   buildSessionStatusMap,
@@ -35,10 +17,27 @@ import type {
   SessionStatusMap,
   SoundPlaybackDecision,
 } from "../ingest/session-diff"
+import { DashboardHeader } from "./components/DashboardHeader"
+import { PlanProgress } from "./components/PlanProgress"
+import { PreviewNav } from "./components/PreviewNav"
+import { ProjectStrip } from "./components/ProjectStrip"
+import { ProjectManagementPanel } from "./components/ProjectManagementPanel"
+import { SessionSwimlane } from "./components/SessionSwimlane"
+import { SettingsPanel } from "./components/SettingsPanel"
+import { Sparkline } from "./components/Sparkline"
+import { ColumnResizeHandle } from "./components/ColumnResizeHandle"
+import "./App.css"
+import { useDensityMode } from "./hooks/useDensityMode"
+import { useExpandState } from "./hooks/useExpandState"
+import { useProjectOrder } from "./hooks/useProjectOrder"
+import { useProjectVisibility } from "./hooks/useProjectVisibility"
+import { useSoundNotifications } from "./hooks/useSoundNotifications"
+import { useStripConfig } from "./hooks/useStripConfig"
+import type { PreviewMode } from "./types"
 import {
-  DndContext,
-  closestCenter,
   PointerSensor,
+  closestCenter,
+  DndContext,
   useSensor,
   useSensors,
 } from "@dnd-kit/core"

@@ -407,12 +407,13 @@
 /* Session dots */
 .session-indicators {
   display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
   align-content: center;
   gap: 4px;
   flex-shrink: 0;
-  flex-wrap: wrap;
-  max-width: 32px;
+  max-height: 20px;
 }
 
 .session-dot {
@@ -877,7 +878,7 @@
   font-size: 0.6rem;
 }
 [data-density="dense"] .session-indicators {
-  max-width: 26px;
+  max-height: 16px;
 }
 [data-density="dense"] .session-dot {
   width: 6px;
@@ -948,7 +949,7 @@
   font-size: 0.55rem;
 }
 [data-density="ultra-dense"] .session-indicators {
-  max-width: 23px;
+  max-height: 14px;
 }
 [data-density="ultra-dense"] .session-dot {
   width: 5px;

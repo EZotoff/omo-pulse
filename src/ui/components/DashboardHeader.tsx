@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, memo } from "react"
 
 /* ── Props ── */
 
@@ -32,9 +32,35 @@ function formatUpdateTime(ms: number | null): string {
   return `${hours}h ago`
 }
 
+type LastUpdatedLabelProps = {
+  lastUpdatedMs: number | null
+}
+
+function LastUpdatedLabel({ lastUpdatedMs }: LastUpdatedLabelProps) {
+  const [nowMs, setNowMs] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (lastUpdatedMs === null) return
+
+    setNowMs(Date.now())
+
+    const intervalId = window.setInterval(() => {
+      setNowMs(Date.now())
+    }, 1_000)
+
+    return () => window.clearInterval(intervalId)
+  }, [lastUpdatedMs])
+
+  return (
+    <span className="dashboard-header__updated mono" aria-live="polite" aria-atomic="true">
+      {formatUpdateTime(lastUpdatedMs === null ? null : Math.min(lastUpdatedMs, nowMs))}
+    </span>
+  )
+}
+
 /* ── Component ── */
 
-export function DashboardHeader({
+export const DashboardHeader = memo(function DashboardHeader({
   connected,
   lastUpdatedMs,
   onExpandAll,
@@ -48,19 +74,10 @@ export function DashboardHeader({
   onZoomOut,
   onZoomReset,
 }: DashboardHeaderProps) {
-
-
-  /* Re-render update time every second */
-  const [, setTick] = useState(0)
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1_000)
-    return () => clearInterval(id)
-  }, [])
-
   return (
     <header className="dashboard-header">
       <div className="dashboard-header__left">
-        <h1 className="dashboard-header__title">ez-omo-dash</h1>
+        <h1 className="dashboard-header__title">OmO Pulse</h1>
         {onManageProjectsOpen && (
           <button className="header-btn" onClick={onManageProjectsOpen} type="button" title="Manage Projects" aria-label="Manage Projects">
             Projects
@@ -103,7 +120,7 @@ export function DashboardHeader({
               )}
               <div className="header-zoom__controls">
                 {onZoomOut && (
-                  <button className="header-btn header-btn--xs" onClick={onZoomOut} type="button" title="Zoom out" aria-label="Zoom out" disabled={zoom !== undefined && zoom <= 0.5}>
+                  <button className="header-btn header-btn--xs" onClick={onZoomOut} type="button" title="Zoom out" aria-label="Zoom out" disabled={zoom !== undefined && zoom <= 0.1}>
                     −
                   </button>
                 )}
@@ -122,9 +139,7 @@ export function DashboardHeader({
           )}
         </div>
 
-        <span className="dashboard-header__updated mono" aria-live="polite" aria-atomic="true">
-          {formatUpdateTime(lastUpdatedMs)}
-        </span>
+        <LastUpdatedLabel lastUpdatedMs={lastUpdatedMs} />
 
         <span
           className="dashboard-header__connection"
@@ -142,4 +157,4 @@ export function DashboardHeader({
       </div>
     </header>
   )
-}
+})

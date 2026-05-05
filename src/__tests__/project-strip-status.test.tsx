@@ -127,6 +127,28 @@ describe("ProjectStrip rendered status", () => {
     )
     expect(html).toContain('data-status="unknown"')
   })
+
+  it("marks stale demoted execution strips as stale when display status becomes idle", () => {
+    const staleTime = new Date(Date.now() - 6 * 60_000).toISOString()
+    const project = {
+      ...baseProject,
+      mainSession: {
+        ...baseProject.mainSession,
+        lastUpdated: staleTime,
+        status: "running_tool" as const,
+      },
+      aggregateStatus: "running_tool" as const,
+    }
+
+    const html = renderToStaticMarkup(
+      <ProjectStrip project={project} expanded={false} onToggleExpand={() => {}} stripConfig={baseConfig}>
+        {children}
+      </ProjectStrip>
+    )
+
+    expect(html).toContain('data-status="idle"')
+    expect(html).toContain('data-stale="true"')
+  })
 })
 
 describe("computeDisplayStatus", () => {

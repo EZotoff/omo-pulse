@@ -1,17 +1,27 @@
-import type { SessionTimeSeriesPayload } from "../../types"
-import type { AgentTone } from "../types"
 import { memo, useMemo } from "react"
+import type { SessionTimeSeriesPayload } from "../../types"
 import "./SessionSwimlane.css"
 
 /* ── Helpers ── */
 
-function detectTone(label: string, isBackground: boolean): AgentTone | "muted" {
-  if (isBackground) return "muted"
-  const lower = label.toLowerCase()
-  if (lower.includes("sisyphus")) return "teal"
-  if (lower.includes("prometheus")) return "red"
-  if (lower.includes("atlas")) return "green"
-  return "sand"
+const SESSION_COLOR_PALETTE = [
+  "hsl(188 92% 60%)",
+  "hsl(6 88% 66%)",
+  "hsl(126 70% 60%)",
+  "hsl(38 94% 62%)",
+  "hsl(286 86% 68%)",
+  "hsl(218 92% 66%)",
+  "hsl(332 82% 66%)",
+  "hsl(166 82% 58%)",
+  "hsl(52 92% 62%)",
+  "hsl(260 88% 70%)",
+] as const
+
+function colorForSessionIndex(index: number): string {
+  const paletteColor = SESSION_COLOR_PALETTE[index]
+  if (paletteColor) return paletteColor
+  const hue = Math.round((index * 137.508) % 360)
+  return `hsl(${hue} 84% 64%)`
 }
 
 function sumValues(values: number[]): number {
@@ -30,29 +40,26 @@ const PAD_TOP = 1
 
 /* ── Gradient defs (replicated from Sparkline) ── */
 
-function GradientDefs() {
+function GradientDefs({
+  sessionColors,
+}: {
+  sessionColors: readonly { colorIndex: number; color: string }[]
+}) {
   return (
     <defs>
-      <linearGradient id="swim-sparkline-grad-teal" x1="0" x2="0" y1="1" y2="0">
-        <stop offset="0%" stopColor="rgba(0,212,170,0.4)" />
-        <stop offset="100%" stopColor="rgba(0,212,170,0.3)" />
-      </linearGradient>
-      <linearGradient id="swim-sparkline-grad-red" x1="0" x2="0" y1="1" y2="0">
-        <stop offset="0%" stopColor="rgba(255,107,107,0.4)" />
-        <stop offset="100%" stopColor="rgba(255,107,107,0.3)" />
-      </linearGradient>
-      <linearGradient id="swim-sparkline-grad-green" x1="0" x2="0" y1="1" y2="0">
-        <stop offset="0%" stopColor="rgba(78,205,196,0.4)" />
-        <stop offset="100%" stopColor="rgba(78,205,196,0.3)" />
-      </linearGradient>
-      <linearGradient id="swim-sparkline-grad-sand" x1="0" x2="0" y1="1" y2="0">
-        <stop offset="0%" stopColor="rgba(255,165,2,0.4)" />
-        <stop offset="100%" stopColor="rgba(255,165,2,0.3)" />
-      </linearGradient>
-      <linearGradient id="swim-sparkline-grad-muted" x1="0" x2="0" y1="1" y2="0">
-        <stop offset="0%" stopColor="rgba(102,102,128,0.3)" />
-        <stop offset="100%" stopColor="rgba(102,102,128,0.2)" />
-      </linearGradient>
+      {sessionColors.map(({ colorIndex, color }) => (
+        <linearGradient
+          key={colorIndex}
+          id={`swim-sparkline-grad-${colorIndex}`}
+          x1="0"
+          x2="0"
+          y1="1"
+          y2="0"
+        >
+          <stop offset="0%" stopColor={color} stopOpacity={0.5} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.34} />
+        </linearGradient>
+      ))}
     </defs>
   )
 }
@@ -77,14 +84,19 @@ export const SessionSwimlane = memo(function SessionSwimlane({
 }: SessionSwimlaneProps) {
   const { buckets, sessions } = sessionTimeSeries
 
-  const sessionTones = useMemo(
-    () => sessions.map(s => ({ ...s, tone: detectTone(s.sessionLabel, s.isBackground) })),
+  const sessionColors = useMemo(
+    () =>
+      sessions.map((session, index) => ({
+        ...session,
+        colorIndex: index,
+        color: colorForSessionIndex(index),
+      })),
     [sessions],
   )
 
   const sorted = useMemo(
-    () => [...sessionTones].sort((a, b) => sumValues(b.values) - sumValues(a.values)),
-    [sessionTones],
+    () => [...sessionColors].sort((a, b) => sumValues(b.values) - sumValues(a.values)),
+    [sessionColors],
   )
 
   const scaleMax = useMemo(() => {
@@ -108,7 +120,7 @@ export const SessionSwimlane = memo(function SessionSwimlane({
         yOffset += h
         out.push({
           key: `${s.sessionId}-${i}`,
-          fill: `url(#swim-sparkline-grad-${s.tone})`,
+          fill: `url(#swim-sparkline-grad-${s.colorIndex})`,
           x: i + BAR_INSET,
           y: PAD_TOP + BAR_H - yOffset,
           w: BAR_W,
@@ -131,7 +143,12 @@ export const SessionSwimlane = memo(function SessionSwimlane({
         preserveAspectRatio="none"
         aria-hidden="true"
       >
-        <GradientDefs />
+        <GradientDefs
+          sessionColors={sessionColors.map(s => ({
+            colorIndex: s.colorIndex,
+            color: s.color,
+          }))}
+        />
         {rects.map(r => (
           <rect
             key={r.key}
@@ -149,7 +166,7 @@ export const SessionSwimlane = memo(function SessionSwimlane({
         <div className="swimlane-legend">
           {sorted.map(s => (
             <span key={s.sessionId} className="swimlane-legend-item">
-              <span className={`swimlane-legend-dot swimlane-legend-dot--${s.tone}`} />
+              <span className="swimlane-legend-dot" style={{ backgroundColor: s.color }} />
               {s.sessionLabel}
             </span>
           ))}

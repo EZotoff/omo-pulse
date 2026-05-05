@@ -19,19 +19,19 @@ type SessionRow = {
 
 type ActivePartRow = {
   tool: string
-  status: string
+  status?: string
 }
 
-type ErrorCountRow = {
-  cnt: number
+type TerminalPartRow = {
+  status: string
+  time_created: number
 }
 
 type AssistantMessageRow = {
-  role: string
-  time_completed?: number
+  time_completed: number | null
 }
 
-type QueryRows = SessionRow[] | ActivePartRow[] | ErrorCountRow[] | AssistantMessageRow[]
+type QueryRows = SessionRow[] | ActivePartRow[] | TerminalPartRow[] | AssistantMessageRow[]
 
 type MockStatement = {
   all: (...params: unknown[]) => QueryRows
@@ -44,7 +44,7 @@ type MockDatabase = {
 type MockDbConfig = {
   sessionRows?: SessionRow[]
   activePartsBySession?: Record<string, ActivePartRow[]>
-  errorCountsBySession?: Record<string, number>
+  terminalPartsBySession?: Record<string, TerminalPartRow[]>
   assistantMessagesBySession?: Record<string, AssistantMessageRow[]>
   throwOnQuery?: boolean
 }
@@ -58,22 +58,56 @@ function createMockDb(config: MockDbConfig = {}): MockDatabase {
 
       return {
         all: (...params: unknown[]): QueryRows => {
-          const sessionId = typeof params[0] === "string" ? params[0] : undefined
+          const isBatch = sql.includes("session_id IN")
+          const sessionIds = params.filter((p): p is string => typeof p === "string")
 
           if (sql.includes("FROM session WHERE directory")) {
             return config.sessionRows ?? []
           }
 
-          if (sql.includes("state_status = 'pending' OR state_status = 'running'")) {
-            return sessionId ? (config.activePartsBySession?.[sessionId] ?? []) : []
+          if (sql.includes("'pending', 'running'")) {
+            const source = config.activePartsBySession ?? {}
+            if (isBatch) {
+              const rows: Array<ActivePartRow & { session_id: string }> = []
+              for (const sid of sessionIds) {
+                for (const part of (source[sid] ?? [])) {
+                  rows.push({ ...part, session_id: sid })
+                }
+              }
+              return rows
+            }
+            const sessionId = sessionIds[0]
+            return sessionId ? (source[sessionId] ?? []) : []
           }
 
-          if (sql.includes("state_status = 'error'")) {
-            return [{ cnt: sessionId ? (config.errorCountsBySession?.[sessionId] ?? 0) : 0 }]
+          if (sql.includes("'error', 'completed'")) {
+            const source = config.terminalPartsBySession ?? {}
+            if (isBatch) {
+              const rows: Array<TerminalPartRow & { session_id: string }> = []
+              for (const sid of sessionIds) {
+                for (const part of (source[sid] ?? [])) {
+                  rows.push({ ...part, session_id: sid })
+                }
+              }
+              return rows
+            }
+            const sessionId = sessionIds[0]
+            return sessionId ? (source[sessionId] ?? []) : []
           }
 
-          if (sql.includes("FROM message")) {
-            return sessionId ? (config.assistantMessagesBySession?.[sessionId] ?? []) : []
+          if (sql.includes("json_extract(data, '$.role') = 'assistant'")) {
+            const source = config.assistantMessagesBySession ?? {}
+            if (isBatch) {
+              const rows: Array<AssistantMessageRow & { session_id: string }> = []
+              for (const sid of sessionIds) {
+                for (const msg of (source[sid] ?? [])) {
+                  rows.push({ ...msg, session_id: sid })
+                }
+              }
+              return rows
+            }
+            const sessionId = sessionIds[0]
+            return sessionId ? (source[sessionId] ?? []) : []
           }
 
           return []
@@ -273,14 +307,14 @@ describe("findIncludedSessionsSqlite", () => {
     expect(result.map((session) => session.id)).toEqual(["stale-question"])
   })
 
-  it("keeps stale error sessions included beyond the normal idle window", () => {
+  it("excludes stale sessions outside idle window regardless of terminal tool status", () => {
     const now = Date.now()
     const result = runFindIncludedSessionsSqlite(
       createMockDb({
         sessionRows: [
           {
-            id: "stale-error",
-            title: "Error",
+            id: "stale-session",
+            title: "Stale",
             directory: "/home/user/project",
             time_created: now - 120000,
             time_updated: now - 120000,
@@ -293,15 +327,12 @@ describe("findIncludedSessionsSqlite", () => {
             time_updated: now - 120000,
           },
         ],
-        errorCountsBySession: {
-          "stale-error": 1,
-        },
       }),
       "/home/user/project",
       60000,
     )
 
-    expect(result.map((session) => session.id)).toEqual(["stale-error"])
+    expect(result.map((session) => session.id)).toEqual([])
   })
 
   it("does not treat generic mc_* tools as question status", () => {
@@ -365,6 +396,30 @@ describe("findIncludedSessionsSqlite", () => {
     )
 
     expect(result.map((session) => session.id)).toEqual(["stale-question"])
+  })
+
+  it("does not keep stale running question tools included beyond the normal idle window", () => {
+    const now = Date.now()
+    const result = runFindIncludedSessionsSqlite(
+      createMockDb({
+        sessionRows: [
+          {
+            id: "stale-question",
+            title: "Question",
+            directory: "/home/user/project",
+            time_created: now - 15 * 60_000,
+            time_updated: now - 15 * 60_000,
+          },
+        ],
+        activePartsBySession: {
+          "stale-question": [{ tool: "question", status: "running" }],
+        },
+      }),
+      "/home/user/project",
+      60000,
+    )
+
+    expect(result).toEqual([])
   })
 
   it("handles mixed sessions: active top-level, stale excluded, child/background excluded", () => {
@@ -481,14 +536,14 @@ describe("findIncludedSessionsSqlite", () => {
     expect(result[2].id).toBe("ses-c")
   })
 
-  it("orders sessions by severity-first (error > question > busy), then recency", () => {
+  it("orders sessions by severity-first (question > busy), then recency", () => {
     const now = Date.now()
     const result = runFindIncludedSessionsSqlite(
       createMockDb({
         sessionRows: [
           {
-            id: "error-session",
-            title: "Error Session",
+            id: "older-busy",
+            title: "Older Busy",
             directory: "/home/user/project",
             time_created: now - 30000,
             time_updated: now - 30000,
@@ -511,18 +566,15 @@ describe("findIncludedSessionsSqlite", () => {
         activePartsBySession: {
           "question-session": [{ tool: "mcp_question", status: "pending" }],
         },
-        errorCountsBySession: {
-          "error-session": 1,
-        },
       }),
       "/home/user/project",
       60000,
     )
 
     expect(result).toHaveLength(3)
-    expect(result[0].id).toBe("error-session")
-    expect(result[1].id).toBe("question-session")
-    expect(result[2].id).toBe("busy-session")
+    expect(result[0].id).toBe("question-session")
+    expect(result[1].id).toBe("busy-session")
+    expect(result[2].id).toBe("older-busy")
   })
 
   it("orders idle sessions (>60s old) after busy sessions (<=60s old) based on canonical ACTIVE_BUSY_WINDOW_MS", () => {

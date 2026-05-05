@@ -1,29 +1,13 @@
 import * as path from "node:path"
 import { Database } from "bun:sqlite"
 import type { SessionTimeSeriesPayload, SessionTimeSeriesEntry } from "../types"
+import { classifySqliteError } from "./sqlite-utils"
+import type { SqliteReadFailureReason } from "./storage-backend"
 import { realpathSafe } from "./paths"
-
-type SqliteReadFailureReason = "db_busy" | "db_corrupt" | "db_unopenable" | "db_query_failed"
 
 type DeriveResult<T> =
   | { ok: true; value: T }
   | { ok: false; reason: SqliteReadFailureReason }
-
-function classifySqliteError(error: unknown): SqliteReadFailureReason {
-  const message = error instanceof Error ? error.message.toLowerCase() : ""
-  if (message.includes("database is locked") || message.includes("busy")) return "db_busy"
-  if (
-    message.includes("database disk image is malformed") ||
-    message.includes("not a database") ||
-    message.includes("corrupt")
-  ) {
-    return "db_corrupt"
-  }
-  if (message.includes("unable to open database file") || message.includes("cannot open")) {
-    return "db_unopenable"
-  }
-  return "db_query_failed"
-}
 
 function withReadonlyDb<T>(sqlitePath: string, fn: (db: Database) => T): DeriveResult<T> {
   let db: Database | null = null
@@ -36,6 +20,7 @@ function withReadonlyDb<T>(sqlitePath: string, fn: (db: Database) => T): DeriveR
     try {
       db?.close()
     } catch {
+    // Expected: file may not exist or be malformed
     }
   }
 }
@@ -143,6 +128,7 @@ export function derivePerSessionTimeSeries(opts: {
       try {
         parsed = JSON.parse(row.data)
       } catch {
+        // Expected: file may not exist or be malformed
         continue
       }
       if (!parsed || typeof parsed !== "object") continue

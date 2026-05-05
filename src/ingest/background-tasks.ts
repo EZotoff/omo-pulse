@@ -1,12 +1,16 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
 import { BACKGROUND_RUNNING_WINDOW_MS, shouldKeepQueuedBackgroundTaskActive } from "./activity-status"
+import { formatElapsed, formatIsoNoMs, formatTimeline } from "./format-utils"
 import type { OpenCodeStorageRoots, SessionMetadata, StoredMessageMeta, StoredToolPart } from "./session"
-import { getMessageDir } from "./session"
+import { getMessageDir } from "./paths"
 import { pickLatestModelString } from "./model"
-import { QUESTION_TOOL_NAMES } from "./tool-names"
+import { isPendingQuestionTool } from "./tool-names"
+import { findBackgroundSessionId, findTaskSessionId } from "./sqlite-utils"
 
 type FsLike = Pick<typeof fs, "readFileSync" | "readdirSync" | "existsSync" | "statSync"> 
+
+const RECENT_MESSAGES_LIMIT = 200
 
 export type BackgroundTaskRow = {
   id: string
@@ -89,6 +93,7 @@ function readJsonFile<T>(filePath: string, fsLike: FsLike): T | null {
     const content = fsLike.readFileSync(filePath, "utf8")
     return JSON.parse(content) as T
   } catch {
+    // Expected: file may not exist or be malformed
     return null
   }
 }
@@ -97,6 +102,7 @@ function listJsonFiles(dir: string, fsLike: FsLike): string[] {
   try {
     return fsLike.readdirSync(dir).filter((f) => f.endsWith(".json"))
   } catch {
+    // Expected: file may not exist or be malformed
     return []
   }
 }
@@ -125,6 +131,7 @@ function readRecentMessageMetas(messageDir: string, maxMessages: number, fsLike:
         try {
           return fsLike.statSync(path.join(messageDir, f)).mtimeMs
         } catch {
+          // Expected: file may not exist or be malformed
           return 0
         }
       })(),
@@ -154,137 +161,17 @@ export function readAllSessionMetas(sessionStorage: string, fsLike: FsLike = fs)
       }
     }
   } catch {
+    // Expected: file may not exist or be malformed
     return []
   }
   return metas
-}
-
-function findBackgroundSessionId(opts: {
-  allSessionMetas: SessionMetadata[]
-  parentSessionId: string
-  description: string
-  subagentType?: string | null
-  category?: string | null
-  startedAt: number
-}): string | null {
-  const description = opts.description
-  const subagentType = typeof opts.subagentType === "string" && opts.subagentType.trim() ? opts.subagentType.trim() : null
-
-  // OpenCode/oh-my-opencode session title formats have changed over time.
-  // Prefer exact matches, but allow safe fallbacks within a bounded time window.
-  const expectedTitles = [
-    // Legacy
-    `Background: ${description}`,
-    // Current (observed): "<description> (@<subagent> subagent)"
-    ...(subagentType ? [`${description} (@${subagentType} subagent)`] : []),
-    // Best-effort fallback (older sync style can leak into bg)
-    `Task: ${description}`,
-  ]
-
-  const windowStart = opts.startedAt - 10_000
-  // Background tasks can remain queued before a child session is created.
-  const windowEnd = opts.startedAt + 15 * 60_000
-
-  const candidates = opts.allSessionMetas.filter(
-    (m) =>
-      m.parentID === opts.parentSessionId &&
-      m.time?.created >= windowStart &&
-      m.time?.created <= windowEnd
-  )
-
-  // Prefer exact title matches (most precise).
-  const exact = candidates.filter((m) => typeof m.title === "string" && expectedTitles.includes(m.title))
-  const pool = exact.length > 0
-    ? exact
-    : candidates.filter((m) => {
-        const t = typeof m.title === "string" ? m.title : ""
-        if (!t) return false
-        if (subagentType && t.startsWith(description) && t.includes(`@${subagentType}`)) return true
-        return t.startsWith(description)
-      })
-
-  const poolFallback = pool.length > 0 ? pool : candidates
-
-  // Deterministic tie-breaking: max by time.created, then lexicographic id
-  poolFallback.sort((a, b) => {
-    const at = a.time?.created ?? 0
-    const bt = b.time?.created ?? 0
-
-    // Prefer the closest session to the tool start time (covers long queue delays).
-    const ad = Math.abs(at - opts.startedAt)
-    const bd = Math.abs(bt - opts.startedAt)
-    if (ad !== bd) return ad - bd
-
-    // Then prefer newer.
-    if (bt !== at) return bt - at
-
-    // Finally stable by id.
-    return String(a.id).localeCompare(String(b.id))
-  })
-  return poolFallback[0]?.id ?? null
-}
-
-function findTaskSessionId(opts: {
-  allSessionMetas: SessionMetadata[]
-  parentSessionId: string
-  description: string
-  subagentType?: string | null
-  category?: string | null
-  startedAt: number
-}): string | null {
-  const description = opts.description
-  const subagentType = typeof opts.subagentType === "string" && opts.subagentType.trim() ? opts.subagentType.trim() : null
-
-  const expectedTitles = [
-    // Legacy
-    `Task: ${description}`,
-    // Current (observed): "<description> (@<subagent> subagent)"
-    ...(subagentType ? [`${description} (@${subagentType} subagent)`] : []),
-    // Best-effort fallback
-    `Background: ${description}`,
-  ]
-
-  const windowStart = opts.startedAt - 10_000
-  const windowEnd = opts.startedAt + 15 * 60_000
-
-  const candidates = opts.allSessionMetas.filter(
-    (m) =>
-      m.parentID === opts.parentSessionId &&
-      m.time?.created >= windowStart &&
-      m.time?.created <= windowEnd
-  )
-
-  const exact = candidates.filter((m) => typeof m.title === "string" && expectedTitles.includes(m.title))
-  const pool = exact.length > 0
-    ? exact
-    : candidates.filter((m) => {
-        const t = typeof m.title === "string" ? m.title : ""
-        if (!t) return false
-        if (subagentType && t.startsWith(description) && t.includes(`@${subagentType}`)) return true
-        return t.startsWith(description)
-      })
-
-  const poolFallback = pool.length > 0 ? pool : candidates
-
-  poolFallback.sort((a, b) => {
-    const at = a.time?.created ?? 0
-    const bt = b.time?.created ?? 0
-
-    const ad = Math.abs(at - opts.startedAt)
-    const bd = Math.abs(bt - opts.startedAt)
-    if (ad !== bd) return ad - bd
-
-    if (bt !== at) return bt - at
-    return String(a.id).localeCompare(String(b.id))
-  })
-  return poolFallback[0]?.id ?? null
 }
 
 function deriveBackgroundSessionStats(
   storage: OpenCodeStorageRoots,
   metas: StoredMessageMeta[],
   fsLike: FsLike
-): { toolCalls: number; lastTool: string | null; lastUpdateAt: number | null; activeQuestionTool: string | null } {
+): { toolCalls: number; lastTool: string | null; lastUpdateAt: number | null; pendingQuestionTool: string | null } {
   let toolCalls = 0
   let lastTool: string | null = null
   let lastUpdateAt: number | null = null
@@ -296,17 +183,17 @@ function deriveBackgroundSessionStats(
     return String(b.id).localeCompare(String(a.id))
   })
 
-  let activeQuestionTool: string | null = null
+  let pendingQuestionTool: string | null = null
   for (const meta of newestFirst) {
     const parts = readToolPartsForMessage(storage, meta.id, fsLike)
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i]
-      if ((part.state.status === "pending" || part.state.status === "running") && QUESTION_TOOL_NAMES.has(part.tool)) {
-        activeQuestionTool = part.tool
+      if (isPendingQuestionTool(part.tool, part.state.status)) {
+        pendingQuestionTool = part.tool
         break
       }
     }
-    if (activeQuestionTool) break
+    if (pendingQuestionTool) break
   }
 
   // Deterministic ordering by time.created then id.
@@ -327,40 +214,91 @@ function deriveBackgroundSessionStats(
     }
   }
 
-  return { toolCalls, lastTool, lastUpdateAt, activeQuestionTool }
-}
-
-function formatIsoNoMs(ts: number): string {
-  const iso = new Date(ts).toISOString()
-  return iso.replace(/\.\d{3}Z$/, "Z")
-}
-
-function formatElapsed(ms: number): string {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
-  const seconds = totalSeconds % 60
-  const totalMinutes = Math.floor(totalSeconds / 60)
-  const minutes = totalMinutes % 60
-  const totalHours = Math.floor(totalMinutes / 60)
-  const hours = totalHours % 24
-  const days = Math.floor(totalHours / 24)
-
-  if (days > 0) return hours > 0 ? `${days}d${hours}h` : `${days}d`
-  if (totalHours > 0) return minutes > 0 ? `${totalHours}h${minutes}m` : `${totalHours}h`
-  if (totalMinutes > 0) return seconds > 0 ? `${totalMinutes}m${seconds}s` : `${totalMinutes}m`
-  return `${seconds}s`
-}
-
-function formatTimeline(startAt: number | null, endAtMs: number): string {
-  if (typeof startAt !== "number") return ""
-  const start = formatIsoNoMs(startAt)
-  const elapsed = formatElapsed(endAtMs - startAt)
-  return `${start}: ${elapsed}`
+  return { toolCalls, lastTool, lastUpdateAt, pendingQuestionTool }
 }
 
 const TASK_TOOL_NAMES = new Set(["delegate_task", "task", "call_omo_agent", "background_task"])
 
 function isTaskTool(toolName: string): boolean {
   return TASK_TOOL_NAMES.has(toolName)
+}
+
+function resolveBackgroundSessionIdFiles(opts: {
+  part: StoredToolPart
+  runInBackground: boolean
+  rawDescription: string | null
+  subagentType: string | null
+  category: string | null
+  startedAt: number
+  mainSessionId: string
+  allSessionMetas: SessionMetadata[]
+  storage: OpenCodeStorageRoots
+  fsLike: FsLike
+}): string | null {
+  let backgroundSessionId: string | null = readToolStateSessionId(opts.part)
+
+  if (opts.runInBackground) {
+    if (!backgroundSessionId && opts.rawDescription) {
+      backgroundSessionId = findBackgroundSessionId({
+        allSessionMetas: opts.allSessionMetas,
+        parentSessionId: opts.mainSessionId,
+        description: opts.rawDescription,
+        subagentType: opts.subagentType,
+        category: opts.category,
+        startedAt: opts.startedAt,
+      })
+    }
+  } else {
+    const resume = (opts.part.state?.input as Record<string, unknown> | undefined)?.resume
+    if (typeof resume === "string" && resume.trim() !== "") {
+      const resumeMessageDir = getMessageDir(opts.storage.message, resume.trim())
+      if (opts.fsLike.existsSync(resumeMessageDir) && opts.fsLike.readdirSync(resumeMessageDir).length > 0) {
+        backgroundSessionId = resume.trim()
+      }
+    }
+    if (!backgroundSessionId && opts.rawDescription) {
+      backgroundSessionId = findBackgroundSessionId({
+        allSessionMetas: opts.allSessionMetas,
+        parentSessionId: opts.mainSessionId,
+        description: opts.rawDescription,
+        subagentType: opts.subagentType,
+        category: opts.category,
+        startedAt: opts.startedAt,
+      })
+      if (!backgroundSessionId) {
+        backgroundSessionId = findTaskSessionId({
+          allSessionMetas: opts.allSessionMetas,
+          parentSessionId: opts.mainSessionId,
+          description: opts.rawDescription,
+          subagentType: opts.subagentType,
+          category: opts.category,
+          startedAt: opts.startedAt,
+        })
+      }
+    }
+  }
+
+  return backgroundSessionId
+}
+
+function deriveBackgroundTaskStatusFiles(opts: {
+  backgroundSessionId: string | null
+  toolCalls: number
+  lastUpdateAt: number | null
+  pendingQuestionTool: string | null
+  startedAt: number
+  nowMs: number
+}): BackgroundTaskRow["status"] {
+  if (!opts.backgroundSessionId) {
+    return shouldKeepQueuedBackgroundTaskActive(opts.startedAt, opts.nowMs) ? "queued" : "unknown"
+  }
+  if (opts.toolCalls === 0 && opts.lastUpdateAt === null) {
+    return shouldKeepQueuedBackgroundTaskActive(opts.startedAt, opts.nowMs) ? "queued" : "unknown"
+  }
+  if (opts.pendingQuestionTool) return "question"
+  if (opts.lastUpdateAt && opts.nowMs - opts.lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) return "running"
+  if (opts.toolCalls > 0) return "completed"
+  return "unknown"
 }
 
 export function deriveBackgroundTasks(opts: {
@@ -372,18 +310,18 @@ export function deriveBackgroundTasks(opts: {
   const fsLike: FsLike = opts.fs ?? fs
   const nowMs = opts.nowMs ?? Date.now()
   const messageDir = getMessageDir(opts.storage.message, opts.mainSessionId)
-  const metas = readRecentMessageMetas(messageDir, 200, fsLike)
+  const metas = readRecentMessageMetas(messageDir, RECENT_MESSAGES_LIMIT, fsLike)
   const allSessionMetas = readAllSessionMetas(opts.storage.session, fsLike)
   const sessionMetaById = new Map(allSessionMetas.map((m) => [m.id, m] as const))
   const backgroundMessageCache = new Map<string, StoredMessageMeta[]>()
-  const backgroundStatsCache = new Map<string, { toolCalls: number; lastTool: string | null; lastUpdateAt: number | null; activeQuestionTool: string | null }>()
+  const backgroundStatsCache = new Map<string, { toolCalls: number; lastTool: string | null; lastUpdateAt: number | null; pendingQuestionTool: string | null }>()
   const backgroundModelCache = new Map<string, string | null>()
 
   const readBackgroundMetas = (sessionId: string): StoredMessageMeta[] => {
     const cached = backgroundMessageCache.get(sessionId)
     if (cached) return cached
     const backgroundMessageDir = getMessageDir(opts.storage.message, sessionId)
-    const recent = readRecentMessageMetas(backgroundMessageDir, 200, fsLike)
+    const recent = readRecentMessageMetas(backgroundMessageDir, RECENT_MESSAGES_LIMIT, fsLike)
     backgroundMessageCache.set(sessionId, recent)
     return recent
   }
@@ -407,7 +345,6 @@ export function deriveBackgroundTasks(opts: {
 
   const rows: BackgroundTaskRow[] = []
 
-  // Iterate newest-first to cap list and keep latest tasks.
   const ordered = [...metas].sort((a, b) => (b.time?.created ?? 0) - (a.time?.created ?? 0))
   for (const meta of ordered) {
     const messageCreatedAt = meta.time?.created ?? null
@@ -440,57 +377,20 @@ export function deriveBackgroundTasks(opts: {
       const category = clampString((input as Record<string, unknown>).category, AGENT_MAX)
       const agent = subagentType ?? (category ? `sisyphus-junior (${category})` : "unknown")
 
-      let backgroundSessionId: string | null = null
-
-      // Use tool-call start time when available; message meta created can be much earlier.
       const startedAt = readStartTimeFromToolPart(part) ?? messageCreatedAt
 
-      backgroundSessionId = readToolStateSessionId(part)
-      
-      if (runInBackground) {
-        if (!backgroundSessionId && rawDescription) {
-          backgroundSessionId = findBackgroundSessionId({
-            allSessionMetas,
-            parentSessionId: opts.mainSessionId,
-            description: rawDescription,
-            subagentType,
-            category,
-            startedAt,
-          })
-        }
-      } else {
-        // For sync tasks, check if resume is specified
-        const resume = (input as Record<string, unknown>).resume
-        if (typeof resume === "string" && resume.trim() !== "") {
-          // Check if resumed session exists (has readable messages dir)
-          const resumeMessageDir = getMessageDir(opts.storage.message, resume.trim())
-          if (fsLike.existsSync(resumeMessageDir) && fsLike.readdirSync(resumeMessageDir).length > 0) {
-            backgroundSessionId = resume.trim()
-          }
-        }
-        
-        if (!backgroundSessionId && rawDescription) {
-          backgroundSessionId = findBackgroundSessionId({
-            allSessionMetas,
-            parentSessionId: opts.mainSessionId,
-            description: rawDescription,
-            subagentType,
-            category,
-            startedAt,
-          })
-          
-          if (!backgroundSessionId) {
-            backgroundSessionId = findTaskSessionId({
-              allSessionMetas,
-              parentSessionId: opts.mainSessionId,
-              description: rawDescription,
-              subagentType,
-              category,
-              startedAt,
-            })
-          }
-        }
-      }
+      const backgroundSessionId = resolveBackgroundSessionIdFiles({
+        part,
+        runInBackground: runInBackground === true,
+        rawDescription,
+        subagentType,
+        category,
+        startedAt,
+        mainSessionId: opts.mainSessionId,
+        allSessionMetas,
+        storage: opts.storage,
+        fsLike,
+      })
 
       const description = (
         clampString(rawDescription, DESCRIPTION_MAX) ??
@@ -505,22 +405,17 @@ export function deriveBackgroundTasks(opts: {
 
       const stats = backgroundSessionId
         ? readBackgroundStats(backgroundSessionId)
-        : { toolCalls: 0, lastTool: null, lastUpdateAt: startedAt, activeQuestionTool: null }
+        : { toolCalls: 0, lastTool: null, lastUpdateAt: startedAt, pendingQuestionTool: null }
       const lastModel = backgroundSessionId ? readBackgroundModel(backgroundSessionId) : null
 
-      // Best-effort status: if background session exists and has any tool calls, treat as running unless idle.
-      let status: BackgroundTaskRow["status"] = "unknown"
-      if (!backgroundSessionId) {
-        status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
-      } else if (stats.toolCalls === 0 && stats.lastUpdateAt === null) {
-        status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
-      } else if (stats.activeQuestionTool) {
-        status = "question"
-      } else if (stats.lastUpdateAt && nowMs - stats.lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) {
-        status = "running"
-      } else if (stats.toolCalls > 0) {
-        status = "completed"
-      }
+      const status = deriveBackgroundTaskStatusFiles({
+        backgroundSessionId,
+        toolCalls: stats.toolCalls,
+        lastUpdateAt: stats.lastUpdateAt,
+        pendingQuestionTool: stats.pendingQuestionTool,
+        startedAt,
+        nowMs,
+      })
 
       const timelineEndMs = status === "completed" ? (stats.lastUpdateAt ?? nowMs) : nowMs
 
@@ -530,7 +425,7 @@ export function deriveBackgroundTasks(opts: {
         agent,
         status,
         toolCalls: backgroundSessionId ? stats.toolCalls : null,
-        lastTool: stats.activeQuestionTool ?? stats.lastTool,
+        lastTool: stats.pendingQuestionTool ?? stats.lastTool,
         lastModel,
         timeline: status === "unknown" ? "" : formatTimeline(startedAt, timelineEndMs),
         sessionId: backgroundSessionId,

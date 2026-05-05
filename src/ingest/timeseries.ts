@@ -1,5 +1,7 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
+import type { CanonicalAgent } from "../types"
+import { canonicalizeAgent } from "./format-utils"
 import type { OpenCodeStorageRoots, StoredMessageMeta } from "./session"
 import { getMessageDir } from "./session"
 import { readAllSessionMetas } from "./background-tasks"
@@ -22,7 +24,7 @@ export type TimeSeriesPayload = {
   series: TimeSeriesSeries[]
 }
 
-type CanonicalAgent = "sisyphus" | "prometheus" | "atlas" | "other"
+const RECENT_MESSAGES_LIMIT = 200
 
 const SERIES_ORDER: Array<Pick<TimeSeriesSeries, "id" | "label" | "tone">> = [
   { id: "overall-main", label: "Overall", tone: "muted" },
@@ -90,18 +92,6 @@ function countToolParts(partStorage: string, messageId: string): number {
   return count
 }
 
-function canonicalizeAgent(agent: unknown): CanonicalAgent {
-  if (typeof agent !== "string") return "other"
-  const trimmed = agent.trim()
-  if (!trimmed) return "other"
-  const lowered = trimmed.toLowerCase()
-  if (lowered.startsWith("sisyphus-junior")) return "sisyphus"
-  if (lowered.startsWith("sisyphus")) return "sisyphus"
-  if (lowered.startsWith("prometheus")) return "prometheus"
-  if (lowered.startsWith("atlas")) return "atlas"
-  return "other"
-}
-
 function addToBucket(values: number[], bucketIndex: number, count: number): void {
   if (bucketIndex < 0 || bucketIndex >= values.length) return
   values[bucketIndex] += count
@@ -121,7 +111,7 @@ function bucketMessageTools(opts: {
   overall: number[]
   perAgent?: Record<Exclude<CanonicalAgent, "other">, number[]>
 }): void {
-  const metas = readRecentMessageMetas(opts.messageDir, 200)
+  const metas = readRecentMessageMetas(opts.messageDir, RECENT_MESSAGES_LIMIT)
   const ordered = [...metas].sort((a, b) => {
     const at = getCreated(a)
     const bt = getCreated(b)
@@ -159,7 +149,7 @@ function bucketBackgroundTools(opts: {
 }): void {
   for (const sessionId of opts.sessionIds) {
     const messageDir = getMessageDir(opts.storage.message, sessionId)
-    const metas = readRecentMessageMetas(messageDir, 200)
+    const metas = readRecentMessageMetas(messageDir, RECENT_MESSAGES_LIMIT)
     const ordered = [...metas].sort((a, b) => {
       const at = getCreated(a)
       const bt = getCreated(b)

@@ -1,5 +1,6 @@
 .project-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--sp-3);
   padding: var(--sp-2) var(--sp-3);
@@ -23,6 +24,7 @@
   align-items: center;
   justify-content: center;
   padding: 0 var(--sp-1);
+  flex-shrink: 0;
 }
 
 .project-card__drag-handle:active {
@@ -30,17 +32,26 @@
 }
 
 .project-card__info {
-  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-2);
 }
 
-.project-card__header {
+.project-card__content-stack {
   display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.project-card__title-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: var(--sp-2);
+  min-width: 0;
 }
 
 .project-card__status {
@@ -54,24 +65,28 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .project-card__path {
+  display: block;
   font-size: var(--font-xs);
   color: var(--text-muted);
   font-family: var(--font-mono);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1;
+  min-width: 0;
 }
 
 .project-card__meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--sp-2);
   font-size: var(--font-xs);
   color: var(--text-muted);
+  min-width: 0;
 }
 
 .project-card__time {
@@ -89,7 +104,7 @@
 
 .project-card__agent {
   color: var(--accent-primary);
-  background: rgba(0, 212, 170, 0.1);
+  background: var(--card-agent-bg);
   padding: 0 var(--sp-1);
   border-radius: var(--radius-sm);
   white-space: nowrap;
@@ -98,8 +113,103 @@
   max-width: 120px;
 }
 
+.project-card__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+  min-width: max-content;
+}
+
+.project-card__action-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+}
+
+.project-card__btn {
+  background: none;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-xs);
+  cursor: pointer;
+  padding: var(--sp-1) var(--sp-2);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.project-card__btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-secondary);
+}
+
+.project-card__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.project-card__btn--danger {
+  color: var(--status-error);
+  border-color: var(--card-danger-border);
+  background: var(--card-danger-bg);
+}
+
+.project-card__btn--danger:hover:not(:disabled) {
+  background: var(--card-danger-bg-hover);
+  border-color: var(--status-error);
+  color: var(--status-error);
+}
+
+.project-card__btn--cancel {
+  background: var(--bg-tertiary);
+}
+
+.project-card__rename-input {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  font-family: inherit;
+  padding: 2px var(--sp-2);
+  min-width: 0;
+  width: 100%;
+  outline: none;
+}
+
+.project-card__rename-input:focus {
+  box-shadow: 0 0 0 2px var(--card-focus-ring);
+}
+
 .project-card__toggle {
   flex-shrink: 0;
+  align-self: flex-end;
+}
+
+@media (max-width: 720px) {
+  .project-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .project-card__actions {
+    grid-column: 2;
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .project-card__action-row {
+    justify-content: flex-start;
+  }
+
+  .project-card__toggle {
+    align-self: flex-start;
+  }
 }
 
 /* Edit and Remove UI */
@@ -205,6 +315,6 @@
 }
 
 .project-card__icon-btn--danger:hover {
-  background: rgba(255, 68, 68, 0.1);
+  background: var(--card-icon-danger-bg);
   color: var(--accent-danger);
 }

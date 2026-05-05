@@ -13,7 +13,9 @@ export type SourceRegistryEntry = {
 }
 
 /** Session status from MainSessionView */
-export type SessionStatus = "busy" | "idle" | "thinking" | "running_tool" | "question" | "plan_complete" | "error" | "unknown"
+export type SessionStatus = "busy" | "idle" | "thinking" | "running_tool" | "bg_agent" | "question" | "plan_complete" | "error" | "unknown"
+
+export type CanonicalAgent = "sisyphus" | "prometheus" | "atlas" | "other"
 
 /** Plan status based on progress */
 export type PlanStatus = "not started" | "in progress" | "complete"
@@ -25,22 +27,24 @@ export type PlanStep = {
 }
 
 /** Uninitiated plan (zero-completion state) */
-export type UnintiatedPlan = {
+export type UninitiatedPlan = {
   name: string
   path: string
   total: number
   steps: PlanStep[]
 }
 
+/** Boulder state representing an active or completed plan */
 export type BoulderState = {
   active_plan: string
   started_at: string
   session_ids: string[]
   plan_name: string
-  status?: string
+  status?: "active" | "completed"
   completed_at?: string
 }
 
+/** Historical entry for a completed plan */
 export type BoulderHistoryEntry = {
   plan_name: string
   plan_path: string
@@ -53,6 +57,14 @@ export type BoulderHistoryEntry = {
   agent?: string
 }
 
+/** Archived plan reference */
+export type ArchivedPlan = {
+  name: string
+  path: string
+  archivedAt: string
+}
+
+/** Plan completion history */
 export type PlanHistory = {
   entries: BoulderHistoryEntry[]
   totalCompleted: number
@@ -76,17 +88,6 @@ export type TimeSeriesPayload = {
   series: TimeSeriesSeries[]
 }
 
-export type SessionSummary = {
-  sessionId: string
-  sessionLabel: string
-  agent: string
-  status: SessionStatus
-  currentModel: string
-  currentTool: string
-  lastUpdated: string
-  lastUpdatedMs: number
-}
-
 /** Single session's contribution to time series data */
 export type SessionTimeSeriesEntry = {
   sessionId: string
@@ -105,26 +106,6 @@ export type SessionTimeSeriesPayload = {
   sessions: SessionTimeSeriesEntry[]
 }
 
-/** Summary of a single git worktree */
-export type WorktreeSummary = {
-  path: string
-  branch: string | null
-  commitHash: string
-  isMainWorktree: boolean
-  commitsAhead: number
-  diffStat: { filesChanged: number; insertions: number; deletions: number } | null
-  isLocked: boolean
-  isPrunable: boolean
-}
-
-/** Aggregated git worktree information */
-export type WorktreeInfo = {
-  totalCount: number
-  activeCount: number
-  hotCount: number
-  worktrees: WorktreeSummary[]
-}
-
 /** Summary of a background task for dashboard display */
 export type BackgroundTaskSummary = {
   taskId: string
@@ -136,11 +117,45 @@ export type BackgroundTaskSummary = {
   lastUpdated: string
 }
 
+/** Summary of a single included session */
+export type SessionSummary = {
+  sessionId: string
+  sessionLabel: string
+  agent: string
+  status: SessionStatus
+  currentModel: string
+  currentTool: string
+  lastUpdated: string
+  lastUpdatedMs: number
+}
+
 /** Token usage summary */
 export type TokenUsageSummary = {
   inputTokens: number
   outputTokens: number
   totalTokens: number
+}
+
+export type WorktreeSummary = {
+  path: string
+  branch: string | null
+  commitHash: string
+  isMainWorktree: boolean
+  isLocked: boolean
+  isPrunable: boolean
+  commitsAhead: number
+  diffStat: {
+    filesChanged: number
+    insertions: number
+    deletions: number
+  } | null
+}
+
+export type WorktreeInfo = {
+  totalCount: number
+  activeCount: number
+  hotCount: number
+  worktrees: WorktreeSummary[]
 }
 
 /** Snapshot of a single project's state at a point in time */
@@ -168,19 +183,19 @@ export type ProjectSnapshot = {
     steps: PlanStep[]
     planStale: boolean
     planComplete: boolean
-    boulderStatus?: string
+    boulderStatus?: "active" | "completed"
     completedAt?: string
   }
-  unintiatedPlans: UnintiatedPlan[]
+  unintiatedPlans: UninitiatedPlan[]
   planHistory?: PlanHistory
   timeSeries: TimeSeriesPayload
   backgroundTasks: BackgroundTaskSummary[]
   sessionTimeSeries: SessionTimeSeriesPayload
-   tokenUsage?: TokenUsageSummary
-   /** Uncommitted git changes count (staged + unstaged + untracked). undefined = not available */
-   gitUncommittedCount?: number
-   worktrees?: WorktreeInfo
-   lastUpdatedMs: number
+  tokenUsage?: TokenUsageSummary
+  /** Uncommitted git changes count (staged + unstaged + untracked). undefined = not available */
+  gitUncommittedCount?: number
+  worktrees?: WorktreeInfo
+  lastUpdatedMs: number
 }
 
 /** Multi-project dashboard payload combining all project snapshots */
@@ -219,7 +234,27 @@ export type SoundConfig = {
 export type ProjectOrderState = {
   orderedIds: string[]
   columns: number
+  isManualOrder: boolean
 }
 
 /** Per-project visibility configuration */
 export type VisibilityConfig = Record<string, boolean>
+
+/** Telegram notification service configuration */
+export type TelegramServiceConfig = {
+  botToken: string
+  chatId: string
+  /** Polling interval in ms (default: 5000) */
+  pollIntervalMs?: number
+  /** Debounce interval for edits in ms (default: 3000) */
+  debounceMs?: number
+}
+
+/** Telegram notification service runtime status */
+export type TelegramServiceStatus = {
+  enabled: boolean
+  pinnedMessageId: number | null
+  lastUpdateMs: number | null
+  lastError: string | null
+  alertsSent: number
+}

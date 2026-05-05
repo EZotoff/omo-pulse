@@ -1,6 +1,7 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
 import { Database as BunDatabase } from "bun:sqlite"
+import { classifySqliteError } from "./sqlite-utils"
 import type { SessionMetadata, StoredMessageMeta, StoredToolPart } from "./session"
 import { realpathSafe } from "./paths"
 import { getDataDir, getOpenCodeStorageDirFromDataDir, type Env } from "./paths"
@@ -31,22 +32,6 @@ export function getOpenCodeSqlitePath(dataDir: string): string {
   return path.join(dataDir, "opencode", "opencode.db")
 }
 
-function classifySqliteError(error: unknown): SqliteReadFailureReason {
-  const message = error instanceof Error ? error.message.toLowerCase() : ""
-  if (message.includes("database is locked") || message.includes("busy")) return "db_busy"
-  if (
-    message.includes("database disk image is malformed") ||
-    message.includes("not a database") ||
-    message.includes("corrupt")
-  ) {
-    return "db_corrupt"
-  }
-  if (message.includes("unable to open database file") || message.includes("cannot open")) {
-    return "db_unopenable"
-  }
-  return "db_query_failed"
-}
-
 function withReadonlyDb<T>(sqlitePath: string, fn: (db: BunDatabase) => T): { ok: true; value: T } | { ok: false; reason: SqliteReadFailureReason } {
   let db: BunDatabase | null = null
   try {
@@ -58,8 +43,28 @@ function withReadonlyDb<T>(sqlitePath: string, fn: (db: BunDatabase) => T): { ok
     try {
       db?.close()
     } catch {
+    // Expected: file may not exist or be malformed
     }
   }
+}
+
+/**
+ * Run a query against a pre-opened DB (no open/close overhead) or fall back
+ * to opening a fresh readonly connection via `withReadonlyDb`.
+ */
+function withDbOrOpen<T>(
+  db: BunDatabase | undefined,
+  sqlitePath: string,
+  fn: (db: BunDatabase) => T,
+): { ok: true; value: T } | { ok: false; reason: SqliteReadFailureReason } {
+  if (db) {
+    try {
+      return { ok: true, value: fn(db) }
+    } catch (error) {
+      return { ok: false, reason: classifySqliteError(error) }
+    }
+  }
+  return withReadonlyDb(sqlitePath, fn)
 }
 
 function asFiniteNumber(value: unknown): number | null {
@@ -82,6 +87,7 @@ function isToolStatus(value: unknown): value is StoredToolPart["state"]["status"
 export function readMainSessionMetasSqlite(opts: {
   sqlitePath: string
   directoryFilter?: string
+  db?: BunDatabase
 }): SqliteReadResult<SessionMetadata> {
   const directoryNeedle = typeof opts.directoryFilter === "string" && opts.directoryFilter.length > 0
     ? (() => {
@@ -91,7 +97,7 @@ export function readMainSessionMetasSqlite(opts: {
       })()
     : null
 
-  const result = withReadonlyDb(opts.sqlitePath, (db) =>
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) =>
     db
       .query("SELECT id, project_id, parent_id, directory, title, time_created, time_updated FROM session WHERE parent_id IS NULL ORDER BY time_updated DESC, id DESC")
       .all() as Array<{
@@ -141,8 +147,9 @@ export function readMainSessionMetasSqlite(opts: {
 
 export function readAllSessionMetasSqlite(opts: {
   sqlitePath: string
+  db?: BunDatabase
 }): SqliteReadResult<SessionMetadata> {
-  const result = withReadonlyDb(opts.sqlitePath, (db) =>
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) =>
     db
       .query("SELECT id, project_id, parent_id, directory, title, time_created, time_updated FROM session ORDER BY time_updated DESC, id DESC")
       .all() as Array<{
@@ -187,8 +194,9 @@ export function readAllSessionMetasSqlite(opts: {
 export function readSessionExistsSqlite(opts: {
   sqlitePath: string
   sessionId: string
+  db?: BunDatabase
 }): SqliteReadResult<{ sessionId: string }> {
-  const result = withReadonlyDb(opts.sqlitePath, (db) =>
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) =>
     db
       .query("SELECT id FROM session WHERE id = ? LIMIT 1")
       .get(opts.sessionId) as { id?: unknown } | null
@@ -204,8 +212,9 @@ export function readRecentMessageMetasSqlite(opts: {
   sqlitePath: string
   sessionId: string
   limit: number
+  db?: BunDatabase
 }): SqliteReadResult<StoredMessageMeta> {
-  const result = withReadonlyDb(opts.sqlitePath, (db) =>
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) =>
     db
       .query("SELECT id, session_id, time_created, data FROM message WHERE session_id = ? ORDER BY time_created DESC, id DESC LIMIT ?")
       .all(opts.sessionId, opts.limit) as Array<{
@@ -228,6 +237,7 @@ export function readRecentMessageMetasSqlite(opts: {
     try {
       parsed = JSON.parse(data)
     } catch {
+      // Expected: file may not exist or be malformed
       continue
     }
     if (!parsed || typeof parsed !== "object") continue
@@ -267,12 +277,13 @@ export function readRecentMessageMetasSqlite(opts: {
 export function readToolPartsForMessagesSqlite(opts: {
   sqlitePath: string
   messageIds: string[]
+  db?: BunDatabase
 }): SqliteReadResult<StoredToolPart> {
   if (opts.messageIds.length === 0) return { ok: true, rows: [] }
 
   const placeholders = opts.messageIds.map(() => "?").join(",")
   const sql = `SELECT id, message_id, session_id, time_created, data FROM part WHERE message_id IN (${placeholders}) ORDER BY message_id ASC, time_created ASC, id ASC`
-  const result = withReadonlyDb(opts.sqlitePath, (db) =>
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) =>
     db.query(sql).all(...opts.messageIds) as Array<{
       id: unknown
       message_id: unknown
@@ -294,6 +305,7 @@ export function readToolPartsForMessagesSqlite(opts: {
     try {
       parsed = JSON.parse(data)
     } catch {
+      // Expected: file may not exist or be malformed
       continue
     }
     if (!parsed || typeof parsed !== "object") continue
@@ -337,8 +349,9 @@ export type TodoItem = {
 export function readTodosSqlite(opts: {
   sqlitePath: string
   sessionId: string
+  db?: BunDatabase
 }): SqliteReadResult<TodoItem> {
-  const result = withReadonlyDb(opts.sqlitePath, (db) => {
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) => {
     try {
       return db
         .query("SELECT content, status, priority, position FROM todo WHERE session_id = ? ORDER BY position ASC")
@@ -378,6 +391,50 @@ export function readTodosSqlite(opts: {
   return { ok: true, rows }
 }
 
+export function readTodosSqliteForSessionIds(opts: {
+  sqlitePath: string
+  sessionIds: string[]
+  db?: BunDatabase
+}): SqliteReadResult<TodoItem & { sessionId: string }> {
+  if (opts.sessionIds.length === 0) return { ok: true, rows: [] }
+
+  const placeholders = opts.sessionIds.map(() => "?").join(",")
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) => {
+    try {
+      return db
+        .query(`SELECT session_id, content, status, priority, position FROM todo WHERE session_id IN (${placeholders}) ORDER BY position ASC`)
+        .all(...opts.sessionIds) as Array<{
+          session_id: unknown
+          content: unknown
+          status: unknown
+          priority: unknown
+          position: unknown
+        }>
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : ""
+      if (message.includes("no such table")) {
+        return []
+      }
+      throw error
+    }
+  })
+  if (!result.ok) return result
+
+  const rows: Array<TodoItem & { sessionId: string }> = []
+  for (const row of result.value) {
+    const sessionId = asString(row.session_id)
+    const content = asString(row.content)
+    const status = asString(row.status)
+    const priority = asString(row.priority)
+    const position = asFiniteNumber(row.position)
+    if (!sessionId || !content || !status || !priority || position === null) continue
+
+    rows.push({ sessionId, content, status, priority, position })
+  }
+
+  return { ok: true, rows }
+}
+
 export function isSqliteUsable(sqlitePath: string): boolean {
   if (!fs.existsSync(sqlitePath)) return false
 
@@ -410,30 +467,42 @@ export function isSqliteUsable(sqlitePath: string): boolean {
     try {
       db?.close()
     } catch {
+    // Expected: file may not exist or be malformed
     }
   }
 }
+
+const BACKEND_CACHE_TTL_MS = 30_000
+let cachedBackend: StorageBackend | null = null
+let cachedBackendAt = 0
 
 export function selectStorageBackend(opts?: {
   env?: Env
   homedir?: string
   dataDir?: string
 }): StorageBackend {
+  const now = Date.now()
+  if (cachedBackend && now - cachedBackendAt < BACKEND_CACHE_TTL_MS) {
+    return cachedBackend
+  }
+
   const dataDir = opts?.dataDir ?? getDataDir(opts?.env, opts?.homedir)
   const sqlitePath = getOpenCodeSqlitePath(dataDir)
   if (isSqliteUsable(sqlitePath)) {
-    return {
+    cachedBackend = {
       kind: "sqlite",
       dataDir,
       sqlitePath,
     }
+  } else {
+    cachedBackend = {
+      kind: "files",
+      dataDir,
+      storageRoot: getOpenCodeStorageDirFromDataDir(dataDir),
+    }
   }
-
-  return {
-    kind: "files",
-    dataDir,
-    storageRoot: getOpenCodeStorageDirFromDataDir(dataDir),
-  }
+  cachedBackendAt = now
+  return cachedBackend
 }
 
 export function getLegacyStorageRootForBackend(backend: StorageBackend): string {

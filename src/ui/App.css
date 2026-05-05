@@ -13,7 +13,6 @@
   width: calc(100% / var(--zoom));
   margin: 0 auto;
   padding: var(--sp-4) var(--sp-4) var(--sp-8);
-  flex: 1 1 auto;
   transform: scale(var(--zoom));
   transform-origin: top center;
 }
@@ -274,15 +273,15 @@
 
 /* Comfortable — default, no overrides needed beyond base */
 [data-density="comfortable"] .project-stack {
-  gap: var(--sp-2);
+  gap: var(--grid-gap, var(--sp-2));
 }
 
 /* Dense */
 [data-density="dense"] .project-stack {
-  gap: var(--sp-1);
+  gap: var(--grid-gap, var(--sp-1));
 }
 
 /* Ultra-dense */
 [data-density="ultra-dense"] .project-stack {
-  gap: 2px;
+  gap: var(--grid-gap, 2px);
 }

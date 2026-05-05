@@ -48,14 +48,22 @@ describe("activity-status helpers", () => {
   })
 
   it("suppresses stale task-tool activity", () => {
-    expect(shouldSuppressStaleToolActivity("task", false)).toBe(true)
+    expect(shouldSuppressStaleToolActivity("task", "running", false)).toBe(true)
   })
 
   it("keeps stale direct tool activity visible", () => {
-    expect(shouldSuppressStaleToolActivity("bash", false)).toBe(false)
+    expect(shouldSuppressStaleToolActivity("bash", "running", false)).toBe(false)
   })
 
   it("keeps fresh task-tool activity visible", () => {
-    expect(shouldSuppressStaleToolActivity("task", true)).toBe(false)
+    expect(shouldSuppressStaleToolActivity("task", "running", true)).toBe(false)
+  })
+
+  it("keeps pending question tools visible even when stale", () => {
+    expect(shouldSuppressStaleToolActivity("mcp_question", "pending", false)).toBe(false)
+  })
+
+  it("suppresses stale running question tools", () => {
+    expect(shouldSuppressStaleToolActivity("question", "running", false)).toBe(true)
   })
 })

@@ -3,6 +3,8 @@ import { Hono } from "hono";
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { createApi } from "./api";
+import { createMultiProjectService } from "./multi-project";
+import { createTelegramService } from "./telegram";
 import { selectStorageBackend, getLegacyStorageRootForBackend } from "../ingest/storage-backend";
 
 const here = dirname(new URL(import.meta.url).pathname);
@@ -14,13 +16,27 @@ const app = new Hono();
 const port = parseInt(process.env.OMO_PULSE_PORT || "4300", 10);
 const distRoot = join(import.meta.dir, "../../dist");
 
-
-// Initialize storage backend and create API router
 const storageBackend = selectStorageBackend();
 const storageRoot = getLegacyStorageRootForBackend(storageBackend);
-const apiRouter = createApi({ storageRoot, storageBackend, version: APP_VERSION });
+const multiProjectService = createMultiProjectService({ storageRoot, storageBackend });
 
-// Mount the API router BEFORE the SPA fallback middleware
+const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
+const telegramChatId = process.env.TELEGRAM_CHAT_ID
+const telegramService = telegramBotToken && telegramChatId
+  ? createTelegramService(
+      { botToken: telegramBotToken, chatId: telegramChatId },
+      () => multiProjectService.getMultiProjectPayload(),
+    )
+  : null
+
+const apiRouter = createApi({
+  storageRoot,
+  storageBackend,
+  multiProjectService,
+  telegramStatus: telegramService ? () => telegramService.getStatus() : undefined,
+  version: APP_VERSION,
+});
+
 app.route("/api", apiRouter);
 // SPA fallback middleware
 app.use("*", async (c, next) => {
@@ -78,4 +94,10 @@ Bun.serve({
   fetch: app.fetch,
   hostname: "127.0.0.1",
   port,
+  idleTimeout: 60,
 });
+
+if (telegramService) {
+  telegramService.start()
+  console.log("Telegram notifications enabled")
+}

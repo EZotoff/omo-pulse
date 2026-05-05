@@ -1,8 +1,8 @@
 .overlay-shell-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 900;
-  background: rgba(0, 0, 0, 0.55);
+  z-index: var(--z-overlay);
+  background: var(--overlay-backdrop);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition-normal);
@@ -16,11 +16,11 @@
 .overlay-shell-content {
   position: fixed;
   inset: var(--sp-6);
-  z-index: 901;
+  z-index: var(--z-overlay-above);
   background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px var(--overlay-shadow);
   opacity: 0;
   transform: scale(0.98);
   pointer-events: none;
@@ -54,7 +54,7 @@
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
   line-height: 1;
-  z-index: 10;
+  z-index: var(--z-dropdown);
 }
 
 .overlay-shell-close:hover {

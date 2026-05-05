@@ -1,12 +1,12 @@
+import type { Database } from "bun:sqlite"
 import {
-  ACTIVE_BUSY_WINDOW_MS,
   BACKGROUND_RUNNING_WINDOW_MS,
   hasFreshMainSessionActivity,
   resolveLastUpdatedTime,
-  shouldSuppressStaleToolActivity,
   shouldKeepQueuedBackgroundTaskActive,
 } from "./activity-status"
 import type { BackgroundTaskRow } from "./background-tasks"
+import { canonicalizeAgent, formatElapsed, formatIsoNoMs, formatTimeline, normalizeSessionIds } from "./format-utils"
 import { pickLatestModelString } from "./model"
 import type { MainSessionView, SessionMetadata, StoredMessageMeta, StoredToolPart } from "./session"
 import {
@@ -15,13 +15,16 @@ import {
   readRecentMessageMetasSqlite,
   readSessionExistsSqlite,
   readTodosSqlite,
+  readTodosSqliteForSessionIds,
   readToolPartsForMessagesSqlite,
   type SqliteReadFailureReason,
   type TodoItem,
 } from "./storage-backend"
+import { findBackgroundSessionId, findTaskSessionId } from "./sqlite-utils"
 import { aggregateTokenUsage } from "./token-usage-core"
 import { MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS, type ToolCallSummaryResult } from "./tool-calls"
-import { QUESTION_TOOL_NAMES, TASK_TOOL_NAMES } from "./tool-names"
+import { isPendingQuestionTool, TASK_TOOL_NAMES } from "./tool-names"
+import { deriveMainSessionStatus } from "./session-status"
 import type { TimeSeriesPayload, TimeSeriesSeries } from "./timeseries"
 
 type SqliteDeriveResult<T> =
@@ -32,8 +35,8 @@ const DESCRIPTION_MAX = 120
 const AGENT_MAX = 30
 const SESSION_ID_MAX = 200
 const TOKEN_USAGE_MESSAGE_LIMIT = 10_000
-
-type CanonicalAgent = "sisyphus" | "prometheus" | "atlas" | "other"
+const RECENT_MESSAGES_LIMIT = 200
+const TIMESERIES_WINDOW_MS = 300_000
 
 const SERIES_ORDER: Array<Pick<TimeSeriesSeries, "id" | "label" | "tone">> = [
   { id: "overall-main", label: "Overall", tone: "muted" },
@@ -42,6 +45,40 @@ const SERIES_ORDER: Array<Pick<TimeSeriesSeries, "id" | "label" | "tone">> = [
   { id: "agent:atlas", label: "Atlas", tone: "green" },
   { id: "background-total", label: "Background tasks (total)", tone: "muted" },
 ]
+
+function createEmptyTimeSeriesPayload(opts: {
+  nowMs: number
+  windowMs: number
+  bucketMs: number
+}): TimeSeriesPayload {
+  const buckets = Math.floor(opts.windowMs / opts.bucketMs)
+
+  return {
+    windowMs: opts.windowMs,
+    bucketMs: opts.bucketMs,
+    buckets,
+    anchorMs: Math.floor(opts.nowMs / opts.bucketMs) * opts.bucketMs,
+    serverNowMs: opts.nowMs,
+    series: SERIES_ORDER.map((series) => ({
+      ...series,
+      values: zeroBuckets(buckets),
+    })),
+  }
+}
+
+function mergeTimeSeriesPayload(target: TimeSeriesPayload, source: TimeSeriesPayload): void {
+  const targetSeries = new Map(target.series.map((series) => [series.id, series] as const))
+
+  for (const series of source.series) {
+    const existing = targetSeries.get(series.id)
+    if (!existing) continue
+
+    const limit = Math.min(existing.values.length, series.values.length)
+    for (let index = 0; index < limit; index += 1) {
+      existing.values[index] += series.values[index] ?? 0
+    }
+  }
+}
 
 function readStartTimeFromToolPart(part: unknown): number | null {
   if (!part || typeof part !== "object") return null
@@ -103,33 +140,6 @@ function stripSessionTitlePrefix(title: string): string {
   return /^(undefined|null)(\b|\s)/i.test(stripped) ? "" : stripped
 }
 
-function formatIsoNoMs(ts: number): string {
-  const iso = new Date(ts).toISOString()
-  return iso.replace(/\.\d{3}Z$/, "Z")
-}
-
-function formatElapsed(ms: number): string {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
-  const seconds = totalSeconds % 60
-  const totalMinutes = Math.floor(totalSeconds / 60)
-  const minutes = totalMinutes % 60
-  const totalHours = Math.floor(totalMinutes / 60)
-  const hours = totalHours % 24
-  const days = Math.floor(totalHours / 24)
-
-  if (days > 0) return hours > 0 ? `${days}d${hours}h` : `${days}d`
-  if (totalHours > 0) return minutes > 0 ? `${totalHours}h${minutes}m` : `${totalHours}h`
-  if (totalMinutes > 0) return seconds > 0 ? `${totalMinutes}m${seconds}s` : `${totalMinutes}m`
-  return `${seconds}s`
-}
-
-function formatTimeline(startAt: number | null, endAtMs: number): string {
-  if (typeof startAt !== "number") return ""
-  const start = formatIsoNoMs(startAt)
-  const elapsed = formatElapsed(endAtMs - startAt)
-  return `${start}: ${elapsed}`
-}
-
 function isTaskTool(toolName: string): boolean {
   return TASK_TOOL_NAMES.has(toolName)
 }
@@ -147,7 +157,7 @@ function mapToolPartsByMessage(parts: StoredToolPart[]): Map<string, StoredToolP
   return out
 }
 
-function findActiveQuestionTool(
+function findPendingQuestionTool(
   metas: StoredMessageMeta[],
   partsByMessage: Map<string, StoredToolPart[]>,
 ): string | null {
@@ -155,7 +165,7 @@ function findActiveQuestionTool(
     const parts = partsByMessage.get(meta.id) ?? []
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i]
-      if ((part.state.status === "pending" || part.state.status === "running") && QUESTION_TOOL_NAMES.has(part.tool)) {
+      if (isPendingQuestionTool(part.tool, part.state.status)) {
         return part.tool
       }
     }
@@ -167,17 +177,20 @@ function readSessionMessagesAndParts(opts: {
   sqlitePath: string
   sessionId: string
   limit: number
+  db?: Database
 }): SqliteDeriveResult<{ metas: StoredMessageMeta[]; partsByMessage: Map<string, StoredToolPart[]> }> {
   const metasResult = readRecentMessageMetasSqlite({
     sqlitePath: opts.sqlitePath,
     sessionId: opts.sessionId,
     limit: opts.limit,
+    db: opts.db,
   })
   if (!metasResult.ok) return metasResult
   const messageIds = metasResult.rows.map((meta) => meta.id)
   const partsResult = readToolPartsForMessagesSqlite({
     sqlitePath: opts.sqlitePath,
     messageIds,
+    db: opts.db,
   })
   if (!partsResult.ok) return partsResult
 
@@ -188,18 +201,6 @@ function readSessionMessagesAndParts(opts: {
       partsByMessage: mapToolPartsByMessage(partsResult.rows),
     },
   }
-}
-
-function canonicalizeAgent(agent: unknown): CanonicalAgent {
-  if (typeof agent !== "string") return "other"
-  const trimmed = agent.trim()
-  if (!trimmed) return "other"
-  const lowered = trimmed.toLowerCase()
-  if (lowered.startsWith("sisyphus-junior")) return "sisyphus"
-  if (lowered.startsWith("sisyphus")) return "sisyphus"
-  if (lowered.startsWith("prometheus")) return "prometheus"
-  if (lowered.startsWith("atlas")) return "atlas"
-  return "other"
 }
 
 function addToBucket(values: number[], bucketIndex: number, count: number): void {
@@ -216,111 +217,16 @@ function zeroBuckets(size: number): number[] {
   return Array.from({ length: size }, () => 0)
 }
 
-function findBackgroundSessionId(opts: {
-  allSessionMetas: SessionMetadata[]
-  parentSessionId: string
-  description: string
-  subagentType?: string | null
-  category?: string | null
-  startedAt: number
-}): string | null {
-  const description = opts.description
-  const subagentType = typeof opts.subagentType === "string" && opts.subagentType.trim() ? opts.subagentType.trim() : null
-  const expectedTitles = [
-    `Background: ${description}`,
-    ...(subagentType ? [`${description} (@${subagentType} subagent)`] : []),
-    `Task: ${description}`,
-  ]
-
-  const windowStart = opts.startedAt - 10_000
-  const windowEnd = opts.startedAt + 15 * 60_000
-
-  const candidates = opts.allSessionMetas.filter(
-    (m) =>
-      m.parentID === opts.parentSessionId &&
-      m.time?.created >= windowStart &&
-      m.time?.created <= windowEnd,
-  )
-
-  const exact = candidates.filter((m) => typeof m.title === "string" && expectedTitles.includes(m.title))
-  const pool = exact.length > 0
-    ? exact
-    : candidates.filter((m) => {
-        const t = typeof m.title === "string" ? m.title : ""
-        if (!t) return false
-        if (subagentType && t.startsWith(description) && t.includes(`@${subagentType}`)) return true
-        return t.startsWith(description)
-      })
-
-  const poolFallback = pool.length > 0 ? pool : candidates
-  poolFallback.sort((a, b) => {
-    const at = a.time?.created ?? 0
-    const bt = b.time?.created ?? 0
-    const ad = Math.abs(at - opts.startedAt)
-    const bd = Math.abs(bt - opts.startedAt)
-    if (ad !== bd) return ad - bd
-    if (bt !== at) return bt - at
-    return String(a.id).localeCompare(String(b.id))
-  })
-  return poolFallback[0]?.id ?? null
-}
-
-function findTaskSessionId(opts: {
-  allSessionMetas: SessionMetadata[]
-  parentSessionId: string
-  description: string
-  subagentType?: string | null
-  category?: string | null
-  startedAt: number
-}): string | null {
-  const description = opts.description
-  const subagentType = typeof opts.subagentType === "string" && opts.subagentType.trim() ? opts.subagentType.trim() : null
-  const expectedTitles = [
-    `Task: ${description}`,
-    ...(subagentType ? [`${description} (@${subagentType} subagent)`] : []),
-    `Background: ${description}`,
-  ]
-
-  const windowStart = opts.startedAt - 10_000
-  const windowEnd = opts.startedAt + 15 * 60_000
-  const candidates = opts.allSessionMetas.filter(
-    (m) =>
-      m.parentID === opts.parentSessionId &&
-      m.time?.created >= windowStart &&
-      m.time?.created <= windowEnd,
-  )
-
-  const exact = candidates.filter((m) => typeof m.title === "string" && expectedTitles.includes(m.title))
-  const pool = exact.length > 0
-    ? exact
-    : candidates.filter((m) => {
-        const t = typeof m.title === "string" ? m.title : ""
-        if (!t) return false
-        if (subagentType && t.startsWith(description) && t.includes(`@${subagentType}`)) return true
-        return t.startsWith(description)
-      })
-
-  const poolFallback = pool.length > 0 ? pool : candidates
-  poolFallback.sort((a, b) => {
-    const at = a.time?.created ?? 0
-    const bt = b.time?.created ?? 0
-    const ad = Math.abs(at - opts.startedAt)
-    const bd = Math.abs(bt - opts.startedAt)
-    if (ad !== bd) return ad - bd
-    if (bt !== at) return bt - at
-    return String(a.id).localeCompare(String(b.id))
-  })
-  return poolFallback[0]?.id ?? null
-}
-
 export function pickActiveSessionIdSqlite(opts: {
   sqlitePath: string
   projectRoot: string
   boulderSessionIds?: string[]
+  db?: Database
 }): SqliteDeriveResult<string | null> {
   const metasResult = readMainSessionMetasSqlite({
     sqlitePath: opts.sqlitePath,
     directoryFilter: opts.projectRoot,
+    db: opts.db,
   })
   if (!metasResult.ok) return metasResult
 
@@ -354,7 +260,7 @@ export function pickActiveSessionIdSqlite(opts: {
   const ids = opts.boulderSessionIds ?? []
   for (let i = ids.length - 1; i >= 0; i--) {
     const id = ids[i]
-    const messages = readRecentMessageMetasSqlite({ sqlitePath: opts.sqlitePath, sessionId: id, limit: 1 })
+    const messages = readRecentMessageMetasSqlite({ sqlitePath: opts.sqlitePath, sessionId: id, limit: 1, db: opts.db })
     if (!messages.ok) return messages
     if (messages.rows.length === 0) continue
 
@@ -378,12 +284,14 @@ export function getMainSessionViewSqlite(opts: {
   sessionId: string
   sessionMeta?: SessionMetadata | null
   nowMs?: number
+  db?: Database
 }): SqliteDeriveResult<MainSessionView> {
   const nowMs = opts.nowMs ?? Date.now()
   const session = readSessionMessagesAndParts({
     sqlitePath: opts.sqlitePath,
     sessionId: opts.sessionId,
-    limit: 200,
+    limit: RECENT_MESSAGES_LIMIT,
+    db: opts.db,
   })
   if (!session.ok) return session
 
@@ -406,14 +314,18 @@ export function getMainSessionViewSqlite(opts: {
     if (activeTool) break
   }
 
-  let hasErrorTool = false
+  let latestTerminalStatus: "error" | "completed" | null = null
+  let latestTerminalAt: number | null = null
   if (!activeTool) {
-    for (const meta of session.value.metas) {
+    findLastTerminal: for (const meta of session.value.metas) {
       const parts = session.value.partsByMessage.get(meta.id) ?? []
-      const errorPart = parts.find((part) => part.state.status === "error")
-      if (errorPart) {
-        hasErrorTool = true
-        break
+      for (let i = parts.length - 1; i >= 0; i -= 1) {
+        const status = parts[i]?.state.status
+        if (status === "error" || status === "completed") {
+          latestTerminalStatus = status
+          latestTerminalAt = typeof meta.time?.created === "number" ? meta.time.created : null
+          break findLastTerminal
+        }
       }
     }
   }
@@ -421,22 +333,20 @@ export function getMainSessionViewSqlite(opts: {
   const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
   const isStaleActivity = typeof lastUpdated === "number" && !hasFreshActivity
 
-  let status: MainSessionView["status"] = "unknown"
-  if (activeTool?.status === "pending" || activeTool?.status === "running") {
-    if (shouldSuppressStaleToolActivity(activeTool.tool, hasFreshActivity)) {
-      activeTool = null
-    } else {
-      status = QUESTION_TOOL_NAMES.has(activeTool.tool) ? "question" : "running_tool"
-    }
-  }
-
-  if (status === "unknown" && !isStaleActivity && hasErrorTool) {
-    status = "error"
-  } else if (status === "unknown" && !isStaleActivity && recent?.role === "assistant" && typeof recent.time?.created === "number" && typeof recent.time?.completed !== "number") {
-    status = "thinking"
-  } else if (status === "unknown" && typeof lastUpdated === "number") {
-    status = nowMs - lastUpdated <= ACTIVE_BUSY_WINDOW_MS ? "busy" : "idle"
-  }
+  const derived = deriveMainSessionStatus({
+    activeTool,
+    hasFreshActivity,
+    isStaleActivity,
+    latestTerminalStatus,
+    latestTerminalAt,
+    recentRole: recent?.role ?? null,
+    recentTimeCreated: typeof recent?.time?.created === "number" ? recent.time.created : null,
+    recentTimeCompleted: typeof recent?.time?.completed === "number" ? recent.time.completed : null,
+    lastUpdated,
+    nowMs,
+  })
+  let status = derived.status
+  activeTool = derived.activeTool
 
   if (status === "idle" || status === "busy" || status === "unknown") {
     const bgResult = deriveBackgroundTasksSqlite({
@@ -469,20 +379,129 @@ export function getMainSessionViewSqlite(opts: {
   }
 }
 
+function resolveBackgroundSessionIdSqlite(opts: {
+  part: StoredToolPart
+  runInBackground: boolean
+  rawDescription: string
+  subagentType: string | null
+  category: string | null
+  startedAt: number
+  mainSessionId: string
+  allSessionMetas: SessionMetadata[]
+  readBackgroundSession: (sessionId: string) => SqliteDeriveResult<{ metas: StoredMessageMeta[]; partsByMessage: Map<string, StoredToolPart[]> }>
+}): SqliteDeriveResult<string | null> {
+  let backgroundSessionId: string | null = readToolStateSessionId(opts.part)
+
+  if (opts.runInBackground) {
+    if (!backgroundSessionId && opts.rawDescription) {
+      backgroundSessionId = findBackgroundSessionId({
+        allSessionMetas: opts.allSessionMetas,
+        parentSessionId: opts.mainSessionId,
+        description: opts.rawDescription,
+        subagentType: opts.subagentType,
+        category: opts.category,
+        startedAt: opts.startedAt,
+      })
+    }
+  } else {
+    const rec = (opts.part.state?.input ?? {}) as Record<string, unknown>
+    const resume = typeof rec.resume === "string" ? rec.resume.trim() : ""
+    if (resume) {
+      const resumed = opts.readBackgroundSession(resume)
+      if (!resumed.ok) return resumed
+      if (resumed.value.metas.length > 0) backgroundSessionId = resume
+    }
+    if (!backgroundSessionId && opts.rawDescription) {
+      backgroundSessionId = findBackgroundSessionId({
+        allSessionMetas: opts.allSessionMetas,
+        parentSessionId: opts.mainSessionId,
+        description: opts.rawDescription,
+        subagentType: opts.subagentType,
+        category: opts.category,
+        startedAt: opts.startedAt,
+      })
+      if (!backgroundSessionId) {
+        backgroundSessionId = findTaskSessionId({
+          allSessionMetas: opts.allSessionMetas,
+          parentSessionId: opts.mainSessionId,
+          description: opts.rawDescription,
+          subagentType: opts.subagentType,
+          category: opts.category,
+          startedAt: opts.startedAt,
+        })
+      }
+    }
+  }
+
+  return { ok: true, value: backgroundSessionId }
+}
+
+function computeBackgroundTaskStatsSqlite(
+  backgroundMetas: StoredMessageMeta[],
+  backgroundPartsByMessage: Map<string, StoredToolPart[]>
+): { toolCalls: number; lastTool: string | null; lastUpdateAt: number | null } {
+  let toolCalls = 0
+  let lastTool: string | null = null
+  let lastUpdateAt: number | null = null
+
+  const statsOrdered = [...backgroundMetas].sort((a, b) => {
+    const at = a.time?.created ?? 0
+    const bt = b.time?.created ?? 0
+    if (at !== bt) return at - bt
+    return String(a.id).localeCompare(String(b.id))
+  })
+  for (const backgroundMeta of statsOrdered) {
+    const created = backgroundMeta.time?.created
+    if (typeof created === "number") lastUpdateAt = created
+    const backgroundParts = backgroundPartsByMessage.get(backgroundMeta.id) ?? []
+    for (const backgroundPart of backgroundParts) {
+      toolCalls += 1
+      lastTool = backgroundPart.tool
+    }
+  }
+
+  return { toolCalls, lastTool, lastUpdateAt }
+}
+
+function deriveBackgroundTaskStatus(opts: {
+  backgroundSessionId: string | null
+  toolCalls: number
+  lastUpdateAt: number | null
+  pendingQuestionTool: string | null
+  startedAt: number
+  nowMs: number
+}): BackgroundTaskRow["status"] {
+  if (!opts.backgroundSessionId) {
+    return shouldKeepQueuedBackgroundTaskActive(opts.startedAt, opts.nowMs) ? "queued" : "unknown"
+  }
+  if (opts.toolCalls === 0 && opts.lastUpdateAt === null) {
+    return shouldKeepQueuedBackgroundTaskActive(opts.startedAt, opts.nowMs) ? "queued" : "unknown"
+  }
+  if (opts.pendingQuestionTool) return "question"
+  if (opts.lastUpdateAt && opts.nowMs - opts.lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) return "running"
+  if (opts.toolCalls > 0) return "completed"
+  return "unknown"
+}
+
 export function deriveBackgroundTasksSqlite(opts: {
   sqlitePath: string
   mainSessionId: string
   nowMs?: number
+  db?: Database
+  allSessionMetas?: SessionMetadata[]
 }): SqliteDeriveResult<BackgroundTaskRow[]> {
   const nowMs = opts.nowMs ?? Date.now()
   const main = readSessionMessagesAndParts({
     sqlitePath: opts.sqlitePath,
     sessionId: opts.mainSessionId,
-    limit: 200,
+    limit: RECENT_MESSAGES_LIMIT,
+    db: opts.db,
   })
   if (!main.ok) return main
 
-  const allSessionMetasResult = readAllSessionMetasSqlite({ sqlitePath: opts.sqlitePath })
+  const allSessionMetasResult = opts.allSessionMetas
+    ? { ok: true as const, rows: opts.allSessionMetas }
+    : readAllSessionMetasSqlite({ sqlitePath: opts.sqlitePath, db: opts.db })
   if (!allSessionMetasResult.ok) return allSessionMetasResult
   const allSessionMetas = allSessionMetasResult.rows
   const sessionMetaById = new Map(allSessionMetas.map((m) => [m.id, m] as const))
@@ -500,7 +519,8 @@ export function deriveBackgroundTasksSqlite(opts: {
     const loaded = readSessionMessagesAndParts({
       sqlitePath: opts.sqlitePath,
       sessionId,
-      limit: 200,
+      limit: RECENT_MESSAGES_LIMIT,
+      db: opts.db,
     })
     if (!loaded.ok) return loaded
     backgroundMessageCache.set(sessionId, loaded.value.metas)
@@ -531,50 +551,21 @@ export function deriveBackgroundTasksSqlite(opts: {
       const category = clampString(rec.category, AGENT_MAX)
       const agent = subagentType ?? (category ? `sisyphus-junior (${category})` : "unknown")
 
-      let backgroundSessionId: string | null = null
       const startedAt = readStartTimeFromToolPart(part) ?? messageCreatedAt
 
-      backgroundSessionId = readToolStateSessionId(part)
-
-      if (runInBackground) {
-        if (!backgroundSessionId && rawDescription) {
-          backgroundSessionId = findBackgroundSessionId({
-            allSessionMetas,
-            parentSessionId: opts.mainSessionId,
-            description: rawDescription,
-            subagentType,
-            category,
-            startedAt,
-          })
-        }
-      } else {
-        const resume = typeof rec.resume === "string" ? rec.resume.trim() : ""
-        if (resume) {
-          const resumed = readBackgroundSession(resume)
-          if (!resumed.ok) return resumed
-          if (resumed.value.metas.length > 0) backgroundSessionId = resume
-        }
-        if (!backgroundSessionId && rawDescription) {
-          backgroundSessionId = findBackgroundSessionId({
-            allSessionMetas,
-            parentSessionId: opts.mainSessionId,
-            description: rawDescription,
-            subagentType,
-            category,
-            startedAt,
-          })
-          if (!backgroundSessionId) {
-            backgroundSessionId = findTaskSessionId({
-              allSessionMetas,
-              parentSessionId: opts.mainSessionId,
-              description: rawDescription,
-              subagentType,
-              category,
-              startedAt,
-            })
-          }
-        }
-      }
+      const resolvedId = resolveBackgroundSessionIdSqlite({
+        part,
+        runInBackground: runInBackground === true,
+        rawDescription,
+        subagentType,
+        category,
+        startedAt,
+        mainSessionId: opts.mainSessionId,
+        allSessionMetas,
+        readBackgroundSession,
+      })
+      if (!resolvedId.ok) return resolvedId
+      const backgroundSessionId = resolvedId.value
 
       const description = (
         clampString(rawDescription, DESCRIPTION_MAX) ??
@@ -591,42 +582,12 @@ export function deriveBackgroundTasksSqlite(opts: {
       if (background && !background.ok) return background
       const backgroundMetas = background && background.ok ? background.value.metas : []
       const backgroundPartsByMessage = background && background.ok ? background.value.partsByMessage : new Map<string, StoredToolPart[]>()
-      const activeQuestionTool = findActiveQuestionTool(backgroundMetas, backgroundPartsByMessage)
+      const pendingQuestionTool = findPendingQuestionTool(backgroundMetas, backgroundPartsByMessage)
 
-      let toolCalls = 0
-      let lastTool: string | null = null
-      let lastUpdateAt: number | null = null
-
-      const statsOrdered = [...backgroundMetas].sort((a, b) => {
-        const at = a.time?.created ?? 0
-        const bt = b.time?.created ?? 0
-        if (at !== bt) return at - bt
-        return String(a.id).localeCompare(String(b.id))
-      })
-      for (const backgroundMeta of statsOrdered) {
-        const created = backgroundMeta.time?.created
-        if (typeof created === "number") lastUpdateAt = created
-        const backgroundParts = backgroundPartsByMessage.get(backgroundMeta.id) ?? []
-        for (const backgroundPart of backgroundParts) {
-          toolCalls += 1
-          lastTool = backgroundPart.tool
-        }
-      }
-
+      const { toolCalls, lastTool, lastUpdateAt } = computeBackgroundTaskStatsSqlite(backgroundMetas, backgroundPartsByMessage)
       const lastModel = backgroundMetas.length > 0 ? pickLatestModelString(backgroundMetas) : null
-      let status: BackgroundTaskRow["status"] = "unknown"
-      if (!backgroundSessionId) {
-        status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
-      } else if (toolCalls === 0 && lastUpdateAt === null) {
-        status = shouldKeepQueuedBackgroundTaskActive(startedAt, nowMs) ? "queued" : "unknown"
-      } else if (activeQuestionTool) {
-        status = "question"
-      } else if (lastUpdateAt && nowMs - lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) {
-        status = "running"
-      } else if (toolCalls > 0) {
-        status = "completed"
-      }
 
+      const status = deriveBackgroundTaskStatus({ backgroundSessionId, toolCalls, lastUpdateAt, pendingQuestionTool, startedAt, nowMs })
       const timelineEndMs = status === "completed" ? (lastUpdateAt ?? nowMs) : nowMs
 
       rows.push({
@@ -635,7 +596,7 @@ export function deriveBackgroundTasksSqlite(opts: {
         agent,
         status,
         toolCalls: backgroundSessionId ? toolCalls : null,
-        lastTool: activeQuestionTool ?? lastTool,
+        lastTool: pendingQuestionTool ?? lastTool,
         lastModel,
         timeline: status === "unknown" ? "" : formatTimeline(startedAt, timelineEndMs),
         sessionId: backgroundSessionId,
@@ -648,14 +609,44 @@ export function deriveBackgroundTasksSqlite(opts: {
   return { ok: true, value: rows }
 }
 
+export function deriveBackgroundTasksSqliteForSessions(opts: {
+  sqlitePath: string
+  mainSessionIds?: Array<string | null | undefined>
+  nowMs?: number
+  db?: Database
+}): SqliteDeriveResult<BackgroundTaskRow[]> {
+  const sessionIds = normalizeSessionIds(opts.mainSessionIds ?? [])
+  if (sessionIds.length === 0) return { ok: true, value: [] }
+
+  const allSessionMetasResult = readAllSessionMetasSqlite({ sqlitePath: opts.sqlitePath, db: opts.db })
+  if (!allSessionMetasResult.ok) return allSessionMetasResult
+
+  const rows: BackgroundTaskRow[] = []
+  for (const sessionId of sessionIds) {
+    const result = deriveBackgroundTasksSqlite({
+      sqlitePath: opts.sqlitePath,
+      mainSessionId: sessionId,
+      nowMs: opts.nowMs,
+      db: opts.db,
+      allSessionMetas: allSessionMetasResult.rows,
+    })
+    if (!result.ok) return result
+    rows.push(...result.value)
+  }
+
+  return { ok: true, value: rows }
+}
+
 export function deriveTimeSeriesActivitySqlite(opts: {
   sqlitePath: string
   mainSessionId: string | null
   nowMs?: number
   windowMs?: number
   bucketMs?: number
+  db?: Database
+  allSessionMetas?: SessionMetadata[]
 }): SqliteDeriveResult<TimeSeriesPayload> {
-  const windowMs = opts.windowMs ?? 300_000
+  const windowMs = opts.windowMs ?? TIMESERIES_WINDOW_MS
   const bucketMs = opts.bucketMs ?? 2_000
   const buckets = Math.floor(windowMs / bucketMs)
   const nowMs = opts.nowMs ?? Date.now()
@@ -668,8 +659,10 @@ export function deriveTimeSeriesActivitySqlite(opts: {
   const atlas = zeroBuckets(buckets)
   const background = zeroBuckets(buckets)
 
-  const allSessionMetas = readAllSessionMetasSqlite({ sqlitePath: opts.sqlitePath })
-  if (!allSessionMetas.ok) return allSessionMetas
+  const allSessionMetasResult = opts.allSessionMetas
+    ? { ok: true as const, rows: opts.allSessionMetas }
+    : readAllSessionMetasSqlite({ sqlitePath: opts.sqlitePath, db: opts.db })
+  if (!allSessionMetasResult.ok) return allSessionMetasResult
 
   const perSessionCache = new Map<string, { metas: StoredMessageMeta[]; partsByMessage: Map<string, StoredToolPart[]> }>()
   const loadSession = (sessionId: string): SqliteDeriveResult<{ metas: StoredMessageMeta[]; partsByMessage: Map<string, StoredToolPart[]> }> => {
@@ -678,7 +671,8 @@ export function deriveTimeSeriesActivitySqlite(opts: {
     const loaded = readSessionMessagesAndParts({
       sqlitePath: opts.sqlitePath,
       sessionId,
-      limit: 200,
+      limit: RECENT_MESSAGES_LIMIT,
+      db: opts.db,
     })
     if (!loaded.ok) return loaded
     perSessionCache.set(sessionId, loaded.value)
@@ -721,7 +715,7 @@ export function deriveTimeSeriesActivitySqlite(opts: {
     const mainResult = bucketSession(opts.mainSessionId, true, false)
     if (!mainResult.ok) return mainResult
 
-    const childSessions = allSessionMetas.rows
+    const childSessions = allSessionMetasResult.rows
       .filter((meta) => meta.parentID === opts.mainSessionId)
       .sort((a, b) => {
         const at = a.time?.updated ?? 0
@@ -757,23 +751,47 @@ export function deriveTimeSeriesActivitySqlite(opts: {
   }
 }
 
-export function deriveTokenUsageSqlite(opts: {
+export function deriveTimeSeriesActivitySqliteForSessions(opts: {
   sqlitePath: string
-  mainSessionId: string | null
-  backgroundSessionIds?: Array<string | null | undefined>
-}): SqliteDeriveResult<ReturnType<typeof aggregateTokenUsage>> {
-  const sessionIds: string[] = []
-  const seen = new Set<string>()
-  const push = (value: unknown): void => {
-    if (typeof value !== "string") return
-    const id = value.trim()
-    if (!id || seen.has(id)) return
-    seen.add(id)
-    sessionIds.push(id)
+  mainSessionIds?: Array<string | null | undefined>
+  nowMs?: number
+  windowMs?: number
+  bucketMs?: number
+  db?: Database
+}): SqliteDeriveResult<TimeSeriesPayload> {
+  const nowMs = opts.nowMs ?? Date.now()
+  const windowMs = opts.windowMs ?? TIMESERIES_WINDOW_MS
+  const bucketMs = opts.bucketMs ?? 2_000
+  const payload = createEmptyTimeSeriesPayload({ nowMs, windowMs, bucketMs })
+  const sessionIds = normalizeSessionIds(opts.mainSessionIds ?? [])
+  if (sessionIds.length === 0) return { ok: true, value: payload }
+
+  const allSessionMetasResult = readAllSessionMetasSqlite({ sqlitePath: opts.sqlitePath, db: opts.db })
+  if (!allSessionMetasResult.ok) return allSessionMetasResult
+
+  for (const sessionId of sessionIds) {
+    const result = deriveTimeSeriesActivitySqlite({
+      sqlitePath: opts.sqlitePath,
+      mainSessionId: sessionId,
+      nowMs,
+      windowMs,
+      bucketMs,
+      db: opts.db,
+      allSessionMetas: allSessionMetasResult.rows,
+    })
+    if (!result.ok) return result
+    mergeTimeSeriesPayload(payload, result.value)
   }
 
-  push(opts.mainSessionId)
-  for (const id of opts.backgroundSessionIds ?? []) push(id)
+  return { ok: true, value: payload }
+}
+
+export function deriveTokenUsageSqliteForSessions(opts: {
+  sqlitePath: string
+  sessionIds?: Array<string | null | undefined>
+  db?: Database
+}): SqliteDeriveResult<ReturnType<typeof aggregateTokenUsage>> {
+  const sessionIds = normalizeSessionIds(opts.sessionIds ?? [])
 
   const metas: unknown[] = []
   for (const sessionId of sessionIds) {
@@ -781,6 +799,7 @@ export function deriveTokenUsageSqlite(opts: {
       sqlitePath: opts.sqlitePath,
       sessionId,
       limit: TOKEN_USAGE_MESSAGE_LIMIT,
+      db: opts.db,
     })
     if (!result.ok) return result
     metas.push(...result.rows)
@@ -792,14 +811,29 @@ export function deriveTokenUsageSqlite(opts: {
   }
 }
 
+export function deriveTokenUsageSqlite(opts: {
+  sqlitePath: string
+  mainSessionId: string | null
+  backgroundSessionIds?: Array<string | null | undefined>
+  db?: Database
+}): SqliteDeriveResult<ReturnType<typeof aggregateTokenUsage>> {
+  return deriveTokenUsageSqliteForSessions({
+    sqlitePath: opts.sqlitePath,
+    sessionIds: [opts.mainSessionId, ...(opts.backgroundSessionIds ?? [])],
+    db: opts.db,
+  })
+}
+
 export function deriveToolCallsSqlite(opts: {
   sqlitePath: string
   sessionId: string
+  db?: Database
 }): SqliteDeriveResult<ToolCallSummaryResult & { sessionExists: boolean }> {
   const metasResult = readRecentMessageMetasSqlite({
     sqlitePath: opts.sqlitePath,
     sessionId: opts.sessionId,
     limit: MAX_TOOL_CALL_MESSAGES,
+    db: opts.db,
   })
   if (!metasResult.ok) return metasResult
 
@@ -807,6 +841,7 @@ export function deriveToolCallsSqlite(opts: {
     const existsResult = readSessionExistsSqlite({
       sqlitePath: opts.sqlitePath,
       sessionId: opts.sessionId,
+      db: opts.db,
     })
     if (!existsResult.ok) return existsResult
     return {
@@ -822,6 +857,7 @@ export function deriveToolCallsSqlite(opts: {
   const partsResult = readToolPartsForMessagesSqlite({
     sqlitePath: opts.sqlitePath,
     messageIds: metasResult.rows.map((meta) => meta.id),
+    db: opts.db,
   })
   if (!partsResult.ok) return partsResult
 
@@ -878,15 +914,39 @@ export function deriveToolCallsSqlite(opts: {
 export function deriveTodosSqlite(opts: {
   sqlitePath: string
   sessionId: string
+  db?: Database
 }): SqliteDeriveResult<TodoItem[]> {
   const result = readTodosSqlite({
     sqlitePath: opts.sqlitePath,
     sessionId: opts.sessionId,
+    db: opts.db,
   })
   if (!result.ok) return result
 
   return {
     ok: true,
     value: result.rows,
+  }
+}
+
+export function deriveTodosSqliteForSessions(opts: {
+  sqlitePath: string
+  sessionIds?: Array<string | null | undefined>
+  db?: Database
+}): SqliteDeriveResult<TodoItem[]> {
+  const sessionIds = normalizeSessionIds(opts.sessionIds ?? [])
+  if (sessionIds.length === 0) return { ok: true, value: [] }
+
+  const result = readTodosSqliteForSessionIds({
+    sqlitePath: opts.sqlitePath,
+    sessionIds,
+    db: opts.db,
+  })
+  if (!result.ok) return result
+
+  const { sessionId: _, ...todoRest } = result.rows[0] ?? {}
+  return {
+    ok: true,
+    value: result.rows.map(({ sessionId: _sid, ...item }) => item),
   }
 }

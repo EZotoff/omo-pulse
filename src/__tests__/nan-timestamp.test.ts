@@ -4,7 +4,7 @@ vi.mock("../ingest/boulder", () => ({
   readBoulderState: vi.fn(() => null),
   readPlanProgress: vi.fn(() => ({ total: 0, completed: 0, isComplete: false, missing: true, planStale: false, planComplete: false })),
   readPlanSteps: vi.fn(() => ({ missing: true, steps: [] })),
-  scanUnintiatedPlans: vi.fn(() => []),
+  scanUninitiatedPlans: vi.fn(() => []),
 }))
 
 vi.mock("../ingest/background-tasks", () => ({

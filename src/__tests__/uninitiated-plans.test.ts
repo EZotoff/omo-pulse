@@ -2,8 +2,8 @@ import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
-import { scanUnintiatedPlans } from "../ingest/boulder"
-import type { UnintiatedPlan } from "../types"
+import { scanUninitiatedPlans } from "../ingest/boulder"
+import type { UninitiatedPlan } from "../types"
 
 function makeProjectRoot(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "omo-pulse-uninitiated-plans-"))
@@ -36,7 +36,7 @@ afterEach(() => {
   }
 })
 
-describe("scanUnintiatedPlans", () => {
+describe("scanUninitiatedPlans", () => {
   it("returns only zero-completion plans from mixed plan states", () => {
     const projectRoot = createProjectRoot()
 
@@ -45,7 +45,7 @@ describe("scanUnintiatedPlans", () => {
     writePlan(projectRoot, "new-feature.md", "- [ ] Draft API\n- [ ] Add tests")
     writePlan(projectRoot, "research.md", "* [ ] Compare options\n* [ ] Write summary")
 
-    expect(scanUnintiatedPlans(projectRoot, null)).toEqual([
+    expect(scanUninitiatedPlans(projectRoot, null)).toEqual([
       {
         name: "new-feature",
         path: ".sisyphus/plans/new-feature.md",
@@ -73,13 +73,13 @@ describe("scanUnintiatedPlans", () => {
     writePlan(projectRoot, "alpha.md", "- [ ] First\n- [ ] Second")
     const betaPath = writePlan(projectRoot, "beta.md", "- [ ] Third\n- [ ] Fourth")
 
-    expect(scanUnintiatedPlans(projectRoot, betaPath).map((plan) => plan.name)).toEqual(["alpha"])
+    expect(scanUninitiatedPlans(projectRoot, betaPath).map((plan) => plan.name)).toEqual(["alpha"])
   })
 
   it("returns an empty array when the plans directory is missing", () => {
     const projectRoot = createProjectRoot()
 
-    expect(scanUnintiatedPlans(projectRoot, null)).toEqual([])
+    expect(scanUninitiatedPlans(projectRoot, null)).toEqual([])
   })
 
   it("skips markdown files that contain no checkbox tasks", () => {
@@ -88,7 +88,7 @@ describe("scanUnintiatedPlans", () => {
     writePlan(projectRoot, "notes-only.md", "# Notes\n\nNo tasks here yet.")
     writePlan(projectRoot, "todo.md", "- [ ] Add parser\n- [ ] Cover edge cases")
 
-    expect(scanUnintiatedPlans(projectRoot, null).map((plan) => plan.name)).toEqual(["todo"])
+    expect(scanUninitiatedPlans(projectRoot, null).map((plan) => plan.name)).toEqual(["todo"])
   })
 
   it("sorts matching plans alphabetically by plan name", () => {
@@ -98,14 +98,14 @@ describe("scanUnintiatedPlans", () => {
     writePlan(projectRoot, "alpha.md", "- [ ] First")
     writePlan(projectRoot, "middle.md", "- [ ] Second")
 
-    expect(scanUnintiatedPlans(projectRoot, null).map((plan) => plan.name)).toEqual(["alpha", "middle", "zebra"])
+    expect(scanUninitiatedPlans(projectRoot, null).map((plan) => plan.name)).toEqual(["alpha", "middle", "zebra"])
   })
 
-  it("matches the public UnintiatedPlan shape at compile time", () => {
+  it("matches the public UninitiatedPlan shape at compile time", () => {
     const projectRoot = createProjectRoot()
     writePlan(projectRoot, "typed.md", "- [ ] Preserve public shape")
 
-    const result: UnintiatedPlan[] = scanUnintiatedPlans(projectRoot, null)
+    const result: UninitiatedPlan[] = scanUninitiatedPlans(projectRoot, null)
     const firstPlan = result[0]
 
     expect(result).toHaveLength(1)
@@ -114,7 +114,7 @@ describe("scanUnintiatedPlans", () => {
       name: "typed",
       path: ".sisyphus/plans/typed.md",
       total: 1,
-    } satisfies Pick<UnintiatedPlan, "name" | "path" | "total">)
+    } satisfies Pick<UninitiatedPlan, "name" | "path" | "total">)
   })
 
   it("excludes _archive-prefixed markdown files", () => {
@@ -123,7 +123,7 @@ describe("scanUnintiatedPlans", () => {
     writePlan(projectRoot, "active-plan.md", "- [ ] Keep me")
     writePlan(projectRoot, "_archive_old-plan.md", "- [ ] Ignore me")
 
-    expect(scanUnintiatedPlans(projectRoot, null).map((plan) => plan.name)).toEqual(["active-plan"])
+    expect(scanUninitiatedPlans(projectRoot, null).map((plan) => plan.name)).toEqual(["active-plan"])
   })
 
   it("excludes the _archive directory", () => {
@@ -135,6 +135,6 @@ describe("scanUnintiatedPlans", () => {
     fs.mkdirSync(archiveDir, { recursive: true })
     fs.writeFileSync(path.join(archiveDir, "archived-plan.md"), "- [ ] Hidden task")
 
-    expect(scanUnintiatedPlans(projectRoot, null).map((plan) => plan.name)).toEqual(["main-plan"])
+    expect(scanUninitiatedPlans(projectRoot, null).map((plan) => plan.name)).toEqual(["main-plan"])
   })
 })

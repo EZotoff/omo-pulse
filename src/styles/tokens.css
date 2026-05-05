@@ -19,6 +19,16 @@
   /* Borders */
   --border-primary: #2a2a3e;
   --border-secondary: #1e1e30;
+  --border-subtle: #1e1e30;
+  
+  --accent-primary-alpha: rgba(0, 212, 170, 0.5);
+
+  --z-base: 1;
+  --z-raised: 2;
+  --z-sticky: 6;
+  --z-dropdown: 10;
+  --z-overlay: 900;
+  --z-overlay-above: 901;
 
   /* Typography */
   --font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -51,7 +61,7 @@
   --transition-normal: 250ms ease;
 
   /* Zoom */
-  --zoom: 1;
+  --zoom: 1.8;
 
   /* Status colors */
   --status-busy: #00d4aa;
@@ -65,6 +75,8 @@
   --status-busy-new: #0284c7;
   --status-thinking-new: #0278b0;
   --status-tool-new: #026c9f;
+  --status-script: #7c6040;
+  --status-script-glow: rgba(124, 96, 64, 0.3);
   --status-idle-glow: #475569;
   --status-idle-glow-border: #334155;
   --status-idle-border-bright: #d4d4d8;
@@ -83,7 +95,62 @@
   --status-stone-highlight: #64748b;
   --status-sheen: rgba(255, 255, 255, 0.07);
   --status-border-glow: rgba(6, 182, 212, 0.15);
+  --status-border-glow-faint: rgba(6, 182, 212, 0.1);
+  --status-border-glow-inset: rgba(6, 182, 212, 0.05);
+  --status-idle-glow-ring: rgba(148, 163, 184, 0.5);
+  --status-idle-glow-ring-bright: rgba(148, 163, 184, 0.8);
+  --status-idle-glow-ring-faint: rgba(148, 163, 184, 0.08);
+  --status-idle-glow-ring-subtle: rgba(148, 163, 184, 0.3);
+  --status-danger-glow: rgba(239, 68, 68, 0.6);
+  --status-danger-glow-strong: rgba(239, 68, 68, 0.7);
+  --status-question-glow: rgba(245, 158, 11, 0.15);
+  --status-plan-complete-border: rgba(16, 185, 129, 0.7);
+  --status-plan-complete-bg: rgba(16, 185, 129, 0.4);
+  --status-plan-complete-bg-faint: rgba(16, 185, 129, 0.1);
+  --status-plan-complete-ring-border: rgba(16, 185, 129, 0.8);
+  --status-plan-complete-ring-glow: rgba(16, 185, 129, 0.5);
+  --status-unknown-bg: rgba(51, 65, 85, 0.6);
+  --status-unknown-border: rgba(156, 163, 175, 0.5);
+  --dot-highlight-bright: rgba(255, 255, 255, 0.6);
+  --dot-highlight-mid: rgba(255, 255, 255, 0.4);
+  --dot-highlight-faint: rgba(255, 255, 255, 0.3);
+  --dot-highlight-subtle: rgba(255, 255, 255, 0.2);
+  --dot-highlight-dim: rgba(255, 255, 255, 0.15);
+  --dot-highlight-ghost: rgba(255, 255, 255, 0.1);
+  --dot-highlight-whisper: rgba(255, 255, 255, 0.05);
+  --dot-shadow-deep: rgba(0, 0, 0, 0.6);
+  --dot-shadow-mid: rgba(0, 0, 0, 0.4);
+  --dot-shadow-light: rgba(0, 0, 0, 0.2);
+  --dot-avatar-color: rgba(255, 255, 255, 0.9);
+  --dot-inset-shadow: rgba(0, 0, 0, 0.2);
+  --dot-inset-shadow-light: rgba(255, 255, 255, 0.3);
+  --dot-inset-shadow-mid: rgba(255, 255, 255, 0.4);
+  --idle-border-color: rgba(226, 232, 240, 0.9);
   --sparkline-glow-intensity: 0.7;
+  --sparkline-glow-teal: rgba(0, 212, 170, 0.6);
+  --sparkline-glow-red: rgba(255, 107, 107, 0.6);
+  --sparkline-glow-green: rgba(78, 205, 196, 0.6);
+  --sparkline-glow-sand: rgba(217, 70, 239, 0.6);
+  --sparkline-glow-muted: rgba(102, 102, 128, 0.4);
+  --sparkline-fill-teal: rgba(6, 182, 212, 0.8);
+  --sparkline-fill-red: rgba(239, 68, 68, 0.8);
+  --sparkline-fill-green: rgba(16, 185, 129, 0.8);
+  --sparkline-fill-sand: rgba(217, 70, 239, 0.8);
+  --sparkline-fill-muted: rgba(148, 163, 184, 0.5);
+  --sparkline-drop-shadow-muted: rgba(148, 163, 184, 0.4);
+  --swimlane-dot-teal: rgba(0, 212, 170, 0.7);
+  --swimlane-dot-red: rgba(255, 107, 107, 0.7);
+  --swimlane-dot-green: rgba(78, 205, 196, 0.7);
+  --swimlane-dot-sand: rgba(217, 70, 239, 0.7);
+  --swimlane-dot-muted: rgba(102, 102, 128, 0.5);
+  --card-agent-bg: rgba(0, 212, 170, 0.1);
+  --card-focus-ring: rgba(0, 212, 170, 0.2);
+  --card-danger-border: rgba(255, 51, 102, 0.3);
+  --card-danger-bg: rgba(255, 51, 102, 0.05);
+  --card-danger-bg-hover: rgba(255, 51, 102, 0.15);
+  --card-icon-danger-bg: rgba(255, 68, 68, 0.1);
+  --overlay-backdrop: rgba(0, 0, 0, 0.55);
+  --overlay-shadow: rgba(0, 0, 0, 0.4);
   color-scheme: dark;
 }
 
@@ -104,6 +171,8 @@
 
   --border-primary: #d8d8e8;
   --border-secondary: #e8e8f0;
+  --border-subtle: #e8e8f0;
+  --accent-primary-alpha: rgba(15, 155, 122, 0.4);
 
   --status-busy: #0f9b7a;
   --status-idle: #8888a0;
@@ -115,6 +184,8 @@
   --status-busy-new: #0891b2;
   --status-thinking-new: #0284c7;
   --status-tool-new: #0278b0;
+  --status-script: #8b7355;
+  --status-script-glow: rgba(139, 115, 85, 0.25);
   --status-idle-glow: #475569;
   --status-idle-glow-border: #cbd5e1;
   --status-idle-border-bright: #94a3b8;
@@ -132,7 +203,62 @@
   --status-stone-highlight: #94a3b8;
   --status-sheen: rgba(255, 255, 255, 0.12);
   --status-border-glow: rgba(8, 145, 178, 0.12);
+  --status-border-glow-faint: rgba(8, 145, 178, 0.08);
+  --status-border-glow-inset: rgba(8, 145, 178, 0.04);
+  --status-idle-glow-ring: rgba(148, 163, 184, 0.4);
+  --status-idle-glow-ring-bright: rgba(148, 163, 184, 0.7);
+  --status-idle-glow-ring-faint: rgba(148, 163, 184, 0.06);
+  --status-idle-glow-ring-subtle: rgba(148, 163, 184, 0.25);
+  --status-danger-glow: rgba(185, 28, 28, 0.5);
+  --status-danger-glow-strong: rgba(185, 28, 28, 0.6);
+  --status-question-glow: rgba(212, 138, 0, 0.12);
+  --status-plan-complete-border: rgba(5, 150, 105, 0.6);
+  --status-plan-complete-bg: rgba(5, 150, 105, 0.3);
+  --status-plan-complete-bg-faint: rgba(5, 150, 105, 0.08);
+  --status-plan-complete-ring-border: rgba(5, 150, 105, 0.7);
+  --status-plan-complete-ring-glow: rgba(5, 150, 105, 0.4);
+  --status-unknown-bg: rgba(71, 85, 105, 0.5);
+  --status-unknown-border: rgba(148, 163, 175, 0.4);
+  --dot-highlight-bright: rgba(255, 255, 255, 0.6);
+  --dot-highlight-mid: rgba(255, 255, 255, 0.4);
+  --dot-highlight-faint: rgba(255, 255, 255, 0.3);
+  --dot-highlight-subtle: rgba(255, 255, 255, 0.2);
+  --dot-highlight-dim: rgba(255, 255, 255, 0.15);
+  --dot-highlight-ghost: rgba(255, 255, 255, 0.1);
+  --dot-highlight-whisper: rgba(255, 255, 255, 0.05);
+  --dot-shadow-deep: rgba(0, 0, 0, 0.6);
+  --dot-shadow-mid: rgba(0, 0, 0, 0.4);
+  --dot-shadow-light: rgba(0, 0, 0, 0.2);
+  --dot-avatar-color: rgba(255, 255, 255, 0.9);
+  --dot-inset-shadow: rgba(0, 0, 0, 0.2);
+  --dot-inset-shadow-light: rgba(255, 255, 255, 0.3);
+  --dot-inset-shadow-mid: rgba(255, 255, 255, 0.4);
+  --idle-border-color: rgba(226, 232, 240, 0.8);
   --sparkline-glow-intensity: 0.8;
+  --sparkline-glow-teal: rgba(0, 212, 170, 0.5);
+  --sparkline-glow-red: rgba(255, 107, 107, 0.5);
+  --sparkline-glow-green: rgba(78, 205, 196, 0.5);
+  --sparkline-glow-sand: rgba(217, 70, 239, 0.5);
+  --sparkline-glow-muted: rgba(102, 102, 128, 0.3);
+  --sparkline-fill-teal: rgba(8, 145, 178, 0.8);
+  --sparkline-fill-red: rgba(212, 64, 64, 0.8);
+  --sparkline-fill-green: rgba(5, 150, 105, 0.8);
+  --sparkline-fill-sand: rgba(180, 60, 200, 0.8);
+  --sparkline-fill-muted: rgba(148, 163, 184, 0.4);
+  --sparkline-drop-shadow-muted: rgba(148, 163, 184, 0.3);
+  --swimlane-dot-teal: rgba(0, 155, 122, 0.7);
+  --swimlane-dot-red: rgba(212, 64, 64, 0.7);
+  --swimlane-dot-green: rgba(42, 157, 143, 0.7);
+  --swimlane-dot-sand: rgba(180, 60, 200, 0.7);
+  --swimlane-dot-muted: rgba(102, 102, 128, 0.4);
+  --card-agent-bg: rgba(15, 155, 122, 0.1);
+  --card-focus-ring: rgba(15, 155, 122, 0.2);
+  --card-danger-border: rgba(212, 64, 64, 0.3);
+  --card-danger-bg: rgba(212, 64, 64, 0.05);
+  --card-danger-bg-hover: rgba(212, 64, 64, 0.12);
+  --card-icon-danger-bg: rgba(212, 64, 64, 0.1);
+  --overlay-backdrop: rgba(0, 0, 0, 0.45);
+  --overlay-shadow: rgba(0, 0, 0, 0.3);
 
   --preview-sheen: rgba(0, 0, 0, 0.1);
   --preview-sheen-strong: rgba(0, 0, 0, 0.25);

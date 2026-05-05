@@ -1,15 +1,15 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
 import {
-  ACTIVE_BUSY_WINDOW_MS,
   hasFreshMainSessionActivity,
   resolveLastUpdatedTime,
-  shouldSuppressStaleToolActivity,
 } from "./activity-status"
 import { pickLatestModelString } from "./model"
-import { getOpenCodeStorageDir, realpathSafe } from "./paths"
+import { getOpenCodeStorageDir, getMessageDir, realpathSafe } from "./paths"
 import { deriveBackgroundTasks } from "./background-tasks"
-import { QUESTION_TOOL_NAMES } from "./tool-names"
+import { deriveMainSessionStatus } from "./session-status"
+
+const RECENT_MESSAGES_LIMIT = 200
 
 export type SessionMetadata = {
   id: string
@@ -65,21 +65,7 @@ export function defaultStorageRoots(): OpenCodeStorageRoots {
   return getStorageRoots(getOpenCodeStorageDir())
 }
 
-export function getMessageDir(messageStorage: string, sessionID: string): string {
-  const directPath = path.join(messageStorage, sessionID)
-  if (fs.existsSync(directPath)) return directPath
-
-  try {
-    for (const dir of fs.readdirSync(messageStorage)) {
-      const sessionPath = path.join(messageStorage, dir, sessionID)
-      if (fs.existsSync(sessionPath)) return sessionPath
-    }
-  } catch {
-    return ""
-  }
-
-  return ""
-}
+export { getMessageDir } from "./paths"
 
 export function sessionExists(messageStorage: string, sessionID: string): boolean {
   return getMessageDir(messageStorage, sessionID) !== ""
@@ -121,11 +107,13 @@ export function readMainSessionMetas(
 
           metas.push(meta)
         } catch {
+          // Expected: file may not exist or be malformed
           continue
         }
       }
     }
   } catch {
+    // Expected: file may not exist or be malformed
     return []
   }
 
@@ -177,7 +165,7 @@ export function pickActiveSessionId(opts: {
 
     if (metas.length === 0) {
       const messageDir = getMessageDir(opts.storage.message, id)
-      const recent = readMostRecentMessageMeta(messageDir, 200)
+      const recent = readMostRecentMessageMeta(messageDir, RECENT_MESSAGES_LIMIT)
       const created = typeof recent?.time?.created === "number" ? recent.time.created : 0
       consider(id, created, true)
     }
@@ -197,6 +185,7 @@ function readMostRecentMessageMeta(messageDir: string, maxMessages: number): Sto
         try {
           return fs.statSync(path.join(messageDir, f)).mtimeMs
         } catch {
+          // Expected: file may not exist or be malformed
           return 0
         }
       })(),
@@ -216,6 +205,7 @@ function readMostRecentMessageMeta(messageDir: string, maxMessages: number): Sto
         best = { created, id, meta }
       }
     } catch {
+      // Expected: file may not exist or be malformed
       continue
     }
   }
@@ -234,6 +224,7 @@ function readRecentMessageMetas(messageDir: string, maxMessages: number): Stored
         try {
           return fs.statSync(path.join(messageDir, f)).mtimeMs
         } catch {
+          // Expected: file may not exist or be malformed
           return 0
         }
       })(),
@@ -250,6 +241,7 @@ function readRecentMessageMetas(messageDir: string, maxMessages: number): Stored
       const id = String(meta.id ?? "")
       metas.push({ created, id, meta })
     } catch {
+      // Expected: file may not exist or be malformed
       continue
     }
   }
@@ -277,29 +269,37 @@ function readLastToolPart(partStorage: string, messageID: string): { tool: strin
         return { tool: part.tool, status: typeof status === "string" ? status : "unknown" }
       }
     } catch {
+      // Expected: file may not exist or be malformed
       continue
     }
   }
   return null
 }
 
-function hasErrorToolPart(partStorage: string, messageID: string): boolean {
+function messageTerminalToolStatus(partStorage: string, messageID: string): "error" | "completed" | null {
   const partDir = path.join(partStorage, messageID)
-  if (!fs.existsSync(partDir)) return false
+  if (!fs.existsSync(partDir)) return null
 
+  let hasError = false
+  let hasCompleted = false
   const files = fs.readdirSync(partDir).filter((f) => f.endsWith(".json"))
   for (const file of files) {
     try {
       const content = fs.readFileSync(path.join(partDir, file), "utf8")
       const part = JSON.parse(content) as Partial<StoredToolPart>
-      if (part.type === "tool" && part.state?.status === "error") {
-        return true
+      if (part.type === "tool") {
+        if (part.state?.status === "error") hasError = true
+        else if (part.state?.status === "completed") hasCompleted = true
       }
     } catch {
+      // Expected: file may not exist or be malformed
       continue
     }
   }
-  return false
+
+  if (hasError) return "error"
+  if (hasCompleted) return "completed"
+  return null
 }
 
 export function getMainSessionView(opts: {
@@ -312,7 +312,7 @@ export function getMainSessionView(opts: {
   const nowMs = opts.nowMs ?? Date.now()
 
   const messageDir = getMessageDir(opts.storage.message, opts.sessionId)
-  const recent = readMostRecentMessageMeta(messageDir, 200)
+  const recent = readMostRecentMessageMeta(messageDir, RECENT_MESSAGES_LIMIT)
 
   const lastUpdated = resolveLastUpdatedTime(recent?.time?.created ?? null, opts.sessionMeta?.time.updated ?? null)
   const sessionLabel = opts.sessionMeta?.title ?? opts.sessionId
@@ -320,7 +320,7 @@ export function getMainSessionView(opts: {
 
   // Scan recent messages for any in-flight tool parts
   let activeTool: { tool: string; status: string } | null = null
-  const recentMetas = readRecentMessageMetas(messageDir, 200)
+  const recentMetas = readRecentMessageMetas(messageDir, RECENT_MESSAGES_LIMIT)
   const currentModel = pickLatestModelString(recentMetas)
   
   // Iterate newest -> oldest, early-exit on first tool part with pending/running status
@@ -332,11 +332,14 @@ export function getMainSessionView(opts: {
     }
   }
 
-  let hasErrorTool = false
+  let latestTerminalStatus: "error" | "completed" | null = null
+  let latestTerminalAt: number | null = null
   if (!activeTool) {
     for (const meta of recentMetas) {
-      if (hasErrorToolPart(opts.storage.part, meta.id)) {
-        hasErrorTool = true
+      const terminal = messageTerminalToolStatus(opts.storage.part, meta.id)
+      if (terminal !== null) {
+        latestTerminalStatus = terminal
+        latestTerminalAt = typeof meta.time?.created === "number" ? meta.time.created : null
         break
       }
     }
@@ -345,22 +348,20 @@ export function getMainSessionView(opts: {
   const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
   const isStaleActivity = typeof lastUpdated === "number" && !hasFreshActivity
 
-  let status: MainSessionView["status"] = "unknown"
-  if (activeTool?.status === "pending" || activeTool?.status === "running") {
-    if (shouldSuppressStaleToolActivity(activeTool.tool, hasFreshActivity)) {
-      activeTool = null
-    } else {
-      status = QUESTION_TOOL_NAMES.has(activeTool.tool) ? "question" : "running_tool"
-    }
-  }
-
-  if (status === "unknown" && !isStaleActivity && hasErrorTool) {
-    status = "error"
-  } else if (status === "unknown" && !isStaleActivity && recent?.role === "assistant" && typeof recent?.time?.created === "number" && typeof recent?.time?.completed !== "number") {
-    status = "thinking"
-  } else if (status === "unknown" && typeof lastUpdated === "number") {
-    status = nowMs - lastUpdated <= ACTIVE_BUSY_WINDOW_MS ? "busy" : "idle"
-  }
+  const derived = deriveMainSessionStatus({
+    activeTool,
+    hasFreshActivity,
+    isStaleActivity,
+    latestTerminalStatus,
+    latestTerminalAt,
+    recentRole: recent?.role ?? null,
+    recentTimeCreated: typeof recent?.time?.created === "number" ? recent.time.created : null,
+    recentTimeCompleted: typeof recent?.time?.completed === "number" ? recent.time.completed : null,
+    lastUpdated,
+    nowMs,
+  })
+  let status = derived.status
+  activeTool = derived.activeTool
 
   if (status === "idle" || status === "busy" || status === "unknown") {
     const bgTasks = deriveBackgroundTasks({

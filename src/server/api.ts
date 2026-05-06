@@ -4,7 +4,7 @@ import * as fs from "node:fs"
 import { homedir } from "node:os"
 import { listSources, getDefaultSourceId, addOrUpdateSource, updateSourceLabelById, deleteSourceById } from "../ingest/sources-registry"
 import { getStorageRoots, getMessageDir } from "../ingest/session"
-import { assertAllowedPath } from "../ingest/paths"
+import { assertAllowedPath, expandTilde } from "../ingest/paths"
 import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../ingest/tool-calls"
 import { deriveToolCallsSqlite } from "../ingest/sqlite-derive"
 import type { StorageBackend } from "../ingest/storage-backend"
@@ -75,11 +75,13 @@ export function createApi(opts: {
       return c.json({ ok: false, error: "projectRoot is required and must be a non-empty string" }, 400)
     }
 
-    if (!fs.existsSync(projectRoot)) {
+    const resolvedRoot = expandTilde(projectRoot.trim())
+
+    if (!fs.existsSync(resolvedRoot)) {
       return c.json({ ok: false, error: "projectRoot directory does not exist" }, 400)
     }
 
-    const sourceId = addOrUpdateSource(opts.storageRoot, projectRoot, label)
+    const sourceId = addOrUpdateSource(opts.storageRoot, resolvedRoot, label)
     invalidateProjects()
     return c.json({ ok: true, sourceId })
   })

@@ -73,12 +73,12 @@ vi.mock("../ingest/storage-backend", () => ({
   readAllSessionMetasSqlite: vi.fn(() => ({ ok: true as const, rows: [mainSessionMeta, childSessionMeta] })),
   readSessionExistsSqlite: vi.fn(() => ({ ok: true as const, rows: [{ id: "ses-child" }] })),
   readTodosSqlite: vi.fn(() => ({ ok: true as const, rows: [] })),
-  readRecentMessageMetasSqlite: vi.fn(function ({ sessionId }: { sessionId: string }) {
+  readRecentMessageMetasSqlite: vi.fn(({ sessionId }: { sessionId: string }) => {
     if (sessionId === "ses-main") return { ok: true as const, rows: [mainMeta] }
     if (sessionId === "ses-child") return { ok: true as const, rows: [childMeta] }
     return { ok: true as const, rows: [] }
   }),
-  readToolPartsForMessagesSqlite: vi.fn(function ({ messageIds }: { messageIds: string[] }) {
+  readToolPartsForMessagesSqlite: vi.fn(({ messageIds }: { messageIds: string[] }) => {
     const rows: StoredToolPart[] = []
     if (messageIds.includes("msg-main")) rows.push(mainTaskPart)
     if (messageIds.includes("msg-child")) rows.push(childQuestionPart)
@@ -118,4 +118,66 @@ describe("background question bridge (SQLite)", () => {
     expect(viewResult.value.status).toBe("question")
     expect(viewResult.value.currentTool).toBe("mcp_question")
   })
+
+	it("surfaces question for SQLite background tasks when child question tool is running", async () => {
+		vi.doMock("../ingest/storage-backend", () => {
+			const runningChildQuestionPart: StoredToolPart = {
+				...childQuestionPart,
+				tool: "question",
+				state: {
+					...childQuestionPart.state,
+					status: "running",
+				},
+			}
+
+			return {
+				readMainSessionMetasSqlite: vi.fn(() => ({ ok: true as const, rows: [mainSessionMeta] })),
+				readAllSessionMetasSqlite: vi.fn(() => ({ ok: true as const, rows: [mainSessionMeta, childSessionMeta] })),
+				readSessionExistsSqlite: vi.fn(() => ({ ok: true as const, rows: [{ id: "ses-child" }] })),
+				readTodosSqlite: vi.fn(() => ({ ok: true as const, rows: [] })),
+				readRecentMessageMetasSqlite: vi.fn(({ sessionId }: { sessionId: string }) => {
+					if (sessionId === "ses-main") return { ok: true as const, rows: [mainMeta] }
+					if (sessionId === "ses-child") return { ok: true as const, rows: [childMeta] }
+					return { ok: true as const, rows: [] }
+				}),
+				readToolPartsForMessagesSqlite: vi.fn(({ messageIds }: { messageIds: string[] }) => {
+					const rows: StoredToolPart[] = []
+					if (messageIds.includes("msg-main")) rows.push(mainTaskPart)
+					if (messageIds.includes("msg-child")) rows.push(runningChildQuestionPart)
+					return { ok: true as const, rows }
+				}),
+			}
+		})
+
+		vi.resetModules()
+		const { deriveBackgroundTasksSqlite, getMainSessionViewSqlite } = await import("../ingest/sqlite-derive")
+
+		const tasksResult = deriveBackgroundTasksSqlite({
+			sqlitePath: "/tmp/opencode.db",
+			mainSessionId: "ses-main",
+			nowMs: 1_000_000,
+		})
+
+		expect(tasksResult.ok).toBe(true)
+		if (!tasksResult.ok) throw new Error("expected sqlite background tasks")
+		expect(tasksResult.value[0]?.status).toBe("question")
+		expect(tasksResult.value[0]?.lastTool).toBe("question")
+
+		const viewResult = getMainSessionViewSqlite({
+			sqlitePath: "/tmp/opencode.db",
+			sessionId: "ses-main",
+			sessionMeta: {
+				id: "ses-main",
+				projectID: "proj-1",
+				directory: "/tmp/project",
+				time: { created: 900_000, updated: 999_000 },
+			},
+			nowMs: 1_000_000,
+		})
+
+		expect(viewResult.ok).toBe(true)
+		if (!viewResult.ok) throw new Error("expected sqlite main session view")
+		expect(viewResult.value.status).toBe("question")
+		expect(viewResult.value.currentTool).toBe("question")
+	})
 })

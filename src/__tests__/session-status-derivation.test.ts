@@ -286,8 +286,8 @@ describe("status derivation characterization: SQLite session inclusion path", ()
 			"ses-running",
 			"ses-thinking",
 			"ses-busy-fresh",
-			"ses-busy",
 			"ses-unknown",
+			"ses-busy",
 			"ses-idle",
 		]);
 	});
@@ -342,6 +342,37 @@ describe("status derivation characterization: file-based getMainSessionView path
 			callID: "call-question",
 			tool: "mcp_question",
 			state: { status: "pending", input: {} },
+		});
+
+		const view = getMainSessionView({
+			projectRoot: PROJECT_ROOT,
+			sessionId: message.sessionID,
+			storage,
+			sessionMeta: makeSessionMeta(message.sessionID, NOW_MS - 5_000),
+			nowMs: NOW_MS,
+		});
+
+		expect(view.status).toBe("question");
+	});
+
+	it("returns question when the latest active tool is a running canonical question tool", () => {
+		const storage = makeTempStorage();
+		const message = makeAssistantMessage(
+			"msg-question-running",
+			"ses-question-running",
+			NOW_MS - 5_000,
+			NOW_MS - 4_900,
+		);
+		writeMessage(storage, message);
+
+		writeToolPart(storage, message.id, {
+			id: "part-question-running",
+			sessionID: message.sessionID,
+			messageID: message.id,
+			type: "tool",
+			callID: "call-question-running",
+			tool: "question",
+			state: { status: "running", input: {} },
 		});
 
 		const view = getMainSessionView({

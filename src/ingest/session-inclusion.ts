@@ -1,9 +1,9 @@
-import * as path from "node:path"
 import type { Database } from "bun:sqlite"
-import { realpathSafe } from "./paths"
+import * as path from "node:path"
 import { ACTIVE_BUSY_WINDOW_MS, hasFreshMainSessionActivity, shouldSuppressStaleToolActivity } from "./activity-status"
+import { realpathSafe } from "./paths"
 import type { SessionMetadata } from "./session"
-import { isPendingQuestionTool } from "./tool-names"
+import { isActiveQuestionTool } from "./tool-names"
 
 // Severity levels for attention-first ordering
 const STATUS_SEVERITY: Record<string, number> = {
@@ -31,7 +31,6 @@ function deriveSessionStatusFromMaps(
   lastUpdated: number,
   nowMs: number,
   activePartsMap: Map<string, Array<{ tool: string; status: string }>>,
-  terminalPartsMap: Map<string, Array<{ time_created: number; status: string }>>,
   assistantMsgsMap: Map<string, Array<{ time_completed: number | null }>>,
 ): string {
   const activeParts = activePartsMap.get(sessionId) ?? []
@@ -41,11 +40,9 @@ function deriveSessionStatusFromMaps(
   if (activeParts.length > 0) {
     const activePart = activeParts[0]
     if (!shouldSuppressStaleToolActivity(activePart.tool, activePart.status, hasFreshActivity)) {
-      return isPendingQuestionTool(activePart.tool, activePart.status) ? "question" : "running_tool"
+      return isActiveQuestionTool(activePart.tool, activePart.status) ? "question" : "running_tool"
     }
   }
-
-  const isStaleActivity = ageMs > ACTIVE_BUSY_WINDOW_MS
 
   const recentMessages = assistantMsgsMap.get(sessionId) ?? []
 
@@ -128,34 +125,15 @@ export function findIncludedSessionsSqlite(
       )
       .all(...candidateIds) as Array<{ session_id: string; tool: string; status: string }>
     for (const row of activeRows) {
-      if (!activePartsMap.has(row.session_id)) {
-        activePartsMap.set(row.session_id, [])
-      }
-      if ((activePartsMap.get(row.session_id)?.length ?? 0) < 1) {
-        activePartsMap.get(row.session_id)!.push({ tool: row.tool, status: row.status })
-      }
-    }
-
-    // Batch query 2: terminal parts (error/completed)
-    const terminalPartsMap = new Map<string, Array<{ time_created: number; status: string }>>()
-    const terminalRows = db
-      .query(
-        `SELECT session_id, time_created, json_extract(data, '$.state.status') as status
-         FROM part 
-         WHERE session_id IN (${placeholders}) AND json_extract(data, '$.state.status') IN ('error', 'completed')
-         ORDER BY time_created DESC`
-      )
-      .all(...candidateIds) as Array<{ session_id: string; time_created: number; status: string }>
-    for (const row of terminalRows) {
-      if (!terminalPartsMap.has(row.session_id)) {
-        terminalPartsMap.set(row.session_id, [])
-      }
-      if ((terminalPartsMap.get(row.session_id)?.length ?? 0) < 1) {
-        terminalPartsMap.get(row.session_id)!.push({ time_created: row.time_created, status: row.status })
+      const sessionActiveParts = activePartsMap.get(row.session_id)
+      if (!sessionActiveParts) {
+        activePartsMap.set(row.session_id, [{ tool: row.tool, status: row.status }])
+      } else if (sessionActiveParts.length < 1) {
+        sessionActiveParts.push({ tool: row.tool, status: row.status })
       }
     }
 
-    // Batch query 3: recent assistant messages
+    // Batch query 2: recent assistant messages
     const assistantMsgsMap = new Map<string, Array<{ time_completed: number | null }>>()
     const assistantRows = db
       .query(
@@ -166,11 +144,11 @@ export function findIncludedSessionsSqlite(
       )
       .all(...candidateIds) as Array<{ session_id: string; time_completed: number | null }>
     for (const row of assistantRows) {
-      if (!assistantMsgsMap.has(row.session_id)) {
-        assistantMsgsMap.set(row.session_id, [])
-      }
-      if ((assistantMsgsMap.get(row.session_id)?.length ?? 0) < 1) {
-        assistantMsgsMap.get(row.session_id)!.push({ time_completed: row.time_completed })
+      const sessionAssistantMsgs = assistantMsgsMap.get(row.session_id)
+      if (!sessionAssistantMsgs) {
+        assistantMsgsMap.set(row.session_id, [{ time_completed: row.time_completed }])
+      } else if (sessionAssistantMsgs.length < 1) {
+        sessionAssistantMsgs.push({ time_completed: row.time_completed })
       }
     }
 
@@ -181,7 +159,7 @@ export function findIncludedSessionsSqlite(
       const lastUpdated = meta.time.updated ?? meta.time.created ?? 0
       const status = deriveSessionStatusFromMaps(
         meta.id, lastUpdated, nowMs,
-        activePartsMap, terminalPartsMap, assistantMsgsMap,
+        activePartsMap, assistantMsgsMap,
       )
       if (
         isSessionIncluded(meta, idleWindowMs, nowMs) ||

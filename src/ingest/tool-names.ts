@@ -6,6 +6,14 @@ export const QUESTION_TOOL_NAMES = new Set([
   "mcp_question",
 ])
 
+export function isActiveQuestionTool(toolName: string | null | undefined, status: string | null | undefined): boolean {
+  return (
+    typeof toolName === "string" &&
+    (status === "pending" || status === "running") &&
+    QUESTION_TOOL_NAMES.has(toolName)
+  )
+}
+
 export function isPendingQuestionTool(toolName: string | null | undefined, status: string | null | undefined): boolean {
   return typeof toolName === "string" && status === "pending" && QUESTION_TOOL_NAMES.has(toolName)
 }

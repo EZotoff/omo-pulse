@@ -267,6 +267,100 @@ describe("deriveBackgroundTasksSqlite", () => {
 		expect(result.value[0].timeline).not.toBe("");
 	});
 
+	it("marks linked background task as question when child session has a running canonical question tool", () => {
+		const nowMs = 1_000_000;
+		const db = createMockDb({
+			sessionRows: [
+				{
+					id: "ses-main",
+					project_id: "proj-1",
+					directory: "/tmp/project",
+					time_created: nowMs - 10_000,
+					time_updated: nowMs - 1_000,
+				},
+				{
+					id: "ses-child",
+					project_id: "proj-1",
+					parent_id: "ses-main",
+					directory: "/tmp/project",
+					title: "Background: Ask user",
+					time_created: nowMs - 800,
+					time_updated: nowMs - 500,
+				},
+			],
+			messagesBySession: {
+				"ses-main": [
+					makeMessageRow({
+						id: "msg-main",
+						sessionId: "ses-main",
+						createdAt: nowMs - 1_000,
+						agent: "sisyphus",
+					}),
+				],
+				"ses-child": [
+					makeMessageRow({
+						id: "msg-child",
+						sessionId: "ses-child",
+						createdAt: nowMs - 500,
+						agent: "atlas",
+					}),
+				],
+			},
+			partsByMessage: {
+				"msg-main": [
+					makePartRow({
+						id: "part-main",
+						messageId: "msg-main",
+						sessionId: "ses-main",
+						createdAt: nowMs - 1_000,
+						callId: "call-bg-question",
+						tool: "background_task",
+						status: "completed",
+						input: {
+							description: "Ask user",
+							run_in_background: true,
+							subagent_type: "atlas",
+						},
+						metadata: { sessionId: "ses-child" },
+						startAt: nowMs - 2_000,
+					}),
+				],
+				"msg-child": [
+					makePartRow({
+						id: "part-child-question",
+						messageId: "msg-child",
+						sessionId: "ses-child",
+						createdAt: nowMs - 500,
+						callId: "child-question",
+						tool: "question",
+						status: "running",
+					}),
+				],
+			},
+		});
+
+		const result = deriveBackgroundTasksSqlite({
+			sqlitePath: "/tmp/opencode.db",
+			mainSessionId: "ses-main",
+			nowMs,
+			db: db as unknown as Database,
+		});
+
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+
+		expect(result.value).toHaveLength(1);
+		expect(result.value[0]).toMatchObject({
+			id: "call-bg-question",
+			description: "Ask user",
+			agent: "atlas",
+			status: "question",
+			toolCalls: 1,
+			lastTool: "question",
+			sessionId: "ses-child",
+		});
+	});
+
 	it("marks stale unlinked background task as unknown with null toolCalls", () => {
 		const nowMs = 2_000_000;
 		const startedAt = nowMs - 16 * 60_000;

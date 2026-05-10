@@ -1,12 +1,11 @@
 import type { Database } from "bun:sqlite"
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { SessionMetadata } from "../ingest/session"
+import { findIncludedSessionsSqlite, isSessionIncluded } from "../ingest/session-inclusion"
 
 vi.mock("../ingest/paths", () => ({
   realpathSafe: vi.fn((p: string) => p),
 }))
-
-import { isSessionIncluded, findIncludedSessionsSqlite } from "../ingest/session-inclusion"
-import type { SessionMetadata } from "../ingest/session"
 
 type SessionRow = {
   id: string
@@ -421,6 +420,37 @@ describe("findIncludedSessionsSqlite", () => {
 
     expect(result).toEqual([])
   })
+
+	it("orders fresh running canonical question tools ahead of busy sessions", () => {
+		const now = Date.now()
+		const result = runFindIncludedSessionsSqlite(
+			createMockDb({
+				sessionRows: [
+					{
+						id: "question-session",
+						title: "Question",
+						directory: "/home/user/project",
+						time_created: now - 20_000,
+						time_updated: now - 1_000,
+					},
+					{
+						id: "busy-session",
+						title: "Busy",
+						directory: "/home/user/project",
+						time_created: now - 20_000,
+						time_updated: now - 500,
+					},
+				],
+				activePartsBySession: {
+					"question-session": [{ tool: "question", status: "running" }],
+				},
+			}),
+			"/home/user/project",
+			60000,
+		)
+
+		expect(result.map((session) => session.id)).toEqual(["question-session", "busy-session"])
+	})
 
   it("handles mixed sessions: active top-level, stale excluded, child/background excluded", () => {
     const now = Date.now()

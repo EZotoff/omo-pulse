@@ -605,6 +605,78 @@ describe("deriveBackgroundTasks (file-based)", () => {
 		});
 	});
 
+	it("does not mark file-backed background tasks as question for stale running question tools", () => {
+		const storage = makeTempStorage();
+		const nowMs = 1_000_000;
+
+		writeJson(path.join(storage.message, "ses-main", "msg-main.json"), {
+			id: "msg-main",
+			sessionID: "ses-main",
+			role: "assistant",
+			time: { created: nowMs - 1_000, completed: nowMs - 900 },
+			agent: "sisyphus",
+		} satisfies StoredMessageMeta);
+
+		writeJson(path.join(storage.part, "msg-main", "0001.json"), {
+			id: "part-main",
+			sessionID: "ses-main",
+			messageID: "msg-main",
+			type: "tool",
+			callID: "call-bg",
+			tool: "background_task",
+			state: {
+				status: "completed",
+				input: {
+					description: "Ask stale question",
+					run_in_background: true,
+					subagent_type: "atlas",
+				},
+				metadata: { sessionId: "ses-child" },
+				time: { start: nowMs - 2_000 },
+			},
+		} satisfies PersistedToolPart);
+
+		writeJson(path.join(storage.message, "ses-child", "msg-child.json"), {
+			id: "msg-child",
+			sessionID: "ses-child",
+			role: "assistant",
+			time: { created: nowMs - 1_000, completed: nowMs - 900 },
+			agent: "atlas",
+		} satisfies StoredMessageMeta);
+
+		writeJson(path.join(storage.part, "msg-child", "0001.json"), {
+			id: "part-child",
+			sessionID: "ses-child",
+			messageID: "msg-child",
+			type: "tool",
+			callID: "call-question",
+			tool: "question",
+			state: {
+				status: "running",
+				input: {},
+				time: { start: nowMs - 700_000 },
+			},
+		} satisfies PersistedToolPart);
+
+		writeSessionMeta(storage, "child", {
+			id: "ses-child",
+			projectID: "proj-1",
+			directory: "/tmp/project",
+			parentID: "ses-main",
+			title: "Task: Ask stale question",
+			time: { created: nowMs - 2_000, updated: nowMs - 1_000 },
+		});
+
+		const rows = deriveBackgroundTasks({
+			storage,
+			mainSessionId: "ses-main",
+			nowMs,
+		});
+
+		expect(rows).toHaveLength(1);
+		expect(rows[0]?.status).not.toBe("question");
+	});
+
 	it("keeps stale unlinked background task as unknown", () => {
 		const storage = makeTempStorage();
 		const nowMs = 2_000_000;

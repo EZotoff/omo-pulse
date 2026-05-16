@@ -1,6 +1,6 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
-import { BACKGROUND_RUNNING_WINDOW_MS, shouldKeepQueuedBackgroundTaskActive } from "./activity-status"
+import { BACKGROUND_RUNNING_WINDOW_MS, isStaleQuestionTool, shouldKeepQueuedBackgroundTaskActive } from "./activity-status"
 import { formatTimeline } from "./format-utils"
 import { pickLatestModelString } from "./model"
 import { getMessageDir } from "./paths"
@@ -170,7 +170,8 @@ export function readAllSessionMetas(sessionStorage: string, fsLike: FsLike = fs)
 function deriveBackgroundSessionStats(
   storage: OpenCodeStorageRoots,
   metas: StoredMessageMeta[],
-  fsLike: FsLike
+  fsLike: FsLike,
+  nowMs: number,
 ): { toolCalls: number; lastTool: string | null; lastUpdateAt: number | null; activeQuestionTool: string | null } {
   let toolCalls = 0
   let lastTool: string | null = null
@@ -189,6 +190,9 @@ function deriveBackgroundSessionStats(
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i]
       if (isActiveQuestionTool(part.tool, part.state.status)) {
+        if (isStaleQuestionTool(part.tool, part.state.status, readStartTimeFromToolPart(part) ?? meta.time?.created ?? null, nowMs)) {
+          continue
+        }
         activeQuestionTool = part.tool
         break
       }
@@ -330,7 +334,7 @@ export function deriveBackgroundTasks(opts: {
     const cached = backgroundStatsCache.get(sessionId)
     if (cached) return cached
     const recent = readBackgroundMetas(sessionId)
-    const stats = deriveBackgroundSessionStats(opts.storage, recent, fsLike)
+    const stats = deriveBackgroundSessionStats(opts.storage, recent, fsLike, nowMs)
     backgroundStatsCache.set(sessionId, stats)
     return stats
   }

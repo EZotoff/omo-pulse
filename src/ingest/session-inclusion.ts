@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite"
 import * as path from "node:path"
-import { ACTIVE_BUSY_WINDOW_MS, hasFreshMainSessionActivity, shouldSuppressStaleToolActivity } from "./activity-status"
+import { ACTIVE_BUSY_WINDOW_MS, hasFreshMainSessionActivity, isStaleQuestionTool, shouldSuppressStaleToolActivity } from "./activity-status"
 import { realpathSafe } from "./paths"
 import type { SessionMetadata } from "./session"
 import { isActiveQuestionTool } from "./tool-names"
@@ -30,17 +30,17 @@ function deriveSessionStatusFromMaps(
   sessionId: string,
   lastUpdated: number,
   nowMs: number,
-  activePartsMap: Map<string, Array<{ tool: string; status: string }>>,
+  activePartsMap: Map<string, Array<{ tool: string; status: string; startedAt: number | null }>>,
   assistantMsgsMap: Map<string, Array<{ time_completed: number | null }>>,
 ): string {
   const activeParts = activePartsMap.get(sessionId) ?? []
   const ageMs = nowMs - lastUpdated
   const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
 
-  if (activeParts.length > 0) {
-    const activePart = activeParts[0]
-    if (!shouldSuppressStaleToolActivity(activePart.tool, activePart.status, hasFreshActivity)) {
-      return isActiveQuestionTool(activePart.tool, activePart.status) ? "question" : "running_tool"
+  for (const activePart of activeParts) {
+    if (!isStaleQuestionTool(activePart.tool, activePart.status, activePart.startedAt, nowMs)) {
+      if (isActiveQuestionTool(activePart.tool, activePart.status)) return "question"
+      if (!shouldSuppressStaleToolActivity(activePart.tool, activePart.status, hasFreshActivity)) return "running_tool"
     }
   }
 
@@ -113,23 +113,26 @@ export function findIncludedSessionsSqlite(
     const candidateIds = candidates.map(s => s.id)
 
     // Batch query 1: active parts (pending/running)
-    const activePartsMap = new Map<string, Array<{ tool: string; status: string }>>()
+    const activePartsMap = new Map<string, Array<{ tool: string; status: string; startedAt: number | null }>>()
     const placeholders = candidateIds.map(() => "?").join(",")
     const activeRows = db
       .query(
         `SELECT session_id, json_extract(data, '$.tool') as tool,
-                json_extract(data, '$.state.status') as status
+                json_extract(data, '$.state.status') as status,
+                json_extract(data, '$.state.time.start') as started_at,
+                time_created
          FROM part 
          WHERE session_id IN (${placeholders}) AND json_extract(data, '$.state.status') IN ('pending', 'running')
          ORDER BY time_created DESC`
       )
-      .all(...candidateIds) as Array<{ session_id: string; tool: string; status: string }>
+      .all(...candidateIds) as Array<{ session_id: string; tool: string; status: string; started_at: number | null; time_created: number | null }>
     for (const row of activeRows) {
+      const startedAt = row.started_at ?? row.time_created ?? null
       const sessionActiveParts = activePartsMap.get(row.session_id)
       if (!sessionActiveParts) {
-        activePartsMap.set(row.session_id, [{ tool: row.tool, status: row.status }])
-      } else if (sessionActiveParts.length < 1) {
-        sessionActiveParts.push({ tool: row.tool, status: row.status })
+        activePartsMap.set(row.session_id, [{ tool: row.tool, status: row.status, startedAt }])
+      } else {
+        sessionActiveParts.push({ tool: row.tool, status: row.status, startedAt })
       }
     }
 

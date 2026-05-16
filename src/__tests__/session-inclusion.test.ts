@@ -19,6 +19,8 @@ type SessionRow = {
 type ActivePartRow = {
   tool: string
   status?: string
+  started_at?: number | null
+  time_created?: number | null
 }
 
 type TerminalPartRow = {
@@ -411,7 +413,14 @@ describe("findIncludedSessionsSqlite", () => {
           },
         ],
         activePartsBySession: {
-          "stale-question": [{ tool: "question", status: "running" }],
+          "stale-question": [
+            {
+              tool: "question",
+              status: "running",
+              started_at: now - 15 * 60_000,
+              time_created: now - 15 * 60_000,
+            },
+          ],
         },
       }),
       "/home/user/project",
@@ -421,36 +430,43 @@ describe("findIncludedSessionsSqlite", () => {
     expect(result).toEqual([])
   })
 
-	it("orders fresh running canonical question tools ahead of busy sessions", () => {
-		const now = Date.now()
-		const result = runFindIncludedSessionsSqlite(
-			createMockDb({
-				sessionRows: [
-					{
-						id: "question-session",
-						title: "Question",
-						directory: "/home/user/project",
-						time_created: now - 20_000,
-						time_updated: now - 1_000,
-					},
-					{
-						id: "busy-session",
-						title: "Busy",
-						directory: "/home/user/project",
-						time_created: now - 20_000,
-						time_updated: now - 500,
-					},
-				],
-				activePartsBySession: {
-					"question-session": [{ tool: "question", status: "running" }],
-				},
-			}),
-			"/home/user/project",
-			60000,
-		)
+  it("orders fresh running canonical question tools ahead of busy sessions", () => {
+    const now = Date.now()
+    const result = runFindIncludedSessionsSqlite(
+      createMockDb({
+        sessionRows: [
+          {
+            id: "question-session",
+            title: "Question",
+            directory: "/home/user/project",
+            time_created: now - 20_000,
+            time_updated: now - 1_000,
+          },
+          {
+            id: "busy-session",
+            title: "Busy",
+            directory: "/home/user/project",
+            time_created: now - 20_000,
+            time_updated: now - 500,
+          },
+        ],
+        activePartsBySession: {
+          "question-session": [
+            {
+              tool: "question",
+              status: "running",
+              started_at: now - 1_000,
+              time_created: now - 1_000,
+            },
+          ],
+        },
+      }),
+      "/home/user/project",
+      60000,
+    )
 
-		expect(result.map((session) => session.id)).toEqual(["question-session", "busy-session"])
-	})
+    expect(result.map((session) => session.id)).toEqual(["question-session", "busy-session"])
+  })
 
   it("handles mixed sessions: active top-level, stale excluded, child/background excluded", () => {
     const now = Date.now()

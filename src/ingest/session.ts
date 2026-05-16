@@ -2,6 +2,8 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import {
   hasFreshMainSessionActivity,
+  isStaleQuestionTool,
+  readToolStartTime,
   resolveLastUpdatedTime,
 } from "./activity-status"
 import { pickLatestModelString } from "./model"
@@ -254,11 +256,12 @@ function readRecentMessageMetas(messageDir: string, maxMessages: number): Stored
     .map(item => item.meta)
 }
 
-function readLastToolPart(partStorage: string, messageID: string): { tool: string; status: string } | null {
+function readToolPartsForMessage(partStorage: string, messageID: string): Array<{ tool: string; status: string; startedAt: number | null }> {
   const partDir = path.join(partStorage, messageID)
-  if (!fs.existsSync(partDir)) return null
+  if (!fs.existsSync(partDir)) return []
 
   const files = fs.readdirSync(partDir).filter((f) => f.endsWith(".json")).sort()
+  const parts: Array<{ tool: string; status: string; startedAt: number | null }> = []
   for (let i = files.length - 1; i >= 0; i--) {
     const file = files[i]
     try {
@@ -266,14 +269,14 @@ function readLastToolPart(partStorage: string, messageID: string): { tool: strin
       const part = JSON.parse(content) as Partial<StoredToolPart>
       if (part.type === "tool" && typeof part.tool === "string") {
         const status = (part as StoredToolPart).state?.status
-        return { tool: part.tool, status: typeof status === "string" ? status : "unknown" }
+        parts.push({ tool: part.tool, status: typeof status === "string" ? status : "unknown", startedAt: readToolStartTime(part) })
       }
     } catch {
       // Expected: file may not exist or be malformed
       continue
     }
   }
-  return null
+  return parts
 }
 
 function messageTerminalToolStatus(partStorage: string, messageID: string): "error" | "completed" | null {
@@ -325,11 +328,15 @@ export function getMainSessionView(opts: {
   
   // Iterate newest -> oldest, early-exit on first tool part with pending/running status
   for (const meta of recentMetas) {
-    const toolPart = readLastToolPart(opts.storage.part, meta.id)
-    if (toolPart && (toolPart.status === "pending" || toolPart.status === "running")) {
+    for (const toolPart of readToolPartsForMessage(opts.storage.part, meta.id)) {
+      if (toolPart.status !== "pending" && toolPart.status !== "running") continue
+      if (isStaleQuestionTool(toolPart.tool, toolPart.status, toolPart.startedAt ?? meta.time?.created ?? null, nowMs)) {
+        continue
+      }
       activeTool = toolPart
       break
     }
+    if (activeTool) break
   }
 
   let latestTerminalStatus: "error" | "completed" | null = null

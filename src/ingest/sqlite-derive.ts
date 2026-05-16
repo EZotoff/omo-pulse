@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite"
 import {
   BACKGROUND_RUNNING_WINDOW_MS,
   hasFreshMainSessionActivity,
+  isStaleQuestionTool,
   resolveLastUpdatedTime,
   shouldKeepQueuedBackgroundTaskActive,
 } from "./activity-status"
@@ -160,12 +161,16 @@ function mapToolPartsByMessage(parts: StoredToolPart[]): Map<string, StoredToolP
 function findActiveQuestionTool(
   metas: StoredMessageMeta[],
   partsByMessage: Map<string, StoredToolPart[]>,
+  nowMs: number,
 ): string | null {
   for (const meta of metas) {
     const parts = partsByMessage.get(meta.id) ?? []
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i]
       if (isActiveQuestionTool(part.tool, part.state.status)) {
+        if (isStaleQuestionTool(part.tool, part.state.status, readStartTimeFromToolPart(part) ?? meta.time?.created ?? null, nowMs)) {
+          continue
+        }
         return part.tool
       }
     }
@@ -307,6 +312,9 @@ export function getMainSessionViewSqlite(opts: {
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i]
       if (part.state.status === "pending" || part.state.status === "running") {
+        if (isStaleQuestionTool(part.tool, part.state.status, readStartTimeFromToolPart(part) ?? meta.time?.created ?? null, nowMs)) {
+          continue
+        }
         activeTool = { tool: part.tool, status: part.state.status }
         break
       }
@@ -582,7 +590,7 @@ export function deriveBackgroundTasksSqlite(opts: {
       if (background && !background.ok) return background
       const backgroundMetas = background?.ok ? background.value.metas : []
       const backgroundPartsByMessage = background?.ok ? background.value.partsByMessage : new Map<string, StoredToolPart[]>()
-      const activeQuestionTool = findActiveQuestionTool(backgroundMetas, backgroundPartsByMessage)
+      const activeQuestionTool = findActiveQuestionTool(backgroundMetas, backgroundPartsByMessage, nowMs)
 
       const { toolCalls, lastTool, lastUpdateAt } = computeBackgroundTaskStatsSqlite(backgroundMetas, backgroundPartsByMessage)
       const lastModel = backgroundMetas.length > 0 ? pickLatestModelString(backgroundMetas) : null

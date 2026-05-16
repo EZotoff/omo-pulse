@@ -33,6 +33,8 @@ type SessionRow = {
 type ActivePartRow = {
 	tool: string;
 	status?: string;
+	started_at?: number | null;
+	time_created?: number | null;
 };
 
 type TerminalPartRow = {
@@ -321,6 +323,85 @@ describe("status derivation characterization: SQLite session inclusion path", ()
 			"ses-stale",
 		]);
 	});
+
+	it("does not include a fresh session solely for a stale running question tool", () => {
+		vi.spyOn(Date, "now").mockReturnValue(NOW_MS);
+		const age = (ms: number): number => NOW_MS - ms;
+
+		const sessions = runFindIncludedSessionsSqlite(
+			createMockDb({
+				sessionRows: [
+					{
+						id: "ses-stale-question",
+						directory: PROJECT_ROOT,
+						time_created: age(30_000),
+						time_updated: age(30_000),
+					},
+				],
+				activePartsBySession: {
+					"ses-stale-question": [
+						{ tool: "question", status: "running", started_at: age(700_000), time_created: age(700_000) },
+					],
+				},
+			}),
+			10_000,
+		);
+
+		expect(sessions.map((session) => session.id)).toEqual([]);
+	});
+
+	it("keeps fresh running question tools included as attention", () => {
+		vi.spyOn(Date, "now").mockReturnValue(NOW_MS);
+		const age = (ms: number): number => NOW_MS - ms;
+
+		const sessions = runFindIncludedSessionsSqlite(
+			createMockDb({
+				sessionRows: [
+					{
+						id: "ses-fresh-question",
+						directory: PROJECT_ROOT,
+						time_created: age(700_000),
+						time_updated: age(700_000),
+					},
+				],
+				activePartsBySession: {
+					"ses-fresh-question": [
+						{ tool: "question", status: "running", started_at: age(1_000), time_created: age(1_000) },
+					],
+				},
+			}),
+			10_000,
+		);
+
+		expect(sessions.map((session) => session.id)).toEqual(["ses-fresh-question"]);
+	});
+
+	it("keeps scanning SQLite active parts after a stale running question candidate", () => {
+		vi.spyOn(Date, "now").mockReturnValue(NOW_MS);
+		const age = (ms: number): number => NOW_MS - ms;
+
+		const sessions = runFindIncludedSessionsSqlite(
+			createMockDb({
+				sessionRows: [
+					{
+						id: "ses-masked-question",
+						directory: PROJECT_ROOT,
+						time_created: age(700_000),
+						time_updated: age(700_000),
+					},
+				],
+				activePartsBySession: {
+					"ses-masked-question": [
+						{ tool: "question", status: "running", started_at: age(700_000), time_created: age(1_000) },
+						{ tool: "mcp_question", status: "pending", started_at: age(700_000), time_created: age(2_000) },
+					],
+				},
+			}),
+			10_000,
+		);
+
+		expect(sessions.map((session) => session.id)).toEqual(["ses-masked-question"]);
+	});
 });
 
 describe("status derivation characterization: file-based getMainSessionView path", () => {
@@ -384,6 +465,88 @@ describe("status derivation characterization: file-based getMainSessionView path
 		});
 
 		expect(view.status).toBe("question");
+	});
+
+	it("ignores stale orphaned running question tools in file-backed main sessions", () => {
+		const storage = makeTempStorage();
+		const message = makeAssistantMessage(
+			"msg-stale-question-running",
+			"ses-stale-question-running",
+			NOW_MS - 30_000,
+			NOW_MS - 29_900,
+		);
+		writeMessage(storage, message);
+
+		writeToolPart(storage, message.id, {
+			id: "part-stale-question-running",
+			sessionID: message.sessionID,
+			messageID: message.id,
+			type: "tool",
+			callID: "call-stale-question-running",
+			tool: "question",
+			state: {
+				status: "running",
+				input: {},
+				time: { start: NOW_MS - 700_000 },
+			} as StoredToolPart["state"] & { time: { start: number } },
+		});
+
+		const view = getMainSessionView({
+			projectRoot: PROJECT_ROOT,
+			sessionId: message.sessionID,
+			storage,
+			sessionMeta: makeSessionMeta(message.sessionID, NOW_MS - 30_000),
+			nowMs: NOW_MS,
+		});
+
+		expect(view.status).toBe("busy");
+		expect(view.currentTool).toBeNull();
+	});
+
+	it("keeps scanning file-backed tool parts after a stale running question candidate", () => {
+		const storage = makeTempStorage();
+		const message = makeAssistantMessage(
+			"msg-masked-question",
+			"ses-masked-question",
+			NOW_MS - 30_000,
+			NOW_MS - 29_900,
+		);
+		writeMessage(storage, message);
+
+		writeToolPart(storage, message.id, {
+			id: "part-pending-question",
+			sessionID: message.sessionID,
+			messageID: message.id,
+			type: "tool",
+			callID: "call-pending-question",
+			tool: "mcp_question",
+			state: { status: "pending", input: {} },
+		}, "0001.json");
+
+		writeToolPart(storage, message.id, {
+			id: "part-stale-question-running",
+			sessionID: message.sessionID,
+			messageID: message.id,
+			type: "tool",
+			callID: "call-stale-question-running",
+			tool: "question",
+			state: {
+				status: "running",
+				input: {},
+				time: { start: NOW_MS - 700_000 },
+			} as StoredToolPart["state"] & { time: { start: number } },
+		}, "0002.json");
+
+		const view = getMainSessionView({
+			projectRoot: PROJECT_ROOT,
+			sessionId: message.sessionID,
+			storage,
+			sessionMeta: makeSessionMeta(message.sessionID, NOW_MS - 30_000),
+			nowMs: NOW_MS,
+		});
+
+		expect(view.status).toBe("question");
+		expect(view.currentTool).toBe("mcp_question");
 	});
 
 	it("returns running_tool when the latest active tool is non-question", () => {

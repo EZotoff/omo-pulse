@@ -28,7 +28,7 @@ jobs:
       enable_auto_approve: ${{ steps.expose.outputs.enable_auto_approve }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
         with:

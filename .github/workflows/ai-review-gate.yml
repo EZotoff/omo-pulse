@@ -59,7 +59,7 @@ jobs:
       blocked: ${{ steps.gate.outputs.blocked }}
       auto_approve: ${{ steps.gate.outputs.auto_approve }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
         with:

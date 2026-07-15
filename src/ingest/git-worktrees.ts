@@ -4,7 +4,12 @@ export const GIT_WORKTREE_CACHE_TTL_MS = 30_000
 
 const cache = new Map<string, { data: WorktreeInfo; fetchedAt: number }>()
 
+const negativeCache = new Map<string, { nextRetryAt: number; failureCount: number }>()
+
 const GIT_COMMAND_TIMEOUT_MS = 5_000
+const GIT_SIGKILL_GRACE_MS = 500
+const NEGATIVE_CACHE_BASE_MS = 2_000
+const NEGATIVE_CACHE_MAX_MS = GIT_WORKTREE_CACHE_TTL_MS
 
 type ParsedWorktree = {
   path: string
@@ -16,12 +21,43 @@ type ParsedWorktree = {
 }
 
 export async function getWorktreeInfo(projectRoot: string): Promise<WorktreeInfo | undefined> {
-  try {
-    const cached = cache.get(projectRoot)
-    if (cached && Date.now() - cached.fetchedAt < GIT_WORKTREE_CACHE_TTL_MS) {
-      return cached.data
-    }
+  const cached = cache.get(projectRoot)
+  if (cached && Date.now() - cached.fetchedAt < GIT_WORKTREE_CACHE_TTL_MS) {
+    return cached.data
+  }
 
+  const negative = negativeCache.get(projectRoot)
+  if (negative && Date.now() < negative.nextRetryAt) {
+    return undefined
+  }
+
+  const data = await computeWorktreeInfo(projectRoot)
+
+  if (data === undefined) {
+    recordFailure(projectRoot)
+    return undefined
+  }
+
+  cache.set(projectRoot, { data, fetchedAt: Date.now() })
+  negativeCache.delete(projectRoot)
+  return data
+}
+
+function recordFailure(projectRoot: string): void {
+  const prev = negativeCache.get(projectRoot)
+  const failureCount = (prev?.failureCount ?? 0) + 1
+  negativeCache.set(projectRoot, {
+    nextRetryAt: Date.now() + backoffDelayMs(failureCount),
+    failureCount,
+  })
+}
+
+function backoffDelayMs(failureCount: number): number {
+  return Math.min(NEGATIVE_CACHE_BASE_MS * 2 ** (failureCount - 1), NEGATIVE_CACHE_MAX_MS)
+}
+
+async function computeWorktreeInfo(projectRoot: string): Promise<WorktreeInfo | undefined> {
+  try {
     const porcelain = await runGitCommand(projectRoot, ["worktree", "list", "--porcelain"])
     if (porcelain === undefined) return undefined
 
@@ -42,7 +78,7 @@ export async function getWorktreeInfo(projectRoot: string): Promise<WorktreeInfo
 
         commitsAhead = countNonEmptyLines(aheadOutput)
 
-        const diffStatOutput = await runGitCommand(worktree.path, ["diff", mainBranch, "--shortstat"])
+        const diffStatOutput = await runGitCommand(worktree.path, ["diff", `${mainBranch}...HEAD`, "--shortstat"])
         if (diffStatOutput === undefined) return undefined
 
         const parsedDiffStat = parseShortStat(diffStatOutput)
@@ -60,15 +96,12 @@ export async function getWorktreeInfo(projectRoot: string): Promise<WorktreeInfo
 
     worktrees.sort(compareWorktrees)
 
-    const data: WorktreeInfo = {
+    return {
       totalCount: worktrees.length,
       activeCount: worktrees.filter((worktree) => !worktree.isMainWorktree && !worktree.isPrunable).length,
       hotCount: worktrees.filter(isHotWorktree).length,
       worktrees,
     }
-
-    cache.set(projectRoot, { data, fetchedAt: Date.now() })
-    return data
   } catch {
     return undefined
   }
@@ -92,18 +125,13 @@ async function detectMainBranch(projectRoot: string): Promise<string | undefined
 }
 
 async function runGitCommand(cwd: string, args: string[]): Promise<string | undefined> {
+  let outerTimer: ReturnType<typeof setTimeout> | undefined
+  let timedOut = false
   try {
     const proc = Bun.spawn(["git", ...args], {
       cwd,
       stdout: "pipe",
       stderr: "pipe",
-    })
-
-    const timeoutPromise = new Promise<undefined>((resolve) => {
-      setTimeout(() => {
-        proc.kill()
-        resolve(undefined)
-      }, GIT_COMMAND_TIMEOUT_MS)
     })
 
     const workPromise = (async (): Promise<string | undefined> => {
@@ -115,9 +143,28 @@ async function runGitCommand(cwd: string, args: string[]): Promise<string | unde
       return stdout
     })()
 
+    const timeoutPromise = new Promise<undefined>((resolve) => {
+      outerTimer = setTimeout(() => {
+        timedOut = true
+        try {
+          proc.kill()
+        } catch {}
+        setTimeout(() => {
+          try {
+            proc.kill("SIGKILL")
+          } catch {}
+        }, GIT_SIGKILL_GRACE_MS)
+        resolve(undefined)
+      }, GIT_COMMAND_TIMEOUT_MS)
+    })
+
     return await Promise.race([workPromise, timeoutPromise])
   } catch {
     return undefined
+  } finally {
+    if (!timedOut && outerTimer !== undefined) {
+      clearTimeout(outerTimer)
+    }
   }
 }
 

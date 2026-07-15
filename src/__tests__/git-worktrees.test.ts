@@ -483,4 +483,83 @@ describe("getWorktreeInfo", () => {
       isPrunable: false,
     })
   })
+
+  it("uses a three-dot diff range (branch...HEAD) for shortstat", async () => {
+    queueSpawnResults(
+      mockSpawnResult({
+        stdout: [
+          "worktree /repo/three-dot",
+          "HEAD aaaaaaaa",
+          "branch refs/heads/main",
+          "",
+          "worktree /repo/three-dot-feature",
+          "HEAD bbbbbbbb",
+          "branch refs/heads/feature-three-dot",
+          "",
+        ].join("\n"),
+      }),
+      mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "ahead-one\n" }),
+      mockSpawnResult({ stdout: " 1 file changed, 1 insertion(+)\n" }),
+    )
+
+    await getWorktreeInfo("/repo/three-dot")
+
+    const diffCall = spawnMock.mock.calls.find(([args]) => {
+      const cmd = args as string[]
+      return cmd[0] === "git" && cmd[1] === "diff"
+    })
+    expect(diffCall).toBeDefined()
+    expect(diffCall?.[0]).toEqual(["git", "diff", "main...HEAD", "--shortstat"])
+  })
+
+  it("negative-caches failures with exponential backoff, then retries", async () => {
+    spawnMock.mockReturnValue(mockSpawnResult({ exitCode: 128 }))
+
+    const first = await getWorktreeInfo("/repo/negative-cache")
+    expect(first).toBeUndefined()
+    expect(spawnMock).toHaveBeenCalledTimes(1)
+
+    const second = await getWorktreeInfo("/repo/negative-cache")
+    expect(second).toBeUndefined()
+    expect(spawnMock).toHaveBeenCalledTimes(1)
+
+    vi.advanceTimersByTime(2_000 + 1)
+    const third = await getWorktreeInfo("/repo/negative-cache")
+    expect(third).toBeUndefined()
+    expect(spawnMock).toHaveBeenCalledTimes(2)
+
+    vi.advanceTimersByTime(4_000 + 1)
+    spawnMock.mockReturnValueOnce(
+      mockSpawnResult({
+        stdout: ["worktree /repo/negative-cache", "HEAD 11111111", "branch refs/heads/main", ""].join("\n"),
+      }),
+    )
+    spawnMock.mockReturnValueOnce(mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }))
+    const fourth = await getWorktreeInfo("/repo/negative-cache")
+    expect(fourth).toBeDefined()
+    expect(spawnMock).toHaveBeenCalledTimes(4)
+  })
+
+  it("escalates from SIGTERM to SIGKILL after the grace period on timeout", async () => {
+    const killFn = vi.fn()
+    spawnMock.mockReturnValue(
+      mockSpawnResult({
+        exitCode: new Promise<number>(() => {}),
+        kill: killFn,
+        hangStdout: true,
+      }),
+    )
+
+    const promise = getWorktreeInfo("/repo/sigkill-escalation")
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(killFn).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(500)
+    const result = await promise
+
+    expect(result).toBeUndefined()
+    expect(killFn).toHaveBeenCalledTimes(2)
+    expect(killFn).toHaveBeenNthCalledWith(2, "SIGKILL")
+  })
 })

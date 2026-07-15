@@ -120,16 +120,48 @@ describe("getGitUncommittedCount", () => {
     expect(result).toBeUndefined()
   })
 
-  it("does not cache undefined results from failed git calls", async () => {
+  it("caches failed results with exponential backoff, then retries after the window", async () => {
     spawnMock.mockReturnValue(mockSpawnResult("", 1))
 
-    const first = await getGitUncommittedCount("/test/no-cache-fail")
+    const first = await getGitUncommittedCount("/test/negative-cache")
     expect(first).toBeUndefined()
+    expect(spawnMock).toHaveBeenCalledTimes(1)
 
-    spawnMock.mockReturnValue(mockSpawnResult("M file.ts\n", 0))
+    const second = await getGitUncommittedCount("/test/negative-cache")
+    expect(second).toBeUndefined()
+    expect(spawnMock).toHaveBeenCalledTimes(1)
 
-    const second = await getGitUncommittedCount("/test/no-cache-fail")
-    expect(second).toBe(1)
+    vi.advanceTimersByTime(2_000 + 1)
+    const third = await getGitUncommittedCount("/test/negative-cache")
+    expect(third).toBeUndefined()
     expect(spawnMock).toHaveBeenCalledTimes(2)
+
+    vi.advanceTimersByTime(4_000 + 1)
+    spawnMock.mockReturnValue(mockSpawnResult("M file.ts\n", 0))
+    const fourth = await getGitUncommittedCount("/test/negative-cache")
+    expect(fourth).toBe(1)
+    expect(spawnMock).toHaveBeenCalledTimes(3)
+
+    const fifth = await getGitUncommittedCount("/test/negative-cache")
+    expect(fifth).toBe(1)
+    expect(spawnMock).toHaveBeenCalledTimes(3)
+  })
+
+  it("escalates from SIGTERM to SIGKILL after the grace period on timeout", async () => {
+    const killFn = vi.fn()
+    spawnMock.mockReturnValue(
+      mockSpawnResult("", new Promise<number>(() => {}), { kill: killFn, hangStdout: true }),
+    )
+
+    const promise = getGitUncommittedCount("/test/sigkill-escalation")
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(killFn).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(500)
+    const result = await promise
+
+    expect(result).toBeUndefined()
+    expect(killFn).toHaveBeenCalledTimes(2)
+    expect(killFn).toHaveBeenNthCalledWith(2, "SIGKILL")
   })
 })

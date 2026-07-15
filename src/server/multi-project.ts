@@ -79,6 +79,18 @@ export const SESSION_SUMMARY_CACHE_TTL_MS = 10_000
 const INCLUDED_SESSION_IDLE_WINDOW_MS = 300_000
 const MAX_CACHE_ENTRIES = 100
 const DEFAULT_POLL_INTERVAL_MS = 2_000
+const GIT_PROBE_CONCURRENCY = 4
+
+async function runWithConcurrency<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let cursor = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const index = cursor++
+      await fn(items[index])
+    }
+  })
+  await Promise.all(workers)
+}
 
 function evictOldest<K>(map: Map<K, { fetchedAt: number }>, maxSize: number): void {
   if (map.size < maxSize) return
@@ -334,7 +346,7 @@ export function createMultiProjectService(opts: {
     }
 
     // Phase 2: Parallel async git operations across all sources
-    await Promise.all(snapshots.map(async ({ snapshot, projectRoot }) => {
+    await runWithConcurrency(snapshots, GIT_PROBE_CONCURRENCY, async ({ snapshot, projectRoot }) => {
       try {
         const [gitCount, worktrees] = await Promise.all([
           getGitUncommittedCount(projectRoot),
@@ -345,7 +357,7 @@ export function createMultiProjectService(opts: {
       } catch {
         // Git failures are isolated per-source
       }
-    }))
+    })
 
     const projects = snapshots.map((s) => s.snapshot)
 

@@ -10,6 +10,7 @@ import { PREVIEW_STATUS_NAMES, type PreviewMode, type PreviewStatusName } from "
 
 const POLL_CONNECTED_MS = 2200
 const POLL_DISCONNECTED_MS = 3600
+const POLL_HIDDEN_MS = 15_000
 const PREVIEW_BUCKETS = 48
 const PREVIEW_WINDOW_MS = 12 * 60 * 1000
 
@@ -539,6 +540,10 @@ export function useDashboardData(previewMode: PreviewMode | null = null): {
       timerRef.current = setTimeout(tick, delay)
       return
     }
+    if (typeof document !== "undefined" && document.hidden) {
+      timerRef.current = setTimeout(tick, POLL_HIDDEN_MS)
+      return
+    }
 
     const ac = new AbortController()
     abortRef.current = ac
@@ -591,7 +596,19 @@ export function useDashboardData(previewMode: PreviewMode | null = null): {
   useEffect(() => {
     tick()
 
+    const handleVisibilityChange = () => {
+      if (typeof document === "undefined" || document.hidden) return
+      if (timerRef.current !== null) clearTimeout(timerRef.current)
+      tick()
+    }
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibilityChange)
+    }
+
     return () => {
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", handleVisibilityChange)
+      }
       if (timerRef.current !== null) clearTimeout(timerRef.current)
       if (abortRef.current) abortRef.current.abort()
     }

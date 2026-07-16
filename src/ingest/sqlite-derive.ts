@@ -2,13 +2,16 @@ import type { Database } from "bun:sqlite"
 import {
   BACKGROUND_RUNNING_WINDOW_MS,
   hasFreshMainSessionActivity,
+  isStaleQuestionTool,
   resolveLastUpdatedTime,
   shouldKeepQueuedBackgroundTaskActive,
 } from "./activity-status"
 import type { BackgroundTaskRow } from "./background-tasks"
-import { canonicalizeAgent, formatElapsed, formatIsoNoMs, formatTimeline, normalizeSessionIds } from "./format-utils"
+import { canonicalizeAgent, formatTimeline, normalizeSessionIds } from "./format-utils"
 import { pickLatestModelString } from "./model"
 import type { MainSessionView, SessionMetadata, StoredMessageMeta, StoredToolPart } from "./session"
+import { deriveMainSessionStatus } from "./session-status"
+import { findBackgroundSessionId, findTaskSessionId } from "./sqlite-utils"
 import {
   readAllSessionMetasSqlite,
   readMainSessionMetasSqlite,
@@ -20,12 +23,10 @@ import {
   type SqliteReadFailureReason,
   type TodoItem,
 } from "./storage-backend"
-import { findBackgroundSessionId, findTaskSessionId } from "./sqlite-utils"
+import type { TimeSeriesPayload, TimeSeriesSeries } from "./timeseries"
 import { aggregateTokenUsage } from "./token-usage-core"
 import { MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS, type ToolCallSummaryResult } from "./tool-calls"
-import { isPendingQuestionTool, TASK_TOOL_NAMES } from "./tool-names"
-import { deriveMainSessionStatus } from "./session-status"
-import type { TimeSeriesPayload, TimeSeriesSeries } from "./timeseries"
+import { isActiveQuestionTool, TASK_TOOL_NAMES } from "./tool-names"
 
 type SqliteDeriveResult<T> =
   | { ok: true; value: T }
@@ -157,15 +158,19 @@ function mapToolPartsByMessage(parts: StoredToolPart[]): Map<string, StoredToolP
   return out
 }
 
-function findPendingQuestionTool(
+function findActiveQuestionTool(
   metas: StoredMessageMeta[],
   partsByMessage: Map<string, StoredToolPart[]>,
+  nowMs: number,
 ): string | null {
   for (const meta of metas) {
     const parts = partsByMessage.get(meta.id) ?? []
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i]
-      if (isPendingQuestionTool(part.tool, part.state.status)) {
+      if (isActiveQuestionTool(part.tool, part.state.status)) {
+        if (isStaleQuestionTool(part.tool, part.state.status, readStartTimeFromToolPart(part) ?? meta.time?.created ?? null, nowMs)) {
+          continue
+        }
         return part.tool
       }
     }
@@ -307,6 +312,9 @@ export function getMainSessionViewSqlite(opts: {
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i]
       if (part.state.status === "pending" || part.state.status === "running") {
+        if (isStaleQuestionTool(part.tool, part.state.status, readStartTimeFromToolPart(part) ?? meta.time?.created ?? null, nowMs)) {
+          continue
+        }
         activeTool = { tool: part.tool, status: part.state.status }
         break
       }
@@ -467,7 +475,7 @@ function deriveBackgroundTaskStatus(opts: {
   backgroundSessionId: string | null
   toolCalls: number
   lastUpdateAt: number | null
-  pendingQuestionTool: string | null
+  activeQuestionTool: string | null
   startedAt: number
   nowMs: number
 }): BackgroundTaskRow["status"] {
@@ -477,7 +485,7 @@ function deriveBackgroundTaskStatus(opts: {
   if (opts.toolCalls === 0 && opts.lastUpdateAt === null) {
     return shouldKeepQueuedBackgroundTaskActive(opts.startedAt, opts.nowMs) ? "queued" : "unknown"
   }
-  if (opts.pendingQuestionTool) return "question"
+  if (opts.activeQuestionTool) return "question"
   if (opts.lastUpdateAt && opts.nowMs - opts.lastUpdateAt <= BACKGROUND_RUNNING_WINDOW_MS) return "running"
   if (opts.toolCalls > 0) return "completed"
   return "unknown"
@@ -580,14 +588,14 @@ export function deriveBackgroundTasksSqlite(opts: {
 
       const background = backgroundSessionId ? readBackgroundSession(backgroundSessionId) : null
       if (background && !background.ok) return background
-      const backgroundMetas = background && background.ok ? background.value.metas : []
-      const backgroundPartsByMessage = background && background.ok ? background.value.partsByMessage : new Map<string, StoredToolPart[]>()
-      const pendingQuestionTool = findPendingQuestionTool(backgroundMetas, backgroundPartsByMessage)
+      const backgroundMetas = background?.ok ? background.value.metas : []
+      const backgroundPartsByMessage = background?.ok ? background.value.partsByMessage : new Map<string, StoredToolPart[]>()
+      const activeQuestionTool = findActiveQuestionTool(backgroundMetas, backgroundPartsByMessage, nowMs)
 
       const { toolCalls, lastTool, lastUpdateAt } = computeBackgroundTaskStatsSqlite(backgroundMetas, backgroundPartsByMessage)
       const lastModel = backgroundMetas.length > 0 ? pickLatestModelString(backgroundMetas) : null
 
-      const status = deriveBackgroundTaskStatus({ backgroundSessionId, toolCalls, lastUpdateAt, pendingQuestionTool, startedAt, nowMs })
+      const status = deriveBackgroundTaskStatus({ backgroundSessionId, toolCalls, lastUpdateAt, activeQuestionTool, startedAt, nowMs })
       const timelineEndMs = status === "completed" ? (lastUpdateAt ?? nowMs) : nowMs
 
       rows.push({
@@ -596,7 +604,7 @@ export function deriveBackgroundTasksSqlite(opts: {
         agent,
         status,
         toolCalls: backgroundSessionId ? toolCalls : null,
-        lastTool: pendingQuestionTool ?? lastTool,
+        lastTool: activeQuestionTool ?? lastTool,
         lastModel,
         timeline: status === "unknown" ? "" : formatTimeline(startedAt, timelineEndMs),
         sessionId: backgroundSessionId,
@@ -944,7 +952,6 @@ export function deriveTodosSqliteForSessions(opts: {
   })
   if (!result.ok) return result
 
-  const { sessionId: _, ...todoRest } = result.rows[0] ?? {}
   return {
     ok: true,
     value: result.rows.map(({ sessionId: _sid, ...item }) => item),

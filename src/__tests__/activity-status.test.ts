@@ -4,6 +4,7 @@ import {
   ACTIVE_STALE_MS,
   BACKGROUND_QUEUE_STALE_MS,
   hasFreshMainSessionActivity,
+  isStaleQuestionTool,
   resolveLastUpdatedTime,
   shouldSuppressStaleToolActivity,
   shouldKeepQueuedBackgroundTaskActive,
@@ -65,5 +66,17 @@ describe("activity-status helpers", () => {
 
   it("suppresses stale running question tools", () => {
     expect(shouldSuppressStaleToolActivity("question", "running", false)).toBe(true)
+  })
+
+  it("detects stale running question tools by tool start age", () => {
+    expect(isStaleQuestionTool("question", "running", 1_000, 1_000 + ACTIVE_STALE_MS + 1)).toBe(true)
+  })
+
+  it("keeps fresh running question tools active", () => {
+    expect(isStaleQuestionTool("question", "running", 1_000, 1_000 + ACTIVE_STALE_MS - 1)).toBe(false)
+  })
+
+  it("never treats pending question tools as stale", () => {
+    expect(isStaleQuestionTool("mcp_question", "pending", 1_000, 1_000 + ACTIVE_STALE_MS + 1)).toBe(false)
   })
 })

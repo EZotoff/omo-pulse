@@ -206,8 +206,11 @@ export type DashboardMultiProjectPayload = {
 }
 
 /** Configuration state for strip visibility options */
+/** Sparkline rendering mode in the collapsed strip header */
+export type MiniSparklineMode = "ambient" | "inline" | "off"
+
 export type StripConfigState = {
-  showMiniSparkline: boolean
+  miniSparklineMode: MiniSparklineMode
   showPlanProgress: boolean
   showAgentBadge: boolean
   showLastUpdated: boolean

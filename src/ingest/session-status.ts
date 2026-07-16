@@ -1,6 +1,6 @@
 import { ACTIVE_BUSY_WINDOW_MS, shouldSuppressStaleToolActivity } from "./activity-status"
-import { isPendingQuestionTool } from "./tool-names"
 import type { MainSessionView } from "./session"
+import { isActiveQuestionTool } from "./tool-names"
 
 export type ActiveToolRef = { tool: string; status: string } | null
 
@@ -32,8 +32,6 @@ export function deriveMainSessionStatus(opts: DeriveMainSessionStatusOpts): Deri
   const {
     hasFreshActivity,
     isStaleActivity,
-    latestTerminalStatus,
-    latestTerminalAt,
     recentRole,
     recentTimeCreated,
     recentTimeCompleted,
@@ -47,7 +45,7 @@ export function deriveMainSessionStatus(opts: DeriveMainSessionStatusOpts): Deri
     if (shouldSuppressStaleToolActivity(activeTool.tool, activeTool.status, hasFreshActivity)) {
       activeTool = null
     } else {
-      status = isPendingQuestionTool(activeTool.tool, activeTool.status) ? "question" : "running_tool"
+      status = isActiveQuestionTool(activeTool.tool, activeTool.status) ? "question" : "running_tool"
     }
   }
 

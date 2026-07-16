@@ -82,3 +82,40 @@
   fill: var(--sparkline-fill-muted);
   filter: drop-shadow(0 0 4px var(--sparkline-drop-shadow-muted));
 }
+
+/* ── Background (ambient) mode — full-panel behind header content ── */
+
+.sparkline--bg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sparkline-bg-bar {
+  shape-rendering: crispEdges;
+}
+
+.sparkline-bg-bar--teal {
+  fill: var(--bg-activity-teal);
+}
+
+.sparkline-bg-bar--red {
+  fill: var(--bg-activity-red);
+}
+
+.sparkline-bg-bar--green {
+  fill: var(--bg-activity-green);
+}
+
+.sparkline-bg-bar--sand {
+  fill: var(--bg-activity-sand);
+}
+
+.sparkline-bg-bar--muted {
+  fill: var(--bg-activity-muted);
+}
+
+.sparkline-bg-flatline {
+  fill: var(--bg-activity-flatline);
+  shape-rendering: crispEdges;
+}

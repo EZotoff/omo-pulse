@@ -180,6 +180,8 @@
   align-items: center;
   gap: var(--sp-3);
   height: var(--collapsed-pane-height, 40px);
+  position: relative;
+  z-index: 3;
   padding: 0 var(--sp-3);
   cursor: pointer;
   user-select: none;
@@ -188,6 +190,8 @@
 
 .strip-header-row {
   display: flex;
+  position: relative;
+  z-index: 3;
   align-items: center;
   gap: var(--sp-2);
 }
@@ -204,7 +208,7 @@
 }
 
 .strip-header:hover {
-  background: var(--bg-tertiary);
+  background: color-mix(in srgb, var(--bg-tertiary) 78%, transparent);
 }
 .strip-header:focus-visible {
   outline: 2px solid var(--accent-primary);
@@ -476,6 +480,35 @@
   border: 1px solid var(--bg-tertiary);
 }
 
+/* ── Background activity layer (ambient bars behind header) ── */
+.strip-bg-sparkline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--collapsed-pane-height, 40px);
+  z-index: 0;
+  pointer-events: none;
+  mix-blend-mode: var(--bg-activity-blend, screen);
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 85%);
+  mask-image: linear-gradient(to top, #000 0%, transparent 85%);
+}
+
+[data-density="ultra-dense"] .strip-bg-sparkline {
+  height: var(--collapsed-pane-height, 36px);
+}
+
+/* Dim ambient bars on inactive / unknown states */
+.project-strip[data-status="idle"] .strip-bg-sparkline,
+.project-strip[data-status="error"] .strip-bg-sparkline,
+.project-strip[data-status="unknown"] .strip-bg-sparkline {
+  opacity: 0.3;
+}
+
+.project-strip[data-stale="true"] .strip-bg-sparkline {
+  opacity: 0.2;
+}
+
 /* Agent badge */
 .strip-agent-badge {
   display: inline-flex;
@@ -546,6 +579,8 @@
 /* ── Expanded body ── */
 .strip-body {
   max-height: 0;
+  position: relative;
+  z-index: 3;
   overflow: hidden;
   transition: max-height var(--transition-normal);
 }
@@ -618,6 +653,11 @@
 
 .strip-top-row-activity {
   flex: 1 1 320px;
+  min-width: 0;
+}
+
+.strip-top-row-activity > .strip-section {
+  width: 100%;
   min-width: 0;
 }
 
@@ -767,6 +807,7 @@
   flex-direction: column;
   gap: var(--sp-2);
   align-items: flex-start;
+  width: 100%;
   font-family: var(--font-mono);
   font-size: var(--font-xs);
 }
@@ -1095,11 +1136,18 @@
 @media (max-width: 900px) {
   .strip-top-row {
     flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .strip-top-row-activity {
+    flex: 1 1 auto;
+    width: 100%;
   }
 
   .strip-section--token-usage {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-width: 0;
+    width: 100%;
   }
 }
 

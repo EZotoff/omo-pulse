@@ -156,7 +156,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   const { config: soundConfig, setConfig: setSoundConfig, playWaiting, playAllClear, playAttention, playQuestion } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
-  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode } = useStripConfig()
+  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode, setMiniSparklineMode } = useStripConfig()
   const [activeOverlay, setActiveOverlay] = useState<ActiveOverlay>('none')
 
   /* ── Zoom ── */
@@ -505,6 +505,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         stripConfig={stripConfig}
         onToggleStrip={toggleStripConfig}
         onSetStripMode={setStripMode}
+        onSetMiniSparklineMode={setMiniSparklineMode}
         soundConfig={soundConfig}
         onSoundConfigChange={setSoundConfig}
         onTestSound={handleTestSound}
@@ -589,7 +590,7 @@ function ProjectStripWithChildren({ project, expanded, onToggleExpand, stripConf
       {{
         miniSparkline: (
           <Sparkline
-            mode="mini"
+            mode={stripConfig?.miniSparklineMode === "ambient" ? "bg" : "mini"}
             timeSeries={project.timeSeries}
           />
         ),

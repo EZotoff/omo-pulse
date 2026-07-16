@@ -36,7 +36,7 @@ const baseProject: ProjectSnapshot = {
 }
 
 const baseConfig: StripConfigState = {
-  showMiniSparkline: true,
+  miniSparklineMode: "ambient",
   showPlanProgress: true,
   showAgentBadge: true,
   showLastUpdated: true,
@@ -148,6 +148,30 @@ describe("ProjectStrip rendered status", () => {
 
     expect(html).toContain('data-status="idle"')
     expect(html).toContain('data-stale="true"')
+  })
+
+  it("does not mark bg_agent strips as stale even when main session is idle", () => {
+    // bg_agent = project has running background task; main session is idle/stale.
+    // Panel must show active styling, not the dimmed stale overlay.
+    const staleTime = new Date(Date.now() - 6 * 60_000).toISOString()
+    const project = {
+      ...baseProject,
+      mainSession: {
+        ...baseProject.mainSession,
+        lastUpdated: staleTime,
+        status: "idle" as const,
+      },
+      aggregateStatus: "bg_agent" as const,
+    }
+
+    const html = renderToStaticMarkup(
+      <ProjectStrip project={project} expanded={false} onToggleExpand={() => {}} stripConfig={baseConfig}>
+        {children}
+      </ProjectStrip>
+    )
+
+    expect(html).toContain('data-status="bg_agent"')
+    expect(html).toContain('data-stale="false"')
   })
 })
 

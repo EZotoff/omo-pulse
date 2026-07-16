@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState } from "react"
-import type { StripConfigState, SoundConfig } from "../../types"
+import type { StripConfigState, SoundConfig, MiniSparklineMode } from "../../types"
 import { OverlayShell } from "./OverlayShell"
 import "./SettingsPanel.css"
 
@@ -39,6 +39,7 @@ export type SettingsPanelProps = {
   stripConfig: StripConfigState
   onToggleStrip: (key: keyof StripConfigState) => void
   onSetStripMode: (mode: "project" | "session") => void
+  onSetMiniSparklineMode: (mode: MiniSparklineMode) => void
   soundConfig: SoundConfig
   onSoundConfigChange: (config: SoundConfig) => void
   onTestSound: (event: "idle" | "complete" | "error" | "question") => void
@@ -55,10 +56,9 @@ export type SettingsPanelProps = {
 
 /* ── Display toggle metadata ── */
 
-const COLLAPSED_TOGGLES: { key: Extract<keyof StripConfigState, "showProjectName" | "showStatusDot" | "showMiniSparkline" | "showPlanProgress" | "showAgentBadge" | "showLastUpdated" | "showAvatar">; label: string }[] = [
+const COLLAPSED_TOGGLES: { key: Extract<keyof StripConfigState, "showProjectName" | "showStatusDot" | "showPlanProgress" | "showAgentBadge" | "showLastUpdated" | "showAvatar">; label: string }[] = [
   { key: "showProjectName", label: "Project Name" },
   { key: "showStatusDot", label: "Status Dot" },
-  { key: "showMiniSparkline", label: "Mini Sparkline" },
   { key: "showPlanProgress", label: "Plan Progress" },
   { key: "showAgentBadge", label: "Agent Badge" },
   { key: "showLastUpdated", label: "Last Updated" },
@@ -90,6 +90,7 @@ export function SettingsPanel({
   stripConfig,
   onToggleStrip,
   onSetStripMode,
+  onSetMiniSparklineMode,
   soundConfig,
   onSoundConfigChange,
   onTestSound,
@@ -165,6 +166,10 @@ export function SettingsPanel({
 
   const handleSetStripModeProject = useCallback(() => onSetStripMode("project"), [onSetStripMode])
   const handleSetStripModeSession = useCallback(() => onSetStripMode("session"), [onSetStripMode])
+
+  const handleSetMiniSparklineModeAmbient = () => onSetMiniSparklineMode("ambient")
+  const handleSetMiniSparklineModeInline = () => onSetMiniSparklineMode("inline")
+  const handleSetMiniSparklineModeOff = () => onSetMiniSparklineMode("off")
   const handleCollapsedHeightChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => onCollapsedHeightChange(Number(e.target.value)),
     [onCollapsedHeightChange],
@@ -212,6 +217,42 @@ export function SettingsPanel({
                     onChange={handleSetStripModeSession}
                   />
                   <span className="settings-segmented-text">Per-Session (individual indicators)</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset className="settings-fieldset">
+              <legend className="settings-section__subtitle">Activity Chart</legend>
+              <div className="settings-segmented-control">
+                <label className="settings-segmented-option">
+                  <input
+                    type="radio"
+                    name="miniSparklineMode"
+                    value="ambient"
+                    checked={stripConfig.miniSparklineMode === "ambient"}
+                    onChange={handleSetMiniSparklineModeAmbient}
+                  />
+                  <span className="settings-segmented-text">Ambient</span>
+                </label>
+                <label className="settings-segmented-option">
+                  <input
+                    type="radio"
+                    name="miniSparklineMode"
+                    value="inline"
+                    checked={stripConfig.miniSparklineMode === "inline"}
+                    onChange={handleSetMiniSparklineModeInline}
+                  />
+                  <span className="settings-segmented-text">Inline</span>
+                </label>
+                <label className="settings-segmented-option">
+                  <input
+                    type="radio"
+                    name="miniSparklineMode"
+                    value="off"
+                    checked={stripConfig.miniSparklineMode === "off"}
+                    onChange={handleSetMiniSparklineModeOff}
+                  />
+                  <span className="settings-segmented-text">Off</span>
                 </label>
               </div>
             </fieldset>

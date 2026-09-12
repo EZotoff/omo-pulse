@@ -16,6 +16,7 @@ const DEFAULT_CONFIG: StripConfigState = {
   showAvatar: true,
   showProjectName: true,
   showQuotas: true,
+  quotaIconMode: "icons",
   stripDisplayMode: "project",
 }
 
@@ -57,6 +58,7 @@ export function useStripConfig(): {
   toggle: (key: keyof StripConfigState) => void
   setMode: (mode: "project" | "session") => void
   setMiniSparklineMode: (mode: MiniSparklineMode) => void
+  setQuotaIconMode: (mode: "icons" | "codes") => void
   reset: () => void
 } {
   const [config, setConfig] = useState<StripConfigState>(() => readPersistedConfig())
@@ -87,9 +89,16 @@ export function useStripConfig(): {
     }))
   }, [])
 
+  const setQuotaIconMode = useCallback((mode: "icons" | "codes") => {
+    setConfig((prev) => ({
+      ...prev,
+      quotaIconMode: mode,
+    }))
+  }, [])
+
   const reset = useCallback(() => {
     setConfig(DEFAULT_CONFIG)
   }, [])
 
-  return { config, toggle, setMode, setMiniSparklineMode, reset }
+  return { config, toggle, setMode, setMiniSparklineMode, setQuotaIconMode, reset }
 }

@@ -158,7 +158,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   const { config: soundConfig, setConfig: setSoundConfig, playWaiting, playAllClear, playAttention, playQuestion } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
-  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode, setMiniSparklineMode } = useStripConfig()
+  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode, setMiniSparklineMode, setQuotaIconMode } = useStripConfig()
   const { quotas } = useQuotas()
   const [activeOverlay, setActiveOverlay] = useState<ActiveOverlay>('none')
 
@@ -433,7 +433,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         onZoomOut={handleZoomOut}
         onZoomReset={handleZoomReset}
       />
-      {stripConfig.showQuotas && <QuotaStrip quotas={quotas} />}
+      {stripConfig.showQuotas && <QuotaStrip quotas={quotas} iconMode={stripConfig.quotaIconMode} />}
       <div className="container">
         {data === null ? (
           <div className="dashboard-loading">Loading…</div>
@@ -510,6 +510,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         onToggleStrip={toggleStripConfig}
         onSetStripMode={setStripMode}
         onSetMiniSparklineMode={setMiniSparklineMode}
+        onSetQuotaIconMode={setQuotaIconMode}
         soundConfig={soundConfig}
         onSoundConfigChange={setSoundConfig}
         onTestSound={handleTestSound}

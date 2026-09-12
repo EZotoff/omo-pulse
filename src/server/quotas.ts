@@ -442,10 +442,76 @@ type ProviderFetchArgs = {
   nowMs: number
 }
 
+/* ── Provider icons (server-fetched favicons, cached in memory) ── */
+
+const ICON_TTL_MS = 7 * 24 * 3_600_000
+const ICON_FAILURE_TTL_MS = 3_600_000
+const ICON_MAX_BYTES = 100_000
+
+type CachedIcon = { dataUri: string | null; atMs: number }
+
+async function fetchProviderIcon(args: {
+  providerId: string
+  iconUrl: string
+  fetchImpl: FetchLike
+  cache: Map<string, CachedIcon>
+}): Promise<string | null> {
+  const cached = args.cache.get(args.providerId)
+  const nowMs = Date.now()
+  if (cached) {
+    const ttl = cached.dataUri === null ? ICON_FAILURE_TTL_MS : ICON_TTL_MS
+    if (nowMs - cached.atMs < ttl) return cached.dataUri
+  }
+  try {
+    const res = await args.fetchImpl(args.iconUrl, {
+      signal: AbortSignal.timeout(5_000),
+    })
+    const rawMime = (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase()
+    const buf = await res.arrayBuffer()
+    const mime = sniffImageMime(buf, rawMime)
+    if (!res.ok || mime === null) {
+      throw new Error(`favicon is not an image (${rawMime || "no content type"})`)
+    }
+    if (buf.byteLength === 0 || buf.byteLength > ICON_MAX_BYTES) {
+      throw new Error(`favicon size out of range (${buf.byteLength} bytes)`)
+    }
+    const dataUri = `data:${mime};base64,${Buffer.from(buf).toString("base64")}`
+    args.cache.set(args.providerId, { dataUri, atMs: nowMs })
+    return dataUri
+  } catch {
+    // Icon stays unavailable; letter codes remain the fallback in the UI.
+    args.cache.set(args.providerId, { dataUri: null, atMs: nowMs })
+    return null
+  }
+}
+
+/** Identify an image from magic bytes when the server omits/misstates content-type. */
+function sniffImageMime(buf: ArrayBuffer, declaredMime: string): string | null {
+  if (declaredMime.startsWith("image/")) return declaredMime
+  const b = new Uint8Array(buf)
+  if (b.length >= 4 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png"
+  if (b.length >= 4 && b[0] === 0x00 && b[1] === 0x00 && b[2] === 0x01 && b[3] === 0x00) return "image/x-icon"
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg"
+  if (
+    b.length >= 12 &&
+    String.fromCharCode(...b.slice(0, 4)) === "RIFF" &&
+    String.fromCharCode(...b.slice(8, 12)) === "WEBP"
+  ) {
+    return "image/webp"
+  }
+  const head = new TextDecoder().decode(b.slice(0, 200)).trim().toLowerCase()
+  if (head.startsWith("<svg") || head.startsWith("<?xml")) return "image/svg+xml"
+  return null
+}
+
+/* ── Provider registry ── */
+
 type ProviderDef = {
   providerId: string
   name: string
   symbol: string
+  /** Favicon URL used for the strip identifier (server-fetched, cached) */
+  iconUrl: string
   /** auth.json keys to probe in order; first present wins */
   authKeys: string[]
   fetchWindows: (args: ProviderFetchArgs & { entry: AuthEntry }) => Promise<QuotaWindow[]>
@@ -456,6 +522,7 @@ const providerDefs: ProviderDef[] = [
     providerId: "opencode-go",
     name: "OpenCode Go",
     symbol: "GO",
+    iconUrl: "https://opencode.ai/favicon.ico",
     authKeys: ["opencode-go"],
     fetchWindows: async ({ entry, fetchImpl }) => {
       if (entry.type !== "api") throw new Error("opencode-go auth entry is not an API key")
@@ -469,6 +536,7 @@ const providerDefs: ProviderDef[] = [
     providerId: "zai-coding-plan",
     name: "Z.AI",
     symbol: "Z",
+    iconUrl: "https://z.ai/favicon.png",
     authKeys: ["zai-coding-plan"],
     fetchWindows: async ({ entry, fetchImpl }) => {
       if (entry.type !== "api") throw new Error("zai-coding-plan auth entry is not an API key")
@@ -482,6 +550,7 @@ const providerDefs: ProviderDef[] = [
     providerId: "kimi",
     name: "Kimi",
     symbol: "KI",
+    iconUrl: "https://www.kimi.com/favicon.ico",
     authKeys: ["kimi-code", "kimi-for-coding-oauth", "moonshot"],
     fetchWindows: async ({ entry, fetchImpl, nowMs }) => {
       let token: string
@@ -506,6 +575,7 @@ const providerDefs: ProviderDef[] = [
     providerId: "openai",
     name: "ChatGPT",
     symbol: "GP",
+    iconUrl: "https://chatgpt.com/favicon.ico",
     authKeys: ["openai"],
     fetchWindows: async ({ entry, fetchImpl }) => {
       if (entry.type !== "oauth") throw new Error("openai auth entry is not OAuth")
@@ -529,6 +599,7 @@ const providerDefs: ProviderDef[] = [
     providerId: "ollama-cloud",
     name: "Ollama Cloud",
     symbol: "OL",
+    iconUrl: "https://ollama.com/public/icon-32x32.png",
     authKeys: ["ollama-cloud"],
     fetchWindows: async ({ entry, fetchImpl, nowMs }) => {
       if (entry.type !== "api") throw new Error("ollama-cloud auth entry is not an API key")
@@ -563,12 +634,18 @@ export function createQuotaService(opts: QuotaServiceOptions = {}): QuotaService
   const cacheTtlMs = opts.cacheTtlMs ?? CACHE_TTL_MS
   const fetchImpl = opts.fetchImpl ?? fetch
   const now = opts.now ?? (() => Date.now())
-
+  const iconCache = new Map<string, CachedIcon>()
   let cache: { atMs: number; payload: ProviderQuotasPayload } | null = null
   let inFlight: Promise<ProviderQuotasPayload> | null = null
 
   const fetchOne = async (def: ProviderDef, auth: AuthFile): Promise<ProviderQuota> => {
     const fetchedAtMs = now()
+    const iconPromise = fetchProviderIcon({
+      providerId: def.providerId,
+      iconUrl: def.iconUrl,
+      fetchImpl,
+      cache: iconCache,
+    })
     let entry: AuthEntry | undefined
     for (const key of def.authKeys) {
       const candidate = auth[key]
@@ -582,6 +659,7 @@ export function createQuotaService(opts: QuotaServiceOptions = {}): QuotaService
         providerId: def.providerId,
         name: def.name,
         symbol: def.symbol,
+        icon: await iconPromise,
         windows: [],
         status: "unconfigured",
         fetchedAtMs,
@@ -593,6 +671,7 @@ export function createQuotaService(opts: QuotaServiceOptions = {}): QuotaService
         providerId: def.providerId,
         name: def.name,
         symbol: def.symbol,
+        icon: await iconPromise,
         windows,
         status: "ok",
         fetchedAtMs,
@@ -602,6 +681,7 @@ export function createQuotaService(opts: QuotaServiceOptions = {}): QuotaService
         providerId: def.providerId,
         name: def.name,
         symbol: def.symbol,
+        icon: await iconPromise,
         windows: [],
         status: "error",
         error: err instanceof Error ? err.message : String(err),

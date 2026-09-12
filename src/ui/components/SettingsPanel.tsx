@@ -40,6 +40,7 @@ export type SettingsPanelProps = {
   onToggleStrip: (key: keyof StripConfigState) => void
   onSetStripMode: (mode: "project" | "session") => void
   onSetMiniSparklineMode: (mode: MiniSparklineMode) => void
+  onSetQuotaIconMode: (mode: "icons" | "codes") => void
   soundConfig: SoundConfig
   onSoundConfigChange: (config: SoundConfig) => void
   onTestSound: (event: "idle" | "complete" | "error" | "question") => void
@@ -91,6 +92,7 @@ export function SettingsPanel({
   onToggleStrip,
   onSetStripMode,
   onSetMiniSparklineMode,
+  onSetQuotaIconMode,
   soundConfig,
   onSoundConfigChange,
   onTestSound,
@@ -170,6 +172,8 @@ export function SettingsPanel({
   const handleSetMiniSparklineModeAmbient = () => onSetMiniSparklineMode("ambient")
   const handleSetMiniSparklineModeInline = () => onSetMiniSparklineMode("inline")
   const handleSetMiniSparklineModeOff = () => onSetMiniSparklineMode("off")
+  const handleSetQuotaIconModeIcons = () => onSetQuotaIconMode("icons")
+  const handleSetQuotaIconModeCodes = () => onSetQuotaIconMode("codes")
   const handleCollapsedHeightChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => onCollapsedHeightChange(Number(e.target.value)),
     [onCollapsedHeightChange],
@@ -301,6 +305,32 @@ export function SettingsPanel({
                 aria-label="Provider Quotas"
               />
             </div>
+
+            <fieldset className="settings-fieldset">
+              <legend className="settings-section__subtitle">Quota Identifiers</legend>
+              <div className="settings-segmented-control">
+                <label className="settings-segmented-option">
+                  <input
+                    type="radio"
+                    name="quotaIconMode"
+                    value="icons"
+                    checked={stripConfig.quotaIconMode === "icons"}
+                    onChange={handleSetQuotaIconModeIcons}
+                  />
+                  <span className="settings-segmented-text">Icons</span>
+                </label>
+                <label className="settings-segmented-option">
+                  <input
+                    type="radio"
+                    name="quotaIconMode"
+                    value="codes"
+                    checked={stripConfig.quotaIconMode === "codes"}
+                    onChange={handleSetQuotaIconModeCodes}
+                  />
+                  <span className="settings-segmented-text">Letter Codes</span>
+                </label>
+              </div>
+            </fieldset>
 
             {/* Collapsed Pane Height */}
             <div className="settings-slider-row">

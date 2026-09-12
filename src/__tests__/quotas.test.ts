@@ -314,4 +314,32 @@ describe("createQuotaService", () => {
     expect(ollama?.windows.map((w) => w.id)).toContain("5h")
     expect(typeof ollama?.symbol).toBe("string")
   })
+
+  it("fetches favicons as data URIs, sniffs missing content-types, and degrades to null", async () => {
+    const authPath = await withTempAuth(
+      JSON.stringify({ "ollama-cloud": { type: "api", key: "sk-ol" } }),
+    )
+    const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    const icoBytes = Buffer.from([0x00, 0x00, 0x01, 0x00, 0x03, 0x00])
+    const fetchImpl: FetchLike = async (input) => {
+      const url = String(input)
+      if (url.includes("ollama.com/public/icon")) {
+        return new Response(pngBytes, { status: 200, headers: { "Content-Type": "image/png" } })
+      }
+      if (url.includes("kimi.com/favicon")) {
+        // Kimi serves a real ICO without a content-type header.
+        return new Response(icoBytes, { status: 200 })
+      }
+      return jsonResponse({})
+    }
+    const service = createQuotaService({ authPath, fetchImpl })
+    const payload = await service.getQuotas()
+    const ollama = payload.providers.find((p) => p.providerId === "ollama-cloud")
+    expect(ollama?.icon?.startsWith("data:image/png;base64,")).toBe(true)
+    const kimi = payload.providers.find((p) => p.providerId === "kimi")
+    expect(kimi?.icon?.startsWith("data:image/x-icon;base64,")).toBe(true)
+    const zai = payload.providers.find((p) => p.providerId === "zai-coding-plan")
+    expect(zai?.icon).toBeNull()
+    expect(zai?.status).toBe("unconfigured")
+  })
 })

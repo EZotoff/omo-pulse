@@ -222,6 +222,8 @@ export type StripConfigState = {
   showProjectName: boolean
   /** Provider quota strip visibility (dashboard header area) */
   showQuotas: boolean
+  /** Provider quota strip identifier style: fetched favicons or letter codes */
+  quotaIconMode: "icons" | "codes"
   stripDisplayMode: "project" | "session"
 }
 
@@ -282,8 +284,10 @@ export type QuotaWindow = {
 export type ProviderQuota = {
   providerId: string
   name: string
-  /** 1-2 char monogram shown in the strip */
+  /** 1-2 char monogram shown in the strip (fallback when no icon) */
   symbol: string
+  /** Provider favicon as a data URI, null when unavailable */
+  icon: string | null
   windows: QuotaWindow[]
   status: "ok" | "unconfigured" | "error"
   error?: string

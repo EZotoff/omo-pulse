@@ -1,52 +1,79 @@
-/* QuotaStrip — minimalist provider quota usage: tiny monograms + 2px usage lines */
+/* QuotaStrip — minimalist provider quota usage: monograms + thin usage lines */
 
 .quota-strip {
+  /* Identifier + line scale; mirrors ProjectStrip title sizes per density */
+  --quota-font: var(--font-sm);
+  --quota-icon: 16px;
+  --quota-track-w: 72px;
+  --quota-track-h: 3px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--sp-3) var(--sp-4);
-  padding: 2px var(--sp-4) 4px;
+  gap: var(--sp-2) var(--sp-5);
+  padding: 3px var(--sp-4) 6px;
+}
+
+[data-density="dense"] .quota-strip {
+  --quota-font: var(--font-xs);
+  --quota-icon: 14px;
+  --quota-track-w: 56px;
+  --quota-track-h: 2px;
+}
+
+[data-density="ultra-dense"] .quota-strip {
+  --quota-font: 0.6rem;
+  --quota-icon: 12px;
+  --quota-track-w: 44px;
+  --quota-track-h: 2px;
 }
 
 .quota-strip__provider {
   display: flex;
   align-items: center;
-  gap: var(--sp-1);
+  gap: var(--sp-2);
   cursor: default;
 }
 
 .quota-strip__symbol {
   font-family: var(--font-mono);
-  font-size: 8px;
+  font-size: var(--quota-font);
   line-height: 1;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.5px;
   color: var(--text-muted);
   border: 1px solid var(--border-secondary);
-  border-radius: 3px;
-  padding: 1.5px 3px;
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
   transition: color var(--transition-fast), border-color var(--transition-fast);
 }
 
-.quota-strip__provider:hover .quota-strip__symbol {
-  color: var(--text-secondary);
-  border-color: var(--border-primary);
+.quota-strip__icon {
+  width: var(--quota-icon);
+  height: var(--quota-icon);
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  filter: saturate(0.85);
+  transition: filter var(--transition-fast);
+}
+
+.quota-strip__provider:hover .quota-strip__icon {
+  filter: none;
 }
 
 .quota-strip__lines {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-2);
 }
 
 .quota-strip__line {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 5px;
 }
 
 .quota-strip__window {
   font-family: var(--font-mono);
-  font-size: 7px;
+  font-size: var(--quota-font);
   line-height: 1;
   letter-spacing: 0.3px;
   color: var(--text-muted);
@@ -54,25 +81,25 @@
 
 .quota-strip__track {
   position: relative;
-  width: 44px;
-  height: 2px;
-  border-radius: 1px;
+  width: var(--quota-track-w);
+  height: var(--quota-track-h);
+  border-radius: calc(var(--quota-track-h) / 2);
   background: var(--border-secondary);
   overflow: hidden;
 }
 
 .quota-strip__fill {
   height: 100%;
-  border-radius: 1px;
+  border-radius: 1.5px;
   background: var(--accent-primary);
   transition: width var(--transition-normal);
 }
 
 .quota-strip__reset {
   font-family: var(--font-mono);
-  font-size: 7px;
+  font-size: var(--quota-font);
   line-height: 1;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   color: var(--text-muted);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;

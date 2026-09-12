@@ -40,8 +40,15 @@ function tooltipFor(provider: ProviderQuota): string {
 
 /* ── Component ── */
 
-export const QuotaStrip = memo(function QuotaStrip({ quotas }: { quotas: ProviderQuotasPayload | null }) {
+export type QuotaStripProps = {
+  quotas: ProviderQuotasPayload | null
+  iconMode: "icons" | "codes"
+}
+
+export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode }: QuotaStripProps) {
   if (quotas === null || quotas.providers.length === 0) return null
+
+  const useIcons = iconMode === "icons"
 
   return (
     <div className="quota-strip" role="status" aria-label="Provider quota usage">
@@ -52,9 +59,19 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas }: { quotas: Provide
           data-status={provider.status}
           title={tooltipFor(provider)}
         >
-          <span className="quota-strip__symbol" aria-hidden="true">
-            {provider.symbol}
-          </span>
+          {useIcons && provider.icon ? (
+            <img
+              className="quota-strip__icon"
+              src={provider.icon}
+              alt=""
+              loading="lazy"
+              draggable={false}
+            />
+          ) : (
+            <span className="quota-strip__symbol" aria-hidden="true">
+              {provider.symbol}
+            </span>
+          )}
           <div className="quota-strip__lines">
             {provider.status !== "ok" || provider.windows.length === 0 ? (
               <div className="quota-strip__track" aria-hidden="true" />

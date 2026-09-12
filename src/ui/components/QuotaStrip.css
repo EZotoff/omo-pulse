@@ -1,0 +1,92 @@
+/* QuotaStrip — minimalist provider quota usage: tiny monograms + 2px usage lines */
+
+.quota-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-3) var(--sp-4);
+  padding: 2px var(--sp-4) 4px;
+}
+
+.quota-strip__provider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  cursor: default;
+}
+
+.quota-strip__symbol {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  line-height: 1;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  border: 1px solid var(--border-secondary);
+  border-radius: 3px;
+  padding: 1.5px 3px;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.quota-strip__provider:hover .quota-strip__symbol {
+  color: var(--text-secondary);
+  border-color: var(--border-primary);
+}
+
+.quota-strip__lines {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.quota-strip__line {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.quota-strip__window {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+}
+
+.quota-strip__track {
+  position: relative;
+  width: 44px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--border-secondary);
+  overflow: hidden;
+}
+
+.quota-strip__fill {
+  height: 100%;
+  border-radius: 1px;
+  background: var(--accent-primary);
+  transition: width var(--transition-normal);
+}
+
+.quota-strip__fill--warn {
+  background: var(--accent-warning);
+}
+
+.quota-strip__fill--danger {
+  background: var(--accent-danger);
+}
+
+/* Non-ok providers */
+
+.quota-strip__provider[data-status="error"] .quota-strip__symbol {
+  color: var(--accent-danger);
+  border-color: var(--accent-danger);
+}
+
+.quota-strip__provider[data-status="unconfigured"] {
+  opacity: 0.35;
+}
+
+[data-theme="light"] .quota-strip__track {
+  background: var(--border-primary);
+}

@@ -182,6 +182,7 @@ All routes are under `/api` prefix (via Vite proxy in dev, direct in production)
 - `POST /api/sources` — Register new project source
 - `GET /api/projects` — All projects with full snapshots (main polling endpoint)
 - `GET /api/projects/:sourceId` — Single project detail
+- `GET /api/quotas` — Provider subscription quota usage (5 providers, server-cached ~3 min)
 - `GET /api/tool-calls/:sessionId` — Tool call history for a session
 - `GET /api/service/status` — Systemd service status
 - `POST /api/service/enable` — Enable systemd auto-start

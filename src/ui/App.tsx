@@ -14,6 +14,7 @@ import { SessionSwimlane } from "./components/SessionSwimlane"
 import { SettingsPanel } from "./components/SettingsPanel"
 import { ColumnResizeHandle } from "./components/ColumnResizeHandle"
 import { ProjectManagementPanel } from "./components/ProjectManagementPanel"
+import { QuotaStrip } from "./components/QuotaStrip"
 import { useStripConfig } from "./hooks/useStripConfig"
 import { PreviewNav } from "./components/PreviewNav"
 import type { PreviewMode } from "./types"
@@ -22,6 +23,7 @@ import "./App.css"
 import { useExpandState } from "./hooks/useExpandState"
 import { useDensityMode } from "./hooks/useDensityMode"
 import { useSoundNotifications } from "./hooks/useSoundNotifications"
+import { useQuotas } from "./hooks/useQuotas"
 import { useProjectOrder } from "./hooks/useProjectOrder"
 import { useProjectVisibility } from "./hooks/useProjectVisibility"
 import { ATTENTION_FIRST_PRIORITY } from "../ingest/status-rollup"
@@ -157,6 +159,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
   const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode, setMiniSparklineMode } = useStripConfig()
+  const { quotas } = useQuotas()
   const [activeOverlay, setActiveOverlay] = useState<ActiveOverlay>('none')
 
   /* ── Zoom ── */
@@ -430,6 +433,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         onZoomOut={handleZoomOut}
         onZoomReset={handleZoomReset}
       />
+      <QuotaStrip quotas={quotas} />
       <div className="container">
         {data === null ? (
           <div className="dashboard-loading">Loading…</div>

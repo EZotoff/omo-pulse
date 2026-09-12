@@ -8,9 +8,9 @@
   --quota-track-h: 3px;
   display: flex;
   align-items: center;
-  padding: 3px var(--sp-4) 0;
+  flex-wrap: wrap;
   gap: var(--sp-2) var(--sp-5);
-  padding: 3px var(--sp-4) 6px;
+  padding: 3px var(--sp-4) 0;
 }
 
 [data-density="dense"] .quota-strip {

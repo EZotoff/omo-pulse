@@ -1,7 +1,8 @@
 /* QuotaStrip — minimalist provider quota usage: monograms + thin usage lines */
 
 .quota-strip {
-  /* Identifier + line scale; mirrors ProjectStrip title sizes per density */
+  /* Deliberately density-independent: pane titles shrink in dense modes, the
+     quota strip keeps a constant readable size so it never reflows after load */
   --quota-font: var(--font-sm);
   --quota-icon: 16px;
   --quota-track-w: 72px;
@@ -12,21 +13,6 @@
   gap: var(--sp-2) var(--sp-5);
   padding: 3px var(--sp-4) 0;
 }
-
-[data-density="dense"] .quota-strip {
-  --quota-font: var(--font-xs);
-  --quota-icon: 14px;
-  --quota-track-w: 56px;
-  --quota-track-h: 2px;
-}
-
-[data-density="ultra-dense"] .quota-strip {
-  --quota-font: 0.6rem;
-  --quota-icon: 12px;
-  --quota-track-w: 44px;
-  --quota-track-h: 2px;
-}
-
 .quota-strip__provider {
   display: flex;
   align-items: center;

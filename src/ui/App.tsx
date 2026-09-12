@@ -162,6 +162,15 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   const { quotas } = useQuotas()
   const [activeOverlay, setActiveOverlay] = useState<ActiveOverlay>('none')
 
+  /* ── Collapsible header ── */
+  const [headerCollapsed, setHeaderCollapsed] = useState<boolean>(() => safeGetItem('dashboard-header-collapsed') === 'true')
+
+  useEffect(() => {
+    safeSetItem('dashboard-header-collapsed', String(headerCollapsed))
+  }, [headerCollapsed])
+
+  const handleToggleHeader = useCallback(() => setHeaderCollapsed((c) => !c), [])
+
   /* ── Zoom ── */
   const [zoom, setZoom] = useState<number>(() => {
     const saved = safeGetItem('dashboard-zoom')
@@ -418,21 +427,34 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   }, [playWaiting, playAllClear, playAttention, playQuestion])
 
   return (
-    <div className="page" data-density={density}>
-      <DashboardHeader
-        connected={connected}
-        lastUpdatedMs={lastUpdatedMs}
-        onExpandAll={handleExpandAll}
-        onCollapseAll={collapseAll}
-        columns={columns}
-        onSetColumns={setColumns}
-        onSettingsOpen={handleSettingsOpen}
-        onManageProjectsOpen={handleManageProjectsOpen}
-        zoom={zoom}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onZoomReset={handleZoomReset}
-      />
+    <div className="page" data-density={density} data-header-collapsed={headerCollapsed}>
+      {headerCollapsed ? (
+        <button
+          className="header-restore"
+          onClick={handleToggleHeader}
+          type="button"
+          title="Show header"
+          aria-label="Show header"
+        >
+          ⌄
+        </button>
+      ) : (
+        <DashboardHeader
+          connected={connected}
+          lastUpdatedMs={lastUpdatedMs}
+          onExpandAll={handleExpandAll}
+          onCollapseAll={collapseAll}
+          columns={columns}
+          onSetColumns={setColumns}
+          onSettingsOpen={handleSettingsOpen}
+          onManageProjectsOpen={handleManageProjectsOpen}
+          zoom={zoom}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onZoomReset={handleZoomReset}
+          onCollapse={handleToggleHeader}
+        />
+      )}
       {stripConfig.showQuotas && <QuotaStrip quotas={quotas} iconMode={stripConfig.quotaIconMode} />}
       <div className="container">
         {data === null ? (

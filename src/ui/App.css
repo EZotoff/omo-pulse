@@ -12,9 +12,32 @@
   max-width: 1400px;
   width: calc(100% / var(--zoom));
   margin: 0 auto;
-  padding: var(--sp-4) var(--sp-4) var(--sp-8);
+  padding: 2px var(--sp-4) 6px;
   transform: scale(var(--zoom));
   transform-origin: top center;
+}
+
+
+/* Floating chevron shown when the header is collapsed */
+.header-restore {
+  position: fixed;
+  top: 4px;
+  right: var(--sp-2);
+  z-index: 20;
+  font-size: var(--font-md);
+  line-height: 1;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.header-restore:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-primary);
 }
 
 /* ── Header ── */
@@ -205,10 +228,14 @@
   grid-template-columns: repeat(var(--grid-cols, 1), 1fr);
   gap: var(--grid-gap, 10px);
   overflow-y: auto;
-  max-height: calc(100vh - 96px); /* viewport minus header (~44px) + container padding (52px) */
+  max-height: calc(100vh - 56px); /* viewport minus header (~44px) + container vertical padding (~8px) */
   scrollbar-gutter: stable;
   align-items: start;
   position: relative;
+}
+
+  .page[data-header-collapsed="true"] .project-stack {
+  max-height: calc(100vh - 14px);
 }
 
 .project-stack > * {

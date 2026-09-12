@@ -288,6 +288,20 @@ export function SettingsPanel({
               </div>
             ))}
 
+            <h4 className="settings-section__subtitle">Dashboard</h4>
+            <div className="settings-toggle-row">
+              <span className="settings-toggle-label">Provider Quotas</span>
+              <button
+                className="settings-switch"
+                data-checked={stripConfig.showQuotas}
+                onClick={() => onToggleStrip("showQuotas")}
+                type="button"
+                role="switch"
+                aria-checked={stripConfig.showQuotas}
+                aria-label="Provider Quotas"
+              />
+            </div>
+
             {/* Collapsed Pane Height */}
             <div className="settings-slider-row">
               <span className="settings-slider-label">Collapsed Height</span>

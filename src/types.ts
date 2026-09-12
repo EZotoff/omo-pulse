@@ -220,6 +220,8 @@ export type StripConfigState = {
   showGitWorktrees: boolean
   showAvatar: boolean
   showProjectName: boolean
+  /** Provider quota strip visibility (dashboard header area) */
+  showQuotas: boolean
   stripDisplayMode: "project" | "session"
 }
 

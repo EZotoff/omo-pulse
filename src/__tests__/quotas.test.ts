@@ -235,7 +235,7 @@ describe("createQuotaService", () => {
     const fetchImpl: FetchLike = async (input) => {
       callCount += 1
       const url = String(input)
-      if (url.includes("api.opencode.ai")) return jsonResponse({ message: "denied" }, 403)
+      if (url.includes("opencode.ai/zen")) return jsonResponse({ message: "denied" }, 403)
       if (url.includes("api.z.ai")) {
         return jsonResponse({
           data: { limits: [{ type: "TOKENS_LIMIT", unit: 3, number: 5, percentage: 22 }] },

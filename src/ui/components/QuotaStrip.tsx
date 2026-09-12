@@ -4,16 +4,18 @@ import "./QuotaStrip.css"
 
 /* ── Helpers ── */
 
-function formatReset(ms: number | null): string {
+function formatRemaining(ms: number | null): string {
   if (ms === null) return ""
   const deltaMs = ms - Date.now()
-  if (deltaMs <= 0) return "resetting"
-  const minutes = Math.round(deltaMs / 60_000)
-  if (minutes < 60) return `resets in ${minutes}m`
+  if (deltaMs <= 60_000) return "now"
+  const minutes = Math.floor(deltaMs / 60_000)
+  if (minutes < 60) return `${minutes}m`
   const hours = Math.floor(minutes / 60)
   const restMinutes = minutes % 60
-  if (hours < 48) return `resets in ${hours}h${restMinutes > 0 ? ` ${restMinutes}m` : ""}`
-  return `resets in ${Math.floor(hours / 24)}d`
+  if (hours < 48) return restMinutes > 0 ? `${hours}h${restMinutes}m` : `${hours}h`
+  const days = Math.floor(hours / 24)
+  const restHours = hours % 24
+  return restHours > 0 ? `${days}d${restHours}h` : `${days}d`
 }
 
 function usageLevel(percent: number): "ok" | "warn" | "danger" {
@@ -26,8 +28,12 @@ function tooltipFor(provider: ProviderQuota): string {
   if (provider.status === "unconfigured") return `${provider.name} — not configured`
   if (provider.status === "error") return `${provider.name} — ${provider.error ?? "unavailable"}`
   const parts = provider.windows.map(
-    (w: QuotaWindow) =>
-      `${w.label}: ${Math.round(w.usedPercent)}% used${w.resetsAtMs !== null ? `, ${formatReset(w.resetsAtMs)}` : ""}`,
+    (w: QuotaWindow) => {
+      const remaining = formatRemaining(w.resetsAtMs)
+      const resetText =
+        w.resetsAtMs === null ? "" : remaining === "now" ? "resetting" : `, resets in ${remaining}`
+      return `${w.label}: ${Math.round(w.usedPercent)}% used${resetText}`
+    },
   )
   return parts.length > 0 ? `${provider.name} · ${parts.join(" · ")}` : provider.name
 }
@@ -64,6 +70,11 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas }: { quotas: Provide
                       style={{ width: `${Math.max(2, Math.round(w.usedPercent))}%` }}
                     />
                   </div>
+                  {w.resetsAtMs !== null && (
+                    <span className="quota-strip__reset" aria-hidden="true">
+                      {formatRemaining(w.resetsAtMs)}
+                    </span>
+                  )}
                 </div>
               ))
             )}

@@ -15,6 +15,7 @@ const DEFAULT_CONFIG: StripConfigState = {
   showGitWorktrees: true,
   showAvatar: true,
   showProjectName: true,
+  showQuotas: true,
   stripDisplayMode: "project",
 }
 

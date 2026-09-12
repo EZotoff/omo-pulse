@@ -68,6 +68,16 @@
   transition: width var(--transition-normal);
 }
 
+.quota-strip__reset {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .quota-strip__fill--warn {
   background: var(--accent-warning);
 }
@@ -75,6 +85,7 @@
 .quota-strip__fill--danger {
   background: var(--accent-danger);
 }
+
 
 /* Non-ok providers */
 

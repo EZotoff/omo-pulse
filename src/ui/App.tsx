@@ -433,7 +433,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         onZoomOut={handleZoomOut}
         onZoomReset={handleZoomReset}
       />
-      <QuotaStrip quotas={quotas} />
+      {stripConfig.showQuotas && <QuotaStrip quotas={quotas} />}
       <div className="container">
         {data === null ? (
           <div className="dashboard-loading">Loading…</div>

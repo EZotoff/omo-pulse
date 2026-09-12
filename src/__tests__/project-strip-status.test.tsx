@@ -47,6 +47,7 @@ const baseConfig: StripConfigState = {
   showAvatar: true,
   showProjectName: true,
   stripDisplayMode: "project",
+  showQuotas: true,
 }
 
 const children = {

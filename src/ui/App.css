@@ -18,30 +18,30 @@
 }
 
 
-/* Floating chevron shown when the header is collapsed */
 /* Bookmark-style tab shown when the header is collapsed: hangs from the top
-   edge, horizontally centered, so it never collides with the quota strip */
+   edge, horizontally centered, so it never collides with the quota strip.
+   Compact footprint, but one step brighter than ambient chrome so it stays findable. */
 .header-restore {
   position: fixed;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
   z-index: 20;
-  font-size: var(--font-md);
+  font-size: var(--font-sm);
   line-height: 1;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   background: var(--bg-secondary);
-  border: 1px solid var(--border-secondary);
+  border: 1px solid var(--border-primary);
   border-top: none;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-  padding: 5px 14px 4px;
+  padding: 3px 8px 2px;
   cursor: pointer;
   transition: color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .header-restore:hover {
-  color: var(--text-secondary);
-  border-color: var(--border-primary);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
 }
 
 /* ── Header ── */

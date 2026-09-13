@@ -7,13 +7,17 @@
   --quota-icon: 16px;
   --quota-track-w: 72px;
   --quota-track-h: 3px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--sp-2) var(--sp-5);
+  /* Exactly two providers per row: odd entries left-aligned, even right-aligned */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  justify-items: start;
+  gap: var(--sp-2) var(--sp-4);
   padding: 3px var(--sp-4) 0;
 }
-.quota-strip__provider {
+
+.quota-strip__provider:nth-child(even) {
+  justify-self: end;
+}
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -83,6 +87,8 @@
 
 .quota-strip__reset {
   font-family: var(--font-mono);
+  /* Reserve a fixed 6-character slot so tracks align across providers */
+  min-width: 6ch;
   font-size: var(--quota-font);
   line-height: 1;
   letter-spacing: 0.2px;

@@ -24,10 +24,28 @@ function usageLevel(percent: number): "ok" | "warn" | "danger" {
   return "ok"
 }
 
-function tooltipFor(provider: ProviderQuota): string {
+/**
+ * Display priority per window duration. When a longer window is exhausted
+ * (100% used), every shorter window collapses: a 5h reset is irrelevant while
+ * the provider is locked out for another week by the monthly quota.
+ */
+const WINDOW_RANK: Record<string, number> = { window: 0, "5h": 0, weekly: 1, monthly: 2 }
+
+export function visibleWindows(windows: QuotaWindow[]): QuotaWindow[] {
+  if (windows.length <= 1) return windows
+  const rankOf = (w: QuotaWindow): number => WINDOW_RANK[w.id] ?? 0
+  /* Always display shortest → longest left-to-right, regardless of payload order */
+  const sorted = [...windows].sort((a, b) => rankOf(a) - rankOf(b))
+  const firstExhausted = sorted.find((w) => w.usedPercent >= 100)
+  if (!firstExhausted) return sorted
+  const cutoff = rankOf(firstExhausted)
+  return sorted.filter((w) => rankOf(w) >= cutoff)
+}
+
+function tooltipFor(provider: ProviderQuota, windows: QuotaWindow[]): string {
   if (provider.status === "unconfigured") return `${provider.name} — not configured`
   if (provider.status === "error") return `${provider.name} — ${provider.error ?? "unavailable"}`
-  const parts = provider.windows.map(
+  const parts = windows.map(
     (w: QuotaWindow) => {
       const remaining = formatRemaining(w.resetsAtMs)
       const resetText =
@@ -52,13 +70,15 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode }: QuotaSt
 
   return (
     <div className="quota-strip" role="status" aria-label="Provider quota usage">
-      {quotas.providers.map((provider: ProviderQuota) => (
-        <div
-          key={provider.providerId}
-          className="quota-strip__provider"
-          data-status={provider.status}
-          title={tooltipFor(provider)}
-        >
+      {quotas.providers.map((provider: ProviderQuota) => {
+        const windows = visibleWindows(provider.windows)
+        return (
+          <div
+            key={provider.providerId}
+            className="quota-strip__provider"
+            data-status={provider.status}
+            title={tooltipFor(provider, windows)}
+          >
           {useIcons && provider.icon ? (
             <img
               className="quota-strip__icon"
@@ -72,32 +92,33 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode }: QuotaSt
               {provider.symbol}
             </span>
           )}
-          <div className="quota-strip__lines">
-            {provider.status !== "ok" || provider.windows.length === 0 ? (
-              <div className="quota-strip__track" aria-hidden="true" />
-            ) : (
-              provider.windows.map((w: QuotaWindow) => (
-                <div key={w.id} className="quota-strip__line">
-                  <span className="quota-strip__window" aria-hidden="true">
-                    {w.shortLabel}
-                  </span>
-                  <div className="quota-strip__track">
-                    <div
-                      className={`quota-strip__fill quota-strip__fill--${usageLevel(w.usedPercent)}`}
-                      style={{ width: `${Math.max(2, Math.round(w.usedPercent))}%` }}
-                    />
-                  </div>
-                  {w.resetsAtMs !== null && (
-                    <span className="quota-strip__reset" aria-hidden="true">
-                      {formatRemaining(w.resetsAtMs)}
+            <div className="quota-strip__lines">
+              {provider.status !== "ok" || windows.length === 0 ? (
+                <div className="quota-strip__track" aria-hidden="true" />
+              ) : (
+                windows.map((w: QuotaWindow) => (
+                  <div key={w.id} className="quota-strip__line">
+                    <span className="quota-strip__window" aria-hidden="true">
+                      {w.shortLabel}
                     </span>
-                  )}
-                </div>
-              ))
-            )}
+                    <div className="quota-strip__track">
+                      <div
+                        className={`quota-strip__fill quota-strip__fill--${usageLevel(w.usedPercent)}`}
+                        style={{ width: `${Math.max(2, Math.round(w.usedPercent))}%` }}
+                      />
+                    </div>
+                    {w.resetsAtMs !== null && (
+                      <span className="quota-strip__reset" aria-hidden="true">
+                        {formatRemaining(w.resetsAtMs)}
+                      </span>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 })

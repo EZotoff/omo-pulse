@@ -519,20 +519,6 @@ type ProviderDef = {
 
 const providerDefs: ProviderDef[] = [
   {
-    providerId: "opencode-go",
-    name: "OpenCode Go",
-    symbol: "GO",
-    iconUrl: "https://opencode.ai/favicon.ico",
-    authKeys: ["opencode-go"],
-    fetchWindows: async ({ entry, fetchImpl }) => {
-      if (entry.type !== "api") throw new Error("opencode-go auth entry is not an API key")
-      const body = await fetchJson(fetchImpl, GO_USAGE_URL, {
-        Authorization: `Bearer ${entry.key}`,
-      })
-      return parseGoUsage(body)
-    },
-  },
-  {
     providerId: "zai-coding-plan",
     name: "Z.AI",
     symbol: "Z",
@@ -544,31 +530,6 @@ const providerDefs: ProviderDef[] = [
         Authorization: `Bearer ${entry.key}`,
       })
       return parseZaiUsage(body)
-    },
-  },
-  {
-    providerId: "kimi",
-    name: "Kimi",
-    symbol: "KI",
-    iconUrl: "https://www.kimi.com/favicon.ico",
-    authKeys: ["kimi-code", "kimi-for-coding-oauth", "moonshot"],
-    fetchWindows: async ({ entry, fetchImpl, nowMs }) => {
-      let token: string
-      if (entry.type === "oauth") {
-        token = await resolveOauthAccessToken({
-          providerKey: "kimi-for-coding-oauth",
-          entry,
-          tokenUrl: KIMI_TOKEN_URL,
-          clientId: KIMI_CLIENT_ID,
-          fetchImpl,
-        })
-      } else {
-        token = entry.key
-      }
-      const body = await fetchJson(fetchImpl, KIMI_USAGE_URL, {
-        Authorization: `Bearer ${token}`,
-      })
-      return parseKimiUsage(body, nowMs)
     },
   },
   {
@@ -607,6 +568,45 @@ const providerDefs: ProviderDef[] = [
         Authorization: `Bearer ${entry.key}`,
       })
       return parseOllamaUsage(body, nowMs)
+    },
+  },
+  {
+    providerId: "kimi",
+    name: "Kimi",
+    symbol: "KI",
+    iconUrl: "https://www.kimi.com/favicon.ico",
+    authKeys: ["kimi-code", "kimi-for-coding-oauth", "moonshot"],
+    fetchWindows: async ({ entry, fetchImpl, nowMs }) => {
+      let token: string
+      if (entry.type === "oauth") {
+        token = await resolveOauthAccessToken({
+          providerKey: "kimi-for-coding-oauth",
+          entry,
+          tokenUrl: KIMI_TOKEN_URL,
+          clientId: KIMI_CLIENT_ID,
+          fetchImpl,
+        })
+      } else {
+        token = entry.key
+      }
+      const body = await fetchJson(fetchImpl, KIMI_USAGE_URL, {
+        Authorization: `Bearer ${token}`,
+      })
+      return parseKimiUsage(body, nowMs)
+    },
+  },
+  {
+    providerId: "opencode-go",
+    name: "OpenCode Go",
+    symbol: "GO",
+    iconUrl: "https://opencode.ai/favicon.ico",
+    authKeys: ["opencode-go"],
+    fetchWindows: async ({ entry, fetchImpl }) => {
+      if (entry.type !== "api") throw new Error("opencode-go auth entry is not an API key")
+      const body = await fetchJson(fetchImpl, GO_USAGE_URL, {
+        Authorization: `Bearer ${entry.key}`,
+      })
+      return parseGoUsage(body)
     },
   },
 ]

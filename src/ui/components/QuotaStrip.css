@@ -18,6 +18,8 @@
 .quota-strip__provider:nth-child(even) {
   justify-self: end;
 }
+
+.quota-strip__provider {
   display: flex;
   align-items: center;
   gap: var(--sp-2);

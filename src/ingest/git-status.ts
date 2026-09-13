@@ -4,10 +4,11 @@
  */
 
 export const GIT_STATUS_CACHE_TTL_MS = 30_000
+export const NEGATIVE_CACHE_BASE_MS = 2_000
 const MAX_CACHE_SIZE = 100
 const GIT_STATUS_TIMEOUT_MS = 5_000
 const GIT_SIGKILL_GRACE_MS = 500
-const NEGATIVE_CACHE_BASE_MS = 2_000
+
 const NEGATIVE_CACHE_MAX_MS = GIT_STATUS_CACHE_TTL_MS
 
 const cache = new Map<string, { count: number; fetchedAt: number }>()

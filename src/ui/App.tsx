@@ -197,7 +197,9 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   /* ── Collapsed pane height & grid gap ── */
   const [collapsedHeight, setCollapsedHeight] = useState<number>(() => {
     const saved = safeGetItem('dashboard-collapsed-height')
-    return saved ? parseInt(saved, 10) : 40
+    const parsed = saved ? parseInt(saved, 10) : 40
+    /* Clamp persisted values to the 30–100px slider range */
+    return Number.isFinite(parsed) ? Math.min(100, Math.max(30, parsed)) : 40
   })
 
   const [gridGap, setGridGap] = useState<number>(() => {

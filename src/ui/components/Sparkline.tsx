@@ -23,7 +23,7 @@ interface AgentCounts {
 }
 
 export interface SparklineProps {
-  mode: "mini" | "full"
+  mode: "mini" | "full" | "bg"
   timeSeries: TimeSeriesPayload
   width?: number
   height?: number
@@ -206,6 +206,9 @@ function SparklineInner({
 
   if (mode === "mini") {
     return renderMini(buckets, lookup, barW, barInset, width, height, className)
+  }
+  if (mode === "bg") {
+    return renderBg(buckets, lookup, barW, barInset, width, height, className)
   }
 
   return renderFull(buckets, lookup, barW, barInset, width, height, className)
@@ -478,6 +481,125 @@ function renderFull(
           </g>
         )
       })}
+    </svg>
+  )
+}
+
+/* ── Background mode (ambient layer behind header) ── */
+
+function renderBg(
+  totalBuckets: number,
+  lookup: Map<string, TimeSeriesSeries>,
+  barW: number,
+  barInset: number,
+  widthProp: number | undefined,
+  heightProp: number | undefined,
+  className: string | undefined,
+) {
+  const h = heightProp ?? 40
+  const windowSize = Math.min(totalBuckets, 300)
+  const chartH = h
+
+  const sisV = lookup.get("agent:sisyphus")?.values ?? []
+  const proV = lookup.get("agent:prometheus")?.values ?? []
+  const atlV = lookup.get("agent:atlas")?.values ?? []
+  const bgV = lookup.get("background-total")?.values ?? []
+
+  const startIdx = 0
+  const count = windowSize
+
+  /* Sum main agents per bucket + track dominant tone */
+  const sums: number[] = []
+  const dominantTones: AgentTone[] = []
+  let maxVal = 0
+  let hasAny = false
+  for (let i = 0; i < count; i++) {
+    const idx = startIdx + i
+    const sisVal = toSafe(sisV[idx])
+    const proVal = toSafe(proV[idx])
+    const atlVal = toSafe(atlV[idx])
+    const sum = sisVal + proVal + atlVal
+    sums.push(sum)
+    if (sum > 0) hasAny = true
+    if (sum > maxVal) maxVal = sum
+
+    /* Determine dominant agent tone for this bucket */
+    let dominantTone: AgentTone = "teal" /* default */
+    const maxValBucket = Math.max(sisVal, proVal, atlVal)
+    if (maxValBucket > 0) {
+      if (sisVal === maxValBucket) {
+        dominantTone = "teal"
+      } else if (proVal === maxValBucket) {
+        dominantTone = "red"
+      } else if (atlVal === maxValBucket) {
+        dominantTone = "green"
+      }
+    }
+    dominantTones.push(dominantTone)
+  }
+
+  /* Account for background-agent bars in scale */
+  for (let i = 0; i < count; i++) {
+    const idx = startIdx + i
+    const bgVal = toSafe(bgV[idx])
+    if (bgVal > 0) hasAny = true
+    const candidate = Math.max(sums[i], bgVal)
+    if (candidate > maxVal) maxVal = candidate
+  }
+  const scaleMax = Math.max(1, maxVal)
+
+  const viewBox = `0 0 ${count} ${h}`
+  const cls = ["sparkline", "sparkline--bg", className].filter(Boolean).join(" ")
+
+  return (
+    <svg
+      className={cls}
+      style={widthProp ? { width: widthProp } : undefined}
+      height={h}
+      viewBox={viewBox}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      {!hasAny ? (
+        <rect
+          className="sparkline-bg-flatline"
+          x={0}
+          y={chartH - 4}
+          width={count}
+          height={2}
+        />
+      ) : (
+        sums.map((val, i) => {
+          const idx = startIdx + i
+          const barH = (val / scaleMax) * chartH
+          const bgVal = toSafe(bgV[idx])
+          const bgBarH = (bgVal / scaleMax) * chartH
+          const dominantTone = dominantTones[i]
+          if (barH <= 0 && bgBarH <= 0) return null
+          return (
+            <g key={i}>
+              {bgBarH > 0 && (
+                <rect
+                  className="sparkline-bg-bar sparkline-bg-bar--muted"
+                  x={i + barInset}
+                  y={chartH - bgBarH}
+                  width={barW}
+                  height={bgBarH}
+                />
+              )}
+              {barH > 0 && (
+                <rect
+                  className={`sparkline-bg-bar sparkline-bg-bar--${dominantTone}`}
+                  x={i + barInset}
+                  y={chartH - barH}
+                  width={barW}
+                  height={barH}
+                />
+              )}
+            </g>
+          )
+        })
+      )}
     </svg>
   )
 }

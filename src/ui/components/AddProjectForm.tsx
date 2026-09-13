@@ -89,7 +89,7 @@ export function AddProjectForm({ onProjectAdded }: AddProjectFormProps) {
         className={`add-project-input add-project-input--path${statusType === "error" && !projectRoot.trim() ? " add-project-input--error" : ""}`}
         type="text"
         name="projectRoot"
-        placeholder="/path/to/project"
+        placeholder="~/projects/my-project"
         value={projectRoot}
         onChange={(e) => setProjectRoot(e.target.value)}
         disabled={loading}

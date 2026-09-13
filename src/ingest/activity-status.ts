@@ -14,6 +14,33 @@ export function shouldKeepQueuedBackgroundTaskActive(startedAt: number, nowMs: n
   return nowMs - startedAt <= BACKGROUND_QUEUE_STALE_MS
 }
 
+/**
+ * Returns true if a question tool with 'running' status started too long ago
+ * to be considered active. Pending questions are never stale (they wait in queue).
+ * Fresh running questions (within ACTIVE_STALE_MS) are preserved.
+ */
+export function isStaleQuestionTool(
+  toolName: string,
+  status: string,
+  toolStartedAt: number | null,
+  nowMs: number,
+): boolean {
+  if (status !== "running") return false
+  if (!QUESTION_TOOL_NAMES.has(toolName)) return false
+  if (typeof toolStartedAt !== "number" || !Number.isFinite(toolStartedAt)) return false
+  return nowMs - toolStartedAt > ACTIVE_STALE_MS
+}
+
+export function readToolStartTime(toolPart: unknown): number | null {
+  if (!toolPart || typeof toolPart !== "object") return null
+  const state = (toolPart as Record<string, unknown>).state
+  if (!state || typeof state !== "object") return null
+  const time = (state as Record<string, unknown>).time
+  if (!time || typeof time !== "object") return null
+  const start = (time as Record<string, unknown>).start
+  return typeof start === "number" && Number.isFinite(start) ? start : null
+}
+
 export function resolveLastUpdatedTime(primary: number | null, fallback: number | null): number | null {
   if (typeof primary === "number" && Number.isFinite(primary) && primary > 0) return primary
   if (typeof fallback === "number" && Number.isFinite(fallback) && fallback > 0) return fallback

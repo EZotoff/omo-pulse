@@ -1,0 +1,124 @@
+/* QuotaStrip — minimalist provider quota usage: monograms + thin usage lines */
+
+.quota-strip {
+  /* Deliberately density-independent: pane titles shrink in dense modes, the
+     quota strip keeps a constant readable size so it never reflows after load */
+  --quota-font: var(--font-sm);
+  --quota-icon: 16px;
+  --quota-track-w: 72px;
+  --quota-track-h: 3px;
+  /* Exactly two providers per row: odd entries left-aligned, even right-aligned */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  justify-items: start;
+  gap: var(--sp-2) var(--sp-4);
+  padding: 3px var(--sp-4) 0;
+}
+
+.quota-strip__provider:nth-child(even) {
+  justify-self: end;
+}
+
+.quota-strip__provider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  cursor: default;
+}
+
+.quota-strip__symbol {
+  font-family: var(--font-mono);
+  font-size: var(--quota-font);
+  line-height: 1;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.quota-strip__icon {
+  width: var(--quota-icon);
+  height: var(--quota-icon);
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  filter: saturate(0.85);
+  transition: filter var(--transition-fast);
+}
+
+.quota-strip__provider:hover .quota-strip__icon {
+  filter: none;
+}
+
+.quota-strip__lines {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.quota-strip__line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.quota-strip__window {
+  font-family: var(--font-mono);
+  font-size: var(--quota-font);
+  line-height: 1;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+}
+
+.quota-strip__track {
+  position: relative;
+  width: var(--quota-track-w);
+  height: var(--quota-track-h);
+  border-radius: calc(var(--quota-track-h) / 2);
+  background: var(--border-secondary);
+  overflow: hidden;
+}
+
+.quota-strip__fill {
+  height: 100%;
+  border-radius: 1.5px;
+  background: var(--accent-primary);
+  transition: width var(--transition-normal);
+}
+
+.quota-strip__reset {
+  font-family: var(--font-mono);
+  /* Reserve a fixed 6-character slot so tracks align across providers */
+  min-width: 6ch;
+  font-size: var(--quota-font);
+  line-height: 1;
+  letter-spacing: 0.2px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.quota-strip__fill--warn {
+  background: var(--accent-warning);
+}
+
+.quota-strip__fill--danger {
+  background: var(--accent-danger);
+}
+
+
+/* Non-ok providers */
+
+.quota-strip__provider[data-status="error"] .quota-strip__symbol {
+  color: var(--accent-danger);
+  border-color: var(--accent-danger);
+}
+
+.quota-strip__provider[data-status="unconfigured"] {
+  opacity: 0.35;
+}
+
+[data-theme="light"] .quota-strip__track {
+  background: var(--border-primary);
+}

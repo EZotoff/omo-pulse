@@ -138,6 +138,15 @@
   --sparkline-fill-sand: rgba(217, 70, 239, 0.8);
   --sparkline-fill-muted: rgba(148, 163, 184, 0.5);
   --sparkline-drop-shadow-muted: rgba(148, 163, 184, 0.4);
+
+  /* Background activity bars (ambient sparkline behind header) */
+  --bg-activity-teal: rgba(13, 148, 136, 0.32);
+  --bg-activity-red: rgba(225, 29, 72, 0.32);
+  --bg-activity-green: rgba(22, 163, 74, 0.32);
+  --bg-activity-sand: rgba(217, 119, 6, 0.32);
+  --bg-activity-muted: rgba(255, 255, 255, 0.09);
+  --bg-activity-flatline: rgba(255, 255, 255, 0.55);
+  --bg-activity-blend: normal;
   --swimlane-dot-teal: rgba(0, 212, 170, 0.7);
   --swimlane-dot-red: rgba(255, 107, 107, 0.7);
   --swimlane-dot-green: rgba(78, 205, 196, 0.7);
@@ -246,6 +255,14 @@
   --sparkline-fill-sand: rgba(180, 60, 200, 0.8);
   --sparkline-fill-muted: rgba(148, 163, 184, 0.4);
   --sparkline-drop-shadow-muted: rgba(148, 163, 184, 0.3);
+
+  --bg-activity-teal: rgba(15, 118, 110, 0.30);
+  --bg-activity-red: rgba(190, 18, 60, 0.30);
+  --bg-activity-green: rgba(21, 128, 61, 0.30);
+  --bg-activity-sand: rgba(180, 83, 9, 0.30);
+  --bg-activity-muted: rgba(0, 0, 0, 0.08);
+  --bg-activity-flatline: rgba(0, 0, 0, 0.48);
+  --bg-activity-blend: normal;
   --swimlane-dot-teal: rgba(0, 155, 122, 0.7);
   --swimlane-dot-red: rgba(212, 64, 64, 0.7);
   --swimlane-dot-green: rgba(42, 157, 143, 0.7);

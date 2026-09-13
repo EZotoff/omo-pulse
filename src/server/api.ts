@@ -4,10 +4,11 @@ import * as fs from "node:fs"
 import { homedir } from "node:os"
 import { listSources, getDefaultSourceId, addOrUpdateSource, updateSourceLabelById, deleteSourceById } from "../ingest/sources-registry"
 import { getStorageRoots, getMessageDir } from "../ingest/session"
-import { assertAllowedPath } from "../ingest/paths"
+import { assertAllowedPath, expandTilde } from "../ingest/paths"
 import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../ingest/tool-calls"
 import { deriveToolCallsSqlite } from "../ingest/sqlite-derive"
 import type { StorageBackend } from "../ingest/storage-backend"
+import { createQuotaService } from "./quotas"
 import type { DashboardMultiProjectPayload, TelegramServiceStatus } from "../types"
 
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/
@@ -27,6 +28,7 @@ export function createApi(opts: {
   const api = new Hono()
   const version = opts.version ?? "0.0.0"
   const multiProjectService = opts.multiProjectService
+  const quotaService = createQuotaService()
   const invalidateProjects = (): void => {
     multiProjectService.invalidate()
   }
@@ -75,11 +77,13 @@ export function createApi(opts: {
       return c.json({ ok: false, error: "projectRoot is required and must be a non-empty string" }, 400)
     }
 
-    if (!fs.existsSync(projectRoot)) {
+    const resolvedRoot = expandTilde(projectRoot.trim())
+
+    if (!fs.existsSync(resolvedRoot)) {
       return c.json({ ok: false, error: "projectRoot directory does not exist" }, 400)
     }
 
-    const sourceId = addOrUpdateSource(opts.storageRoot, projectRoot, label)
+    const sourceId = addOrUpdateSource(opts.storageRoot, resolvedRoot, label)
     invalidateProjects()
     return c.json({ ok: true, sourceId })
   })
@@ -132,9 +136,17 @@ export function createApi(opts: {
     return c.json(project)
   })
 
-  // ---------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // GET /quotas — provider subscription quota usage (cached ~3 min server-side)
+  // -------------------------------------------------------------------------
+  api.get("/quotas", async (c) => {
+    const payload = await quotaService.getQuotas()
+    return c.json({ ok: true, ...payload })
+  })
+
+  // -------------------------------------------------------------------------
   // GET /tool-calls/:sessionId — tool call details per session
-  // ---------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
   api.get("/tool-calls/:sessionId", (c) => {
     const sessionId = c.req.param("sessionId")
     if (!SESSION_ID_PATTERN.test(sessionId)) {

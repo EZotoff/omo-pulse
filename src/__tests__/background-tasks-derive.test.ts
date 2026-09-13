@@ -267,6 +267,100 @@ describe("deriveBackgroundTasksSqlite", () => {
 		expect(result.value[0].timeline).not.toBe("");
 	});
 
+	it("marks linked background task as question when child session has a running canonical question tool", () => {
+		const nowMs = 1_000_000;
+		const db = createMockDb({
+			sessionRows: [
+				{
+					id: "ses-main",
+					project_id: "proj-1",
+					directory: "/tmp/project",
+					time_created: nowMs - 10_000,
+					time_updated: nowMs - 1_000,
+				},
+				{
+					id: "ses-child",
+					project_id: "proj-1",
+					parent_id: "ses-main",
+					directory: "/tmp/project",
+					title: "Background: Ask user",
+					time_created: nowMs - 800,
+					time_updated: nowMs - 500,
+				},
+			],
+			messagesBySession: {
+				"ses-main": [
+					makeMessageRow({
+						id: "msg-main",
+						sessionId: "ses-main",
+						createdAt: nowMs - 1_000,
+						agent: "sisyphus",
+					}),
+				],
+				"ses-child": [
+					makeMessageRow({
+						id: "msg-child",
+						sessionId: "ses-child",
+						createdAt: nowMs - 500,
+						agent: "atlas",
+					}),
+				],
+			},
+			partsByMessage: {
+				"msg-main": [
+					makePartRow({
+						id: "part-main",
+						messageId: "msg-main",
+						sessionId: "ses-main",
+						createdAt: nowMs - 1_000,
+						callId: "call-bg-question",
+						tool: "background_task",
+						status: "completed",
+						input: {
+							description: "Ask user",
+							run_in_background: true,
+							subagent_type: "atlas",
+						},
+						metadata: { sessionId: "ses-child" },
+						startAt: nowMs - 2_000,
+					}),
+				],
+				"msg-child": [
+					makePartRow({
+						id: "part-child-question",
+						messageId: "msg-child",
+						sessionId: "ses-child",
+						createdAt: nowMs - 500,
+						callId: "child-question",
+						tool: "question",
+						status: "running",
+					}),
+				],
+			},
+		});
+
+		const result = deriveBackgroundTasksSqlite({
+			sqlitePath: "/tmp/opencode.db",
+			mainSessionId: "ses-main",
+			nowMs,
+			db: db as unknown as Database,
+		});
+
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+
+		expect(result.value).toHaveLength(1);
+		expect(result.value[0]).toMatchObject({
+			id: "call-bg-question",
+			description: "Ask user",
+			agent: "atlas",
+			status: "question",
+			toolCalls: 1,
+			lastTool: "question",
+			sessionId: "ses-child",
+		});
+	});
+
 	it("marks stale unlinked background task as unknown with null toolCalls", () => {
 		const nowMs = 2_000_000;
 		const startedAt = nowMs - 16 * 60_000;
@@ -509,6 +603,78 @@ describe("deriveBackgroundTasks (file-based)", () => {
 			lastTool: "bash",
 			sessionId: "ses-resume",
 		});
+	});
+
+	it("does not mark file-backed background tasks as question for stale running question tools", () => {
+		const storage = makeTempStorage();
+		const nowMs = 1_000_000;
+
+		writeJson(path.join(storage.message, "ses-main", "msg-main.json"), {
+			id: "msg-main",
+			sessionID: "ses-main",
+			role: "assistant",
+			time: { created: nowMs - 1_000, completed: nowMs - 900 },
+			agent: "sisyphus",
+		} satisfies StoredMessageMeta);
+
+		writeJson(path.join(storage.part, "msg-main", "0001.json"), {
+			id: "part-main",
+			sessionID: "ses-main",
+			messageID: "msg-main",
+			type: "tool",
+			callID: "call-bg",
+			tool: "background_task",
+			state: {
+				status: "completed",
+				input: {
+					description: "Ask stale question",
+					run_in_background: true,
+					subagent_type: "atlas",
+				},
+				metadata: { sessionId: "ses-child" },
+				time: { start: nowMs - 2_000 },
+			},
+		} satisfies PersistedToolPart);
+
+		writeJson(path.join(storage.message, "ses-child", "msg-child.json"), {
+			id: "msg-child",
+			sessionID: "ses-child",
+			role: "assistant",
+			time: { created: nowMs - 1_000, completed: nowMs - 900 },
+			agent: "atlas",
+		} satisfies StoredMessageMeta);
+
+		writeJson(path.join(storage.part, "msg-child", "0001.json"), {
+			id: "part-child",
+			sessionID: "ses-child",
+			messageID: "msg-child",
+			type: "tool",
+			callID: "call-question",
+			tool: "question",
+			state: {
+				status: "running",
+				input: {},
+				time: { start: nowMs - 700_000 },
+			},
+		} satisfies PersistedToolPart);
+
+		writeSessionMeta(storage, "child", {
+			id: "ses-child",
+			projectID: "proj-1",
+			directory: "/tmp/project",
+			parentID: "ses-main",
+			title: "Task: Ask stale question",
+			time: { created: nowMs - 2_000, updated: nowMs - 1_000 },
+		});
+
+		const rows = deriveBackgroundTasks({
+			storage,
+			mainSessionId: "ses-main",
+			nowMs,
+		});
+
+		expect(rows).toHaveLength(1);
+		expect(rows[0]?.status).not.toBe("question");
 	});
 
 	it("keeps stale unlinked background task as unknown", () => {

@@ -206,8 +206,11 @@ export type DashboardMultiProjectPayload = {
 }
 
 /** Configuration state for strip visibility options */
+/** Sparkline rendering mode in the collapsed strip header */
+export type MiniSparklineMode = "ambient" | "inline" | "off"
+
 export type StripConfigState = {
-  showMiniSparkline: boolean
+  miniSparklineMode: MiniSparklineMode
   showPlanProgress: boolean
   showAgentBadge: boolean
   showLastUpdated: boolean
@@ -217,6 +220,10 @@ export type StripConfigState = {
   showGitWorktrees: boolean
   showAvatar: boolean
   showProjectName: boolean
+  /** Provider quota strip visibility (dashboard header area) */
+  showQuotas: boolean
+  /** Provider quota strip identifier style: fetched favicons or letter codes */
+  quotaIconMode: "icons" | "codes"
   stripDisplayMode: "project" | "session"
 }
 
@@ -257,4 +264,38 @@ export type TelegramServiceStatus = {
   lastUpdateMs: number | null
   lastError: string | null
   alertsSent: number
+}
+
+/** Single quota window for a provider (e.g. 5-hour rolling, weekly, monthly) */
+export type QuotaWindow = {
+  /** Stable window id: "5h" | "weekly" | "monthly" */
+  id: string
+  /** Micro label shown next to the usage line: "5H", "WK", "MO" */
+  shortLabel: string
+  /** Human label for tooltips: "5-hour rolling" */
+  label: string
+  /** 0..100 percent used */
+  usedPercent: number
+  /** Next reset as epoch ms, null when the provider does not report one */
+  resetsAtMs: number | null
+}
+
+/** Quota state for a single provider */
+export type ProviderQuota = {
+  providerId: string
+  name: string
+  /** 1-2 char monogram shown in the strip (fallback when no icon) */
+  symbol: string
+  /** Provider favicon as a data URI, null when unavailable */
+  icon: string | null
+  windows: QuotaWindow[]
+  status: "ok" | "unconfigured" | "error"
+  error?: string
+  fetchedAtMs: number
+}
+
+/** Payload for GET /api/quotas */
+export type ProviderQuotasPayload = {
+  providers: ProviderQuota[]
+  serverNowMs: number
 }

@@ -35,7 +35,7 @@ describe("ProjectStrip plan history rendering", () => {
   }
 
   const baseConfig: StripConfigState = {
-    showMiniSparkline: true,
+    miniSparklineMode: "ambient",
     showPlanProgress: true,
     showAgentBadge: true,
     showLastUpdated: true,

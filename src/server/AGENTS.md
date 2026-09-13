@@ -13,6 +13,7 @@ Hono HTTP server + multi-project dashboard assembly.
 | `api.ts` | MED | `createApi()` factory — all REST routes, middleware, error handler |
 | `dashboard.ts` | HIGH | `buildDashboardPayload()` (SQLite) + `buildDashboardPayloadFiles()` (files) + `createDashboardStore()` |
 | `multi-project.ts` | MED | `createMultiProjectService()` — one `DashboardStore` per registered source |
+| `quotas.ts` | MED | `createQuotaService()` — provider quota fetchers (auth.json read-only, TTL cache) |
 | `dev.ts` | LOW | Dev entry: Bun.serve on `OMO_PULSE_API_PORT` (4301) |
 | `start.ts` | LOW | Prod entry: serves Vite-built SPA + API on `OMO_PULSE_PORT` (4300) |
 

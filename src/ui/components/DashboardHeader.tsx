@@ -15,6 +15,7 @@ export type DashboardHeaderProps = {
   onZoomIn?: () => void
   onZoomOut?: () => void
   onZoomReset?: () => void
+  onCollapse?: () => void
 }
 
 /* ── Helpers ── */
@@ -73,6 +74,7 @@ export const DashboardHeader = memo(function DashboardHeader({
   onZoomIn,
   onZoomOut,
   onZoomReset,
+  onCollapse,
 }: DashboardHeaderProps) {
   return (
     <header className="dashboard-header">
@@ -152,6 +154,12 @@ export const DashboardHeader = memo(function DashboardHeader({
         {onSettingsOpen && (
           <button className="header-btn" onClick={onSettingsOpen} type="button" title="Settings" aria-label="Open settings">
             ⚙
+          </button>
+        )}
+
+        {onCollapse && (
+          <button className="header-btn" onClick={onCollapse} type="button" title="Collapse header" aria-label="Collapse header">
+            ⌃
           </button>
         )}
       </div>

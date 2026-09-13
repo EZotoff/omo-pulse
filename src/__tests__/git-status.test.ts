@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 const spawnMock = vi.fn()
 vi.stubGlobal("Bun", { spawn: spawnMock })
 
-import { getGitUncommittedCount, GIT_STATUS_CACHE_TTL_MS } from "../ingest/git-status"
+import { getGitUncommittedCount, GIT_STATUS_CACHE_TTL_MS, NEGATIVE_CACHE_BASE_MS } from "../ingest/git-status"
 
 function mockSpawnResult(
   stdout: string,
@@ -120,14 +120,20 @@ describe("getGitUncommittedCount", () => {
     expect(result).toBeUndefined()
   })
 
-  it("does not cache undefined results from failed git calls", async () => {
+  it("backs off failed git calls and retries after the negative-cache TTL", async () => {
     spawnMock.mockReturnValue(mockSpawnResult("", 1))
 
     const first = await getGitUncommittedCount("/test/no-cache-fail")
     expect(first).toBeUndefined()
 
+    /* Immediate retry is suppressed by the failure backoff (no respawn) */
     spawnMock.mockReturnValue(mockSpawnResult("M file.ts\n", 0))
+    const blocked = await getGitUncommittedCount("/test/no-cache-fail")
+    expect(blocked).toBeUndefined()
+    expect(spawnMock).toHaveBeenCalledTimes(1)
 
+    /* After the backoff window elapses, the retry succeeds */
+    vi.advanceTimersByTime(NEGATIVE_CACHE_BASE_MS + 1)
     const second = await getGitUncommittedCount("/test/no-cache-fail")
     expect(second).toBe(1)
     expect(spawnMock).toHaveBeenCalledTimes(2)

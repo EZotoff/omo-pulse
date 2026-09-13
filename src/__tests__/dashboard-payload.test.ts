@@ -68,7 +68,9 @@ const {
 
   return {
     createMockDb,
-    MockDatabase: vi.fn(() => createMockDb()),
+    MockDatabase: vi.fn(function (this: unknown) {
+      return createMockDb()
+    }),
     mockReadBoulderState: vi.fn(),
     mockReadBoulderHistory: vi.fn(),
     mockReadPlanProgress: vi.fn(),
@@ -180,7 +182,9 @@ describe("buildDashboardPayload characterization", () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    MockDatabase.mockImplementation(() => createMockDb())
+    MockDatabase.mockImplementation(function (this: unknown) {
+      return createMockDb()
+    })
 
     mockReadBoulderState.mockReturnValue(null)
     mockReadBoulderHistory.mockReturnValue([])

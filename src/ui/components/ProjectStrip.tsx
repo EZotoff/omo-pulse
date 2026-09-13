@@ -144,6 +144,10 @@ type StripHeaderContentProps = {
 
 const StripHeaderContent = memo(function StripHeaderContent({ project, finalDisplayStatus, isStale, stripConfig, mainSession, gitUncommittedCount, unintiatedPlans, children, slots }: StripHeaderContentProps) {
   const slotContent = slots ?? children
+  const uninitiatedPlanTooltip = unintiatedPlans && unintiatedPlans.length > 0
+    ? `${unintiatedPlans.length} uninitiated plan${unintiatedPlans.length === 1 ? "" : "s"}:\n${unintiatedPlans.map((plan) => `- ${plan.name}`).join("\n")}`
+    : undefined
+
   return (
     <>
       {stripConfig?.showStatusDot !== false && (
@@ -175,7 +179,7 @@ const StripHeaderContent = memo(function StripHeaderContent({ project, finalDisp
           )}
         </div>
       )}
-      {stripConfig?.showMiniSparkline !== false && <div className="sparkline-slot sparkline-slot--mini">{slotContent?.miniSparkline}</div>}
+      {stripConfig?.miniSparklineMode === "inline" && <div className="sparkline-slot sparkline-slot--mini">{slotContent?.miniSparkline}</div>}
       {stripConfig?.showAgentBadge !== false && <span className="strip-agent-badge">{mainSession.agent}</span>}
       {gitUncommittedCount != null && gitUncommittedCount > 0 && (
         <span className="strip-git-badge" title={`${gitUncommittedCount} uncommitted change${gitUncommittedCount === 1 ? '' : 's'}`}>
@@ -196,7 +200,12 @@ const StripHeaderContent = memo(function StripHeaderContent({ project, finalDisp
       )}
       {stripConfig?.showPlanProgress !== false && <div className="plan-slot plan-slot--compact">{slotContent?.compactPlan}</div>}
       {unintiatedPlans && unintiatedPlans.length > 0 && (
-        <span className="uninitiated-badge">{unintiatedPlans.length}</span>
+        <span
+          className="uninitiated-badge"
+          title={uninitiatedPlanTooltip}
+        >
+          {unintiatedPlans.length}
+        </span>
       )}
       {stripConfig?.showLastUpdated !== false && <span className="strip-updated">{mainSession.lastUpdated ? formatRelativeTime(new Date(mainSession.lastUpdated).getTime()) : "—"}</span>}
     </>
@@ -445,7 +454,9 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
     : displayStatus
 
   const isStale = (() => {
-    const activeStates = ['busy', 'thinking', 'running_tool', 'running_script', 'question', 'error']
+    // bg_agent: project with running background task — main session may be idle/stale,
+    // but the project IS active (aggregateStatus promoted in multi-project.ts).
+    const activeStates = ['busy', 'thinking', 'running_tool', 'running_script', 'bg_agent', 'question', 'error']
     if (activeStates.includes(finalDisplayStatus)) return false
     if (planProgress?.planStale) return true
     if (!mainSession?.lastUpdated) return true
@@ -542,6 +553,11 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
 
   return (
     <div className="project-strip" data-project-id={sourceId} data-expanded={expanded} data-stale={isStale} data-status={finalDisplayStatus}>
+      {stripConfig?.miniSparklineMode === "ambient" && children?.miniSparkline && (
+        <div className="strip-bg-sparkline" aria-hidden="true">
+          {children.miniSparkline}
+        </div>
+      )}
       {previewPublicName ? (
         <a
           className="strip-header"

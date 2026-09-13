@@ -4,6 +4,15 @@ import * as path from "node:path"
 
 export type Env = Record<string, string | undefined>
 
+export function expandTilde(p: string, hd?: string): string {
+  const home = hd ?? os.homedir()
+  if (p === "~") return home
+  if (p.startsWith("~/") || p.startsWith("~\\")) {
+    return path.join(home, p.slice(2).replace(/[\\/]+/g, path.sep))
+  }
+  return p
+}
+
 export function getDataDir(env: Env = process.env, homedir: string = os.homedir()): string {
   // Match oh-my-opencode behavior exactly:
   // XDG_DATA_HOME or ~/.local/share on all platforms.

@@ -14,6 +14,7 @@ import { SessionSwimlane } from "./components/SessionSwimlane"
 import { SettingsPanel } from "./components/SettingsPanel"
 import { ColumnResizeHandle } from "./components/ColumnResizeHandle"
 import { ProjectManagementPanel } from "./components/ProjectManagementPanel"
+import { QuotaStrip } from "./components/QuotaStrip"
 import { useStripConfig } from "./hooks/useStripConfig"
 import { PreviewNav } from "./components/PreviewNav"
 import type { PreviewMode } from "./types"
@@ -22,6 +23,7 @@ import "./App.css"
 import { useExpandState } from "./hooks/useExpandState"
 import { useDensityMode } from "./hooks/useDensityMode"
 import { useSoundNotifications } from "./hooks/useSoundNotifications"
+import { useQuotas } from "./hooks/useQuotas"
 import { useProjectOrder } from "./hooks/useProjectOrder"
 import { useProjectVisibility } from "./hooks/useProjectVisibility"
 import { ATTENTION_FIRST_PRIORITY } from "../ingest/status-rollup"
@@ -156,8 +158,18 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   const { config: soundConfig, setConfig: setSoundConfig, playWaiting, playAllClear, playAttention, playQuestion } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
-  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode } = useStripConfig()
+  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode, setMiniSparklineMode, setQuotaIconMode } = useStripConfig()
+  const { quotas } = useQuotas()
   const [activeOverlay, setActiveOverlay] = useState<ActiveOverlay>('none')
+
+  /* ── Collapsible header ── */
+  const [headerCollapsed, setHeaderCollapsed] = useState<boolean>(() => safeGetItem('dashboard-header-collapsed') === 'true')
+
+  useEffect(() => {
+    safeSetItem('dashboard-header-collapsed', String(headerCollapsed))
+  }, [headerCollapsed])
+
+  const handleToggleHeader = useCallback(() => setHeaderCollapsed((c) => !c), [])
 
   /* ── Zoom ── */
   const [zoom, setZoom] = useState<number>(() => {
@@ -185,7 +197,9 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   /* ── Collapsed pane height & grid gap ── */
   const [collapsedHeight, setCollapsedHeight] = useState<number>(() => {
     const saved = safeGetItem('dashboard-collapsed-height')
-    return saved ? parseInt(saved, 10) : 40
+    const parsed = saved ? parseInt(saved, 10) : 40
+    /* Clamp persisted values to the 30–100px slider range */
+    return Number.isFinite(parsed) ? Math.min(100, Math.max(30, parsed)) : 40
   })
 
   const [gridGap, setGridGap] = useState<number>(() => {
@@ -415,21 +429,35 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   }, [playWaiting, playAllClear, playAttention, playQuestion])
 
   return (
-    <div className="page" data-density={density}>
-      <DashboardHeader
-        connected={connected}
-        lastUpdatedMs={lastUpdatedMs}
-        onExpandAll={handleExpandAll}
-        onCollapseAll={collapseAll}
-        columns={columns}
-        onSetColumns={setColumns}
-        onSettingsOpen={handleSettingsOpen}
-        onManageProjectsOpen={handleManageProjectsOpen}
-        zoom={zoom}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onZoomReset={handleZoomReset}
-      />
+    <div className="page" data-density={density} data-header-collapsed={headerCollapsed}>
+      {headerCollapsed ? (
+        <button
+          className="header-restore"
+          onClick={handleToggleHeader}
+          type="button"
+          title="Show header"
+          aria-label="Show header"
+        >
+          ⌄
+        </button>
+      ) : (
+        <DashboardHeader
+          connected={connected}
+          lastUpdatedMs={lastUpdatedMs}
+          onExpandAll={handleExpandAll}
+          onCollapseAll={collapseAll}
+          columns={columns}
+          onSetColumns={setColumns}
+          onSettingsOpen={handleSettingsOpen}
+          onManageProjectsOpen={handleManageProjectsOpen}
+          zoom={zoom}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onZoomReset={handleZoomReset}
+          onCollapse={handleToggleHeader}
+        />
+      )}
+      {stripConfig.showQuotas && <QuotaStrip quotas={quotas} iconMode={stripConfig.quotaIconMode} />}
       <div className="container">
         {data === null ? (
           <div className="dashboard-loading">Loading…</div>
@@ -505,6 +533,8 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         stripConfig={stripConfig}
         onToggleStrip={toggleStripConfig}
         onSetStripMode={setStripMode}
+        onSetMiniSparklineMode={setMiniSparklineMode}
+        onSetQuotaIconMode={setQuotaIconMode}
         soundConfig={soundConfig}
         onSoundConfigChange={setSoundConfig}
         onTestSound={handleTestSound}
@@ -589,7 +619,7 @@ function ProjectStripWithChildren({ project, expanded, onToggleExpand, stripConf
       {{
         miniSparkline: (
           <Sparkline
-            mode="mini"
+            mode={stripConfig?.miniSparklineMode === "ambient" ? "bg" : "mini"}
             timeSeries={project.timeSeries}
           />
         ),

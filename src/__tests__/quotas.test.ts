@@ -235,8 +235,8 @@ describe("createQuotaService", () => {
     const fetchImpl: FetchLike = async (input) => {
       callCount += 1
       const url = String(input)
-      if (url.includes("opencode.ai/zen")) return jsonResponse({ message: "denied" }, 403)
-      if (url.includes("api.z.ai")) {
+      if (new URL(url).host === "opencode.ai") return jsonResponse({ message: "denied" }, 403)
+      if (new URL(url).host === "api.z.ai") {
         return jsonResponse({
           data: { limits: [{ type: "TOKENS_LIMIT", unit: 3, number: 5, percentage: 22 }] },
         })
@@ -280,11 +280,11 @@ describe("createQuotaService", () => {
     const fetchImpl: FetchLike = async (input, init) => {
       const url = String(input)
       const headers = (init?.headers ?? {}) as Record<string, string>
-      if (url.includes("auth.openai.com")) {
+      if (new URL(url).host === "auth.openai.com") {
         expect(init?.method).toBe("POST")
         return jsonResponse({ access_token: "fresh", refresh_token: "rt2", expires_in: 3600 })
       }
-      if (url.includes("wham/usage")) {
+      if (new URL(url).pathname === "/backend-api/wham/usage") {
         seenAuth.push(headers.Authorization ?? "")
         seenAuth.push(headers["ChatGPT-Account-Id"] ?? "")
         return jsonResponse({
@@ -323,10 +323,10 @@ describe("createQuotaService", () => {
     const icoBytes = Buffer.from([0x00, 0x00, 0x01, 0x00, 0x03, 0x00])
     const fetchImpl: FetchLike = async (input) => {
       const url = String(input)
-      if (url.includes("ollama.com/public/icon")) {
+      if (new URL(url).host === "ollama.com") {
         return new Response(pngBytes, { status: 200, headers: { "Content-Type": "image/png" } })
       }
-      if (url.includes("kimi.com/favicon")) {
+      if (new URL(url).host === "www.kimi.com") {
         // Kimi serves a real ICO without a content-type header.
         return new Response(icoBytes, { status: 200 })
       }

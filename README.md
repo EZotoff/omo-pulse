@@ -28,8 +28,7 @@ Run it as a persistent service alongside your development workflow and always kn
 - **Session swimlane** — per-session activity timeline across all projects
 - **Activity sparklines** — time-series charts for spotting patterns faster than your agent can hallucinate
 - **Sound notifications** — audio alerts for idle, plan complete, errors, and questions (now you can pretend to work while your AI does)
-- **Uncommitted changes tracker** — per-project git badge shows unsaved work at a glance, so you notice before an agent wipes it
-- **Zero instrumentation** — reads oh-my-opencode's native SQLite database directly
+- **Provider quota strip** — live subscription limits (5-hour / weekly / monthly) for Z.AI, ChatGPT, Kimi, Ollama Cloud, and OpenCode Go, with reset countdowns and smart collapsing when a longer quota is exhausted
 - **Systemd service** *(optional)* — persistent background service with auto-start on login
 
 ### Interface — How You Monitor It
@@ -48,6 +47,12 @@ Run it as a persistent service alongside your development workflow and always kn
 </p>
 
 <p align="center"><em>Refined status language — distinct glass and lamp-style indicators for danger, questions, active work, completion, idle, and unknown states.</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/provider-quotas.png" alt="Provider quota strip: thin usage lines with reset countdowns for Z.AI, ChatGPT, OpenCode Go, Ollama Cloud, and Kimi" width="820"/>
+</p>
+
+<p align="center"><em>Provider quota strip — one thin line per subscription window with live reset countdowns. Shorter windows collapse when a longer quota is exhausted, and windows always sort shortest to longest.</em></p>
 
 <table>
   <tr>

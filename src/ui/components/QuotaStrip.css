@@ -7,16 +7,13 @@
   --quota-icon: 16px;
   --quota-track-w: 72px;
   --quota-track-h: 3px;
-  /* Exactly two providers per row: odd entries left-aligned, even right-aligned */
+  /* Two provider columns; all groups left-anchored so icons stay aligned
+     across rows even when window counts differ */
   display: grid;
   grid-template-columns: 1fr 1fr;
   justify-items: start;
   gap: var(--sp-2) var(--sp-4);
   padding: 3px var(--sp-4) 0;
-}
-
-.quota-strip__provider:nth-child(even) {
-  justify-self: end;
 }
 
 .quota-strip__provider {

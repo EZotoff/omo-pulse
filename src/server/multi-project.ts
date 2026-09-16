@@ -1,12 +1,13 @@
+import * as path from "node:path"
 import { Database } from "bun:sqlite"
 import { getGitUncommittedCount } from "../ingest/git-status"
 import { getWorktreeInfo } from "../ingest/git-worktrees"
 import { derivePerSessionTimeSeries } from "../ingest/per-session-timeseries"
 import { findIncludedSessionsSqlite } from "../ingest/session-inclusion"
-import { getSourceById, listSources } from "../ingest/sources-registry"
 import { getMainSessionViewSqlite } from "../ingest/sqlite-derive"
+import { canonicalizeProjectRoot, getSourceById, hashProjectRoot, listSources } from "../ingest/sources-registry"
 import { compareSessionsBySeverity, computeAggregateStatus, selectDisplaySession } from "../ingest/status-rollup"
-import { getLegacyStorageRootForBackend, type StorageBackend } from "../ingest/storage-backend"
+import { discoverProjectActivitySqlite, getLegacyStorageRootForBackend, type StorageBackend } from "../ingest/storage-backend"
 import type {
   BackgroundTaskSummary,
   DashboardMultiProjectPayload,
@@ -76,8 +77,10 @@ function buildEmptySessionTimeSeries(nowMs: number): SessionTimeSeriesPayload {
 export const MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS = 5_000
 export const SESSION_TIMESERIES_CACHE_TTL_MS = 15_000
 export const SESSION_SUMMARY_CACHE_TTL_MS = 10_000
-const INCLUDED_SESSION_IDLE_WINDOW_MS = 300_000
+const INCLUDED_SESSION_IDLE_WINDOW_MS = 2 * 60 * 60_000
 const MAX_CACHE_ENTRIES = 100
+/** Upper bound on auto-discovered projects materialized per payload (most recent first) */
+const MAX_DISCOVERED_PROJECTS = 20
 const DEFAULT_POLL_INTERVAL_MS = 2_000
 
 function evictOldest<K>(map: Map<K, { fetchedAt: number }>, maxSize: number): void {
@@ -327,6 +330,46 @@ export function createMultiProjectService(opts: {
           snapshots.push({ snapshot, projectRoot: entry.projectRoot })
         } catch {
           // Per-source error isolation: if one source fails, others still return
+        }
+      }
+
+      // Auto-discovery: include projects known to OpenCode but not registered,
+      // so the dashboard can show the X most recently active without manual setup
+      if (sqlitePath) {
+        const discovered = discoverProjectActivitySqlite({ sqlitePath, db: sharedDb ?? undefined })
+        if (discovered.ok) {
+          const activityByRoot = new Map(discovered.rows.map((p) => [canonicalizeProjectRoot(p.directory), p.lastActivityMs]))
+          const knownRoots = new Set(snapshots.map((s) => s.projectRoot))
+          // Cap materialized snapshots: OpenCode may know hundreds of historical
+          // project directories — only build full snapshots for the most recent ones
+          const candidates = discovered.rows.slice(0, MAX_DISCOVERED_PROJECTS)
+          for (const project of candidates) {
+            try {
+              const projectRoot = canonicalizeProjectRoot(project.directory)
+              if (knownRoots.has(projectRoot)) continue
+              knownRoots.add(projectRoot)
+
+              const sourceId = hashProjectRoot(projectRoot)
+              const label = path.basename(projectRoot)
+              const store = getOrCreateStore(sourceId, projectRoot)
+              const payload = store.getSnapshot()
+              const sessionTimeSeries = getCachedSessionTimeSeries(projectRoot, sqlitePath, nowMs)
+              const sessions = sharedDb
+                ? getCachedSessionSummary(projectRoot, sharedDb, sqlitePath, nowMs)
+                : []
+              const snapshot = transformPayloadToSnapshot(sourceId, label, projectRoot, payload, sessions, nowMs, sessionTimeSeries)
+              snapshot.lastActivityMs = activityByRoot.get(projectRoot) ?? project.lastActivityMs
+              snapshots.push({ snapshot, projectRoot })
+            } catch {
+              // Per-source error isolation: if one source fails, others still return
+            }
+          }
+
+          // Attach per-project last session activity for recent-project ranking
+          for (const { snapshot, projectRoot } of snapshots) {
+            const lastActivityMs = activityByRoot.get(projectRoot)
+            if (typeof lastActivityMs === "number") snapshot.lastActivityMs = lastActivityMs
+          }
         }
       }
     } finally {

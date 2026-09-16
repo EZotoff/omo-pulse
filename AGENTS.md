@@ -234,3 +234,4 @@ AGENTS.md                    ← this file (root)
 - Dev mode: Vite proxies `/api` → `:4301`; production: single Hono server serves SPA + API on `:4300`
 - `unknown` is the error/disconnected status — there is no explicit `error` in `SessionStatus`
 - `DashboardStore.getSnapshot()` caches results for `pollIntervalMs` to avoid redundant SQLite reads
+- **Auto-restart after updates**: after changing server-side code (`src/server/**`, `src/ingest/**`) or building a new UI bundle, ALWAYS rebuild (`bun run build`) and restart the running service automatically (`systemctl --user restart ez-omo-dash.service`, then verify `curl http://127.0.0.1:4300/api/health`) — do not leave the user on a stale process

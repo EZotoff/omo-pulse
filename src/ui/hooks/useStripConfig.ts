@@ -18,6 +18,13 @@ const DEFAULT_CONFIG: StripConfigState = {
   showQuotas: true,
   quotaIconMode: "icons",
   stripDisplayMode: "project",
+  recentProjectsLimit: 6,
+}
+
+/** Clamp recentProjectsLimit to a sane range */
+export function clampRecentProjectsLimit(n: number): number {
+  if (!Number.isFinite(n)) return DEFAULT_CONFIG.recentProjectsLimit
+  return Math.min(24, Math.max(1, Math.round(n)))
 }
 
 /** Read persisted strip config from localStorage, returning defaults on failure */
@@ -59,6 +66,7 @@ export function useStripConfig(): {
   setMode: (mode: "project" | "session") => void
   setMiniSparklineMode: (mode: MiniSparklineMode) => void
   setQuotaIconMode: (mode: "icons" | "codes") => void
+  setRecentProjectsLimit: (n: number) => void
   reset: () => void
 } {
   const [config, setConfig] = useState<StripConfigState>(() => readPersistedConfig())
@@ -96,9 +104,16 @@ export function useStripConfig(): {
     }))
   }, [])
 
+  const setRecentProjectsLimit = useCallback((n: number) => {
+    setConfig((prev) => ({
+      ...prev,
+      recentProjectsLimit: clampRecentProjectsLimit(n),
+    }))
+  }, [])
+
   const reset = useCallback(() => {
     setConfig(DEFAULT_CONFIG)
   }, [])
 
-  return { config, toggle, setMode, setMiniSparklineMode, setQuotaIconMode, reset }
+  return { config, toggle, setMode, setMiniSparklineMode, setQuotaIconMode, setRecentProjectsLimit, reset }
 }

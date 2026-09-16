@@ -47,6 +47,7 @@ const baseConfig: StripConfigState = {
   showAvatar: true,
   showProjectName: true,
   stripDisplayMode: "project",
+  recentProjectsLimit: 6,
   showQuotas: true,
   quotaIconMode: "icons",
 }

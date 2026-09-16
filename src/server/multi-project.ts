@@ -358,6 +358,8 @@ export function createMultiProjectService(opts: {
         } catch {
           failedDiscoveredRoots.add(canonicalizeProjectRoot(project.directory))
         }
+        /* Yield to the event loop so concurrent requests are served between builds */
+        await new Promise((resolve) => setTimeout(resolve, 100))
       }
     } finally {
       pumpingDiscovered = false

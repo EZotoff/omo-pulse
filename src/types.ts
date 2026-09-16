@@ -203,6 +203,8 @@ export type ProjectSnapshot = {
 /** Multi-project dashboard payload combining all project snapshots */
 export type DashboardMultiProjectPayload = {
   projects: ProjectSnapshot[]
+  /** All discovered non-transient projects (uncapped, snapshot stubs) — for the Projects management menu */
+  discoveredProjects?: ProjectSnapshot[]
   serverNowMs: number
   pollIntervalMs: number
 }

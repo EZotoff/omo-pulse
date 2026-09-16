@@ -112,3 +112,41 @@ export function assertAllowedPath(opts: AssertAllowedPathOptions): string {
 
   throw new Error("Access denied")
 }
+
+/** Segment names that mark a directory as throw-away (tmp-style scratch space) */
+const TRANSIENT_SEGMENTS = new Set(["tmp", ".tmp"])
+
+/**
+ * Decide whether a project directory discovered from session storage is a
+ * transient workspace rather than a real project — e.g. git worktrees of a
+ * parent repo or tmp dirs for throw-away sessions. Those should never be
+ * auto-listed on the dashboard.
+ */
+export function isTransientProjectDir(
+  dir: string,
+  homedir: string = os.homedir(),
+  tmpdir: string = os.tmpdir(),
+): boolean {
+  if (!dir || !path.isAbsolute(dir)) return true
+
+  const normalized = path.normalize(dir)
+  const tmpNormalized = path.normalize(tmpdir)
+  if (
+    normalized === tmpNormalized ||
+    normalized.startsWith(tmpNormalized + path.sep) ||
+    normalized.startsWith(path.sep + "tmp" + path.sep) ||
+    normalized.startsWith(path.sep + "var" + path.sep + "tmp" + path.sep) ||
+    normalized === path.join(homedir, "tmp") ||
+    normalized === path.join(homedir, ".tmp")
+  ) {
+    return true
+  }
+
+  for (const segment of normalized.split(path.sep)) {
+    if (TRANSIENT_SEGMENTS.has(segment)) return true
+    /* Matches "worktrees", ".worktrees", "my-repo-worktrees", "worktree-2", etc. */
+    if (/worktree/i.test(segment)) return true
+  }
+
+  return false
+}

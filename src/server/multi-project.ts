@@ -7,7 +7,7 @@ import { findIncludedSessionsSqlite } from "../ingest/session-inclusion"
 import { getMainSessionViewSqlite } from "../ingest/sqlite-derive"
 import { canonicalizeProjectRoot, getSourceById, hashProjectRoot, listSources } from "../ingest/sources-registry"
 import { compareSessionsBySeverity, computeAggregateStatus, selectDisplaySession } from "../ingest/status-rollup"
-import { discoverProjectActivitySqlite, getLegacyStorageRootForBackend, type StorageBackend } from "../ingest/storage-backend"
+import { discoverProjectActivitySqlite, type DiscoveredProjectActivity, getLegacyStorageRootForBackend, type StorageBackend } from "../ingest/storage-backend"
 import type {
   BackgroundTaskSummary,
   DashboardMultiProjectPayload,
@@ -211,6 +211,46 @@ function transformPayloadToSnapshot(
   }
 }
 
+function buildDiscoveredStubSnapshot(
+  sourceId: string,
+  label: string,
+  projectRoot: string,
+  lastActivityMs: number,
+): ProjectSnapshot {
+  return {
+    sourceId,
+    label,
+    projectRoot,
+    mainSession: {
+      agent: "-",
+      currentModel: null,
+      currentTool: "-",
+      lastUpdated: "",
+      sessionLabel: "",
+      sessionId: null,
+      status: "unknown",
+    },
+    sessions: [],
+    aggregateStatus: "unknown",
+    planProgress: {
+      name: "",
+      completed: 0,
+      total: 0,
+      path: "",
+      status: "not started",
+      steps: [],
+      planStale: false,
+      planComplete: false,
+    },
+    unintiatedPlans: [],
+    timeSeries: { windowMs: 0, bucketMs: 0, buckets: 0, anchorMs: 0, serverNowMs: 0, series: [] },
+    backgroundTasks: [],
+    sessionTimeSeries: { windowMs: 0, bucketMs: 0, buckets: 0, anchorMs: 0, serverNowMs: 0, sessions: [] },
+    lastActivityMs,
+    lastUpdatedMs: lastActivityMs,
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Multi-project service
 // ---------------------------------------------------------------------------
@@ -227,6 +267,13 @@ export function createMultiProjectService(opts: {
   const sessionSummaryByProjectRoot = new Map<string, { value: SessionSummary[]; fetchedAt: number }>()
   let cachedPayload: DashboardMultiProjectPayload | null = null
   let cachedPayloadAt = 0
+  /** Discovered roots whose dashboard store is already warmed up */
+  const builtDiscoveredRoots = new Set<string>()
+  /** Discovered roots queued for background warm-up (bounded by MAX_DISCOVERED_PROJECTS) */
+  const pendingDiscoveredRoots: DiscoveredProjectActivity[] = []
+  /** Roots whose warm-up failed once — not retried to avoid repeated slow failures */
+  const failedDiscoveredRoots = new Set<string>()
+  let pumpingDiscovered = false
 
   const legacyStorageRoot = getLegacyStorageRootForBackend(opts.storageBackend)
 
@@ -292,6 +339,31 @@ export function createMultiProjectService(opts: {
     return created
   }
 
+  /**
+   * Sequentially warm up dashboard stores for queued discovered projects in the
+   * background, so payload requests never block on first-time store builds.
+   */
+  async function pumpDiscoveredRoots(): Promise<void> {
+    if (pumpingDiscovered) return
+    pumpingDiscovered = true
+    try {
+      while (pendingDiscoveredRoots.length > 0) {
+        const project = pendingDiscoveredRoots.shift()
+        if (!project) break
+        try {
+          const projectRoot = canonicalizeProjectRoot(project.directory)
+          const store = getOrCreateStore(hashProjectRoot(projectRoot), projectRoot)
+          store.getSnapshot()
+          builtDiscoveredRoots.add(projectRoot)
+        } catch {
+          failedDiscoveredRoots.add(canonicalizeProjectRoot(project.directory))
+        }
+      }
+    } finally {
+      pumpingDiscovered = false
+    }
+  }
+
   async function getMultiProjectPayload(): Promise<DashboardMultiProjectPayload> {
     const nowMs = Date.now()
     if (cachedPayload && nowMs - cachedPayloadAt < MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS) {
@@ -313,7 +385,6 @@ export function createMultiProjectService(opts: {
       }
     }
 
-    try {
       for (const source of sources) {
         try {
           const entry = getSourceById(opts.storageRoot, source.id)
@@ -333,22 +404,30 @@ export function createMultiProjectService(opts: {
         }
       }
 
-      // Auto-discovery: include projects known to OpenCode but not registered,
-      // so the dashboard can show the X most recently active without manual setup
+    let discoveredRows: DiscoveredProjectActivity[] = []
+    // Auto-discovery: include projects known to OpenCode but not registered,
+    // so the dashboard can show the X most recently active without manual setup
+    try {
       if (sqlitePath) {
         const discovered = discoverProjectActivitySqlite({ sqlitePath, db: sharedDb ?? undefined })
         if (discovered.ok) {
+          discoveredRows = discovered.rows
           const activityByRoot = new Map(discovered.rows.map((p) => [canonicalizeProjectRoot(p.directory), p.lastActivityMs]))
           const knownRoots = new Set(snapshots.map((s) => s.projectRoot))
           // Cap materialized snapshots: OpenCode may know hundreds of historical
-          // project directories — only build full snapshots for the most recent ones
-          const candidates = discovered.rows.slice(0, MAX_DISCOVERED_PROJECTS)
-          for (const project of candidates) {
+          // project directories — only the most recent ones ever get full stores.
+          // Already-warmed stores attach instantly; unbuilt ones are queued for
+          // background warm-up so a request never blocks on building them.
+          for (const project of discovered.rows.slice(0, MAX_DISCOVERED_PROJECTS)) {
+            const projectRoot = canonicalizeProjectRoot(project.directory)
+            if (knownRoots.has(projectRoot)) continue
+            if (!builtDiscoveredRoots.has(projectRoot)) {
+              const failed = failedDiscoveredRoots.has(projectRoot)
+              const queued = pendingDiscoveredRoots.some((p) => p.directory === project.directory)
+              if (!failed && !queued) pendingDiscoveredRoots.push(project)
+              continue
+            }
             try {
-              const projectRoot = canonicalizeProjectRoot(project.directory)
-              if (knownRoots.has(projectRoot)) continue
-              knownRoots.add(projectRoot)
-
               const sourceId = hashProjectRoot(projectRoot)
               const label = path.basename(projectRoot)
               const store = getOrCreateStore(sourceId, projectRoot)
@@ -376,6 +455,26 @@ export function createMultiProjectService(opts: {
       try { sharedDb?.close() } catch {}
     }
 
+    // Uncapped stub snapshots for the Projects management menu — cheap (no
+    // per-project git/plan/timeseries reads) so every real project shows up
+    const richRoots = new Set(snapshots.map((s) => s.projectRoot))
+    const discoveredStubs = discoveredRows
+      .map((project) => {
+        const projectRoot = canonicalizeProjectRoot(project.directory)
+        if (richRoots.has(projectRoot)) return null
+        richRoots.add(projectRoot)
+        return buildDiscoveredStubSnapshot(
+          hashProjectRoot(projectRoot),
+          path.basename(projectRoot),
+          projectRoot,
+          project.lastActivityMs,
+        )
+      })
+      .filter((snapshot): snapshot is ProjectSnapshot => snapshot !== null)
+
+    // Kick off background warm-up of queued discovered stores — never awaited
+    void pumpDiscoveredRoots()
+
     // Phase 2: Parallel async git operations across all sources
     await Promise.all(snapshots.map(async ({ snapshot, projectRoot }) => {
       try {
@@ -389,11 +488,11 @@ export function createMultiProjectService(opts: {
         // Git failures are isolated per-source
       }
     }))
-
     const projects = snapshots.map((s) => s.snapshot)
 
     const payload = {
       projects,
+      discoveredProjects: discoveredStubs,
       serverNowMs: nowMs,
       pollIntervalMs,
     }

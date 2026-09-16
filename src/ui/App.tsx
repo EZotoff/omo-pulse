@@ -329,10 +329,17 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
     prevPlanStatusesRef.current = nextPlanStatuses
   }, [data, connected, soundConfig, playWaiting, playAllClear, playAttention, playQuestion])
 
-  const sortedProjects = useMemo(() => {
+  /* Hidden projects are excluded before the recently-active selection, so they
+     never consume one of the X dashboard slots */
+  const visibleProjects = useMemo(() => {
     if (!data) return []
-    return selectRecentProjects(data.projects, stripConfig.recentProjectsLimit)
-  }, [data, stripConfig.recentProjectsLimit])
+    return data.projects.filter((p) => isVisible(p.sourceId))
+  }, [data, isVisible])
+
+  const sortedProjects = useMemo(
+    () => selectRecentProjects(visibleProjects, stripConfig.recentProjectsLimit),
+    [visibleProjects, stripConfig.recentProjectsLimit],
+  )
 
   /* Sync orderedIds when project list changes */
   useEffect(() => {
@@ -347,6 +354,15 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   )
 
   /* Display projects in DnD order when available, else status sort; then filter by visibility */
+  /* Projects menu list: full snapshot set + all discovered projects (uncapped) */
+  const managementProjects = useMemo(() => {
+    if (!data) return []
+    const byId = new Map<string, ProjectSnapshot>()
+    for (const stub of data.discoveredProjects ?? []) byId.set(stub.sourceId, stub)
+    for (const project of data.projects) byId.set(project.sourceId, project)
+    return [...byId.values()]
+  }, [data])
+
   const displayProjects = useMemo(() => {
     const map = new Map(sortedProjects.map((p) => [p.sourceId, p]))
     const ordered = currentOrderIds
@@ -547,7 +563,9 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
       <ProjectManagementPanel
         open={activeOverlay === 'projectManagement'}
         onClose={handleCloseOverlay}
-        projects={data?.projects ?? []}
+        projects={managementProjects}
+        recentProjectsLimit={stripConfig.recentProjectsLimit}
+        onRecentProjectsLimitChange={setRecentProjectsLimit}
         orderedIds={orderedIds}
         visibility={visibility}
         onToggleVisibility={toggleVisibility}

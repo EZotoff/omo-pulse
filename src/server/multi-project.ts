@@ -74,9 +74,9 @@ function buildEmptySessionTimeSeries(nowMs: number): SessionTimeSeriesPayload {
   }
 }
 
-export const MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS = 5_000
-export const SESSION_TIMESERIES_CACHE_TTL_MS = 15_000
-export const SESSION_SUMMARY_CACHE_TTL_MS = 10_000
+export const MULTI_PROJECT_PAYLOAD_CACHE_TTL_MS = 8_000
+export const SESSION_TIMESERIES_CACHE_TTL_MS = 60_000
+export const SESSION_SUMMARY_CACHE_TTL_MS = 60_000
 const INCLUDED_SESSION_IDLE_WINDOW_MS = 2 * 60 * 60_000
 const MAX_CACHE_ENTRIES = 100
 /** Upper bound on auto-discovered projects materialized per payload (most recent first) */

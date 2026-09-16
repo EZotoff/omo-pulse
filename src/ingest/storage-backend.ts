@@ -191,6 +191,43 @@ export function readAllSessionMetasSqlite(opts: {
   return { ok: true, rows }
 }
 
+/** One row of per-project session activity discovery */
+export type DiscoveredProjectActivity = {
+  directory: string
+  lastActivityMs: number
+}
+
+/**
+ * Discover all projects that have main sessions in the SQLite database,
+ * with their most recent session activity timestamp.
+ */
+export function discoverProjectActivitySqlite(opts: {
+  sqlitePath: string
+  db?: BunDatabase
+}): SqliteReadResult<DiscoveredProjectActivity> {
+  const result = withDbOrOpen(opts.db, opts.sqlitePath, (db) =>
+    db
+      .query("SELECT directory, MAX(time_updated) AS last_activity FROM session WHERE parent_id IS NULL GROUP BY directory")
+      .all() as Array<{
+      directory: unknown
+      last_activity: unknown
+    }>
+  )
+  if (!result.ok) return result
+
+  const rows: DiscoveredProjectActivity[] = []
+  for (const row of result.value) {
+    const directory = asString(row.directory)
+    if (!directory) continue
+    const lastActivityMs = asFiniteNumber(row.last_activity) ?? 0
+    rows.push({ directory, lastActivityMs })
+  }
+
+  rows.sort((a, b) => b.lastActivityMs - a.lastActivityMs)
+  return { ok: true, rows }
+}
+
+
 export function readSessionExistsSqlite(opts: {
   sqlitePath: string
   sessionId: string

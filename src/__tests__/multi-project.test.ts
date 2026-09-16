@@ -12,6 +12,7 @@ vi.mock("../ingest/sources-registry", () => ({
 
 vi.mock("../ingest/storage-backend", () => ({
   getLegacyStorageRootForBackend: vi.fn(() => "/tmp/legacy-storage"),
+  discoverProjectActivitySqlite: vi.fn(() => ({ ok: true, rows: [] })),
 }))
 
 // Mock createDashboardStore to return a controllable DashboardPayload

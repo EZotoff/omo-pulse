@@ -26,7 +26,7 @@ import { useSoundNotifications } from "./hooks/useSoundNotifications"
 import { useQuotas } from "./hooks/useQuotas"
 import { useProjectOrder } from "./hooks/useProjectOrder"
 import { useProjectVisibility } from "./hooks/useProjectVisibility"
-import { ATTENTION_FIRST_PRIORITY } from "../ingest/status-rollup"
+import { selectRecentProjects } from "./utils/recent-projects"
 import {
   buildSessionStatusMap,
   diffSessionStatuses,
@@ -64,12 +64,6 @@ export type ProjectSoundDecision = {
   playback: SoundPlaybackDecision
 }
 
-export function compareProjects(a: ProjectSnapshot, b: ProjectSnapshot): number {
-  const pa = ATTENTION_FIRST_PRIORITY[a.aggregateStatus] ?? ATTENTION_FIRST_PRIORITY.unknown
-  const pb = ATTENTION_FIRST_PRIORITY[b.aggregateStatus] ?? ATTENTION_FIRST_PRIORITY.unknown
-  if (pa !== pb) return pa - pb
-  return b.lastUpdatedMs - a.lastUpdatedMs
-}
 
 export function resolveProjectOrderIds(
   sortedProjects: ProjectSnapshot[],
@@ -158,7 +152,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   const { config: soundConfig, setConfig: setSoundConfig, playWaiting, playAllClear, playAttention, playQuestion } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
-  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode, setMiniSparklineMode, setQuotaIconMode } = useStripConfig()
+  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode, setMiniSparklineMode, setQuotaIconMode, setRecentProjectsLimit } = useStripConfig()
   const { quotas } = useQuotas()
   const [activeOverlay, setActiveOverlay] = useState<ActiveOverlay>('none')
 
@@ -337,8 +331,8 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
 
   const sortedProjects = useMemo(() => {
     if (!data) return []
-    return [...data.projects].sort(compareProjects)
-  }, [data])
+    return selectRecentProjects(data.projects, stripConfig.recentProjectsLimit)
+  }, [data, stripConfig.recentProjectsLimit])
 
   /* Sync orderedIds when project list changes */
   useEffect(() => {
@@ -535,6 +529,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         onSetStripMode={setStripMode}
         onSetMiniSparklineMode={setMiniSparklineMode}
         onSetQuotaIconMode={setQuotaIconMode}
+        onSetRecentProjectsLimit={setRecentProjectsLimit}
         soundConfig={soundConfig}
         onSoundConfigChange={setSoundConfig}
         onTestSound={handleTestSound}

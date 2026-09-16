@@ -41,6 +41,7 @@ export type SettingsPanelProps = {
   onSetStripMode: (mode: "project" | "session") => void
   onSetMiniSparklineMode: (mode: MiniSparklineMode) => void
   onSetQuotaIconMode: (mode: "icons" | "codes") => void
+  onSetRecentProjectsLimit: (n: number) => void
   soundConfig: SoundConfig
   onSoundConfigChange: (config: SoundConfig) => void
   onTestSound: (event: "idle" | "complete" | "error" | "question") => void
@@ -93,6 +94,7 @@ export function SettingsPanel({
   onSetStripMode,
   onSetMiniSparklineMode,
   onSetQuotaIconMode,
+  onSetRecentProjectsLimit,
   soundConfig,
   onSoundConfigChange,
   onTestSound,
@@ -185,6 +187,10 @@ export function SettingsPanel({
   const handleIdleTimeoutMsChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => onIdleTimeoutMsChange(Number(e.target.value)),
     [onIdleTimeoutMsChange],
+  )
+  const handleRecentProjectsLimitChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => onSetRecentProjectsLimit(Number(e.target.value)),
+    [onSetRecentProjectsLimit],
   )
 
   return (
@@ -378,6 +384,22 @@ export function SettingsPanel({
                 aria-label="Idle timeout duration"
               />
               <span className="settings-slider-value">{formatTimeout(idleTimeoutMs)}</span>
+            </div>
+
+            {/* Recent Projects Limit */}
+            <div className="settings-slider-row">
+              <span className="settings-slider-label">Recent Projects</span>
+              <input
+                className="settings-slider"
+                type="range"
+                min={1}
+                max={24}
+                step={1}
+                value={stripConfig.recentProjectsLimit}
+                onChange={handleRecentProjectsLimitChange}
+                aria-label="Number of recently active projects to show"
+              />
+              <span className="settings-slider-value">{stripConfig.recentProjectsLimit}</span>
             </div>
           </div>
           

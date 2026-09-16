@@ -196,6 +196,8 @@ export type ProjectSnapshot = {
   gitUncommittedCount?: number
   worktrees?: WorktreeInfo
   lastUpdatedMs: number
+  /** Most recent session activity across all sessions (ms epoch). undefined = not available */
+  lastActivityMs?: number
 }
 
 /** Multi-project dashboard payload combining all project snapshots */
@@ -225,6 +227,8 @@ export type StripConfigState = {
   /** Provider quota strip identifier style: fetched favicons or letter codes */
   quotaIconMode: "icons" | "codes"
   stripDisplayMode: "project" | "session"
+  /** How many recently-active projects to show on the dashboard (auto mode) */
+  recentProjectsLimit: number
 }
 
 /** Sound notification configuration */

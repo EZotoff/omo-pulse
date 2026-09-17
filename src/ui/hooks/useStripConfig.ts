@@ -19,6 +19,7 @@ const DEFAULT_CONFIG: StripConfigState = {
   quotaIconMode: "icons",
   stripDisplayMode: "project",
   recentProjectsLimit: 6,
+  projectListMode: "recent",
 }
 
 /** Clamp recentProjectsLimit to a sane range */
@@ -41,6 +42,9 @@ function readPersistedConfig(): StripConfigState {
       merged.miniSparklineMode = parsedObj.showMiniSparkline === false ? "off" : "ambient"
     }
     delete (merged as { showMiniSparkline?: unknown }).showMiniSparkline
+    if (merged.projectListMode !== "recent" && merged.projectListMode !== "manual") {
+      merged.projectListMode = "recent"
+    }
     return merged
   } catch {
     return DEFAULT_CONFIG
@@ -67,6 +71,7 @@ export function useStripConfig(): {
   setMiniSparklineMode: (mode: MiniSparklineMode) => void
   setQuotaIconMode: (mode: "icons" | "codes") => void
   setRecentProjectsLimit: (n: number) => void
+  setProjectListMode: (mode: "recent" | "manual") => void
   reset: () => void
 } {
   const [config, setConfig] = useState<StripConfigState>(() => readPersistedConfig())
@@ -110,10 +115,17 @@ export function useStripConfig(): {
       recentProjectsLimit: clampRecentProjectsLimit(n),
     }))
   }, [])
+  const setProjectListMode = useCallback((mode: "recent" | "manual") => {
+    setConfig((prev) => ({
+      ...prev,
+      projectListMode: mode,
+    }))
+  }, [])
+
 
   const reset = useCallback(() => {
     setConfig(DEFAULT_CONFIG)
   }, [])
 
-  return { config, toggle, setMode, setMiniSparklineMode, setQuotaIconMode, setRecentProjectsLimit, reset }
+  return { config, toggle, setMode, setMiniSparklineMode, setQuotaIconMode, setRecentProjectsLimit, setProjectListMode, reset }
 }

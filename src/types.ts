@@ -231,6 +231,8 @@ export type StripConfigState = {
   stripDisplayMode: "project" | "session"
   /** How many recently-active projects to show on the dashboard (auto mode) */
   recentProjectsLimit: number
+  /** How the dashboard project list is populated: top-X recent activity or manual pins */
+  projectListMode: "recent" | "manual"
 }
 
 /** Sound notification configuration */

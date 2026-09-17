@@ -13,7 +13,7 @@ const APP_VERSION: string = pkg.version ?? "0.0.0";
 
 const app = new Hono();
 
-const port = parseInt(process.env.OMO_PULSE_PORT || "4300", 10);
+const port = parseInt(process.env.OMO_PULSE_PORT || "18030", 10);
 const distRoot = join(import.meta.dir, "../../dist");
 
 const storageBackend = selectStorageBackend();
@@ -51,7 +51,7 @@ app.use("*", async (c, next) => {
   if (!path.includes(".")) {
     const indexFile = Bun.file(join(distRoot, "index.html"));
     if (await indexFile.exists()) {
-      return c.html(await indexFile.text());
+      return c.html(await indexFile.text(), 200, { "Cache-Control": "no-cache" })
     }
     return c.notFound();
   }

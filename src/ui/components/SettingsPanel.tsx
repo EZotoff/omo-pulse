@@ -388,7 +388,7 @@ export function SettingsPanel({
 
             {/* Recent Projects Limit */}
             <div className="settings-slider-row">
-              <span className="settings-slider-label">Recent Projects</span>
+              <span className="settings-slider-label">Max Visible Projects</span>
               <input
                 className="settings-slider"
                 type="range"
@@ -397,7 +397,7 @@ export function SettingsPanel({
                 step={1}
                 value={stripConfig.recentProjectsLimit}
                 onChange={handleRecentProjectsLimitChange}
-                aria-label="Number of recently active projects to show"
+                aria-label="Maximum number of recently active projects visible on the dashboard"
               />
               <span className="settings-slider-value">{stripConfig.recentProjectsLimit}</span>
             </div>

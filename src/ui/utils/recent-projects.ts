@@ -32,7 +32,13 @@ export function selectRecentProjects(
 ): ProjectSnapshot[] {
   if (projects.length === 0) return []
   const cutoffMs = nowMs - DYNAMIC_ACTIVITY_WINDOW_MS
-  const eligible = projects.filter((p) => activityOf(p) >= cutoffMs)
+  /* Only trust lastUpdatedMs as an activity signal when the snapshot actually
+   * carries sessions — registered-but-empty projects get a "now" default that
+   * would otherwise masquerade as fresh activity and never age out. */
+  const eligible = projects.filter((p) => {
+    const hasRealActivity = p.lastActivityMs !== undefined || p.sessions.length > 0
+    return hasRealActivity && activityOf(p) >= cutoffMs
+  })
   if (eligible.length === 0) return []
   const effectiveLimit = Number.isFinite(limit) && limit >= 1 ? Math.floor(limit) : eligible.length
   const ranked = [...eligible].sort((a, b) => activityOf(b) - activityOf(a))

@@ -78,11 +78,19 @@ describe("selectRecentProjects", () => {
     expect(result.map((p) => p.sourceId).sort()).toEqual(["active", "stale"])
   })
 
-  it("falls back to lastUpdatedMs when lastActivityMs is missing", () => {
+  it("falls back to lastUpdatedMs when lastActivityMs is missing and sessions exist", () => {
+    const withSessions = (sourceId: string, updated: number): ProjectSnapshot =>
+      makeSnapshot({
+        sourceId,
+        lastUpdatedMs: updated,
+        sessions: [
+          { sessionId: sourceId, sessionLabel: "s", agent: "build", status: "idle", lastUpdated: "x", currentTool: "-", currentModel: null, tokenUsage: null },
+        ],
+      })
     const projects = [
-      makeSnapshot({ sourceId: "a", lastUpdatedMs: daysAgo(5) }),
-      makeSnapshot({ sourceId: "b", lastUpdatedMs: daysAgo(1) }),
-      makeSnapshot({ sourceId: "c", lastUpdatedMs: daysAgo(3) }),
+      withSessions("a", daysAgo(5)),
+      withSessions("b", daysAgo(1)),
+      withSessions("c", daysAgo(3)),
     ]
     const result = selectRecentProjects(projects, 2, NOW)
     expect(result.map((p) => p.sourceId).sort()).toEqual(["b", "c"])
@@ -93,6 +101,25 @@ describe("selectRecentProjects", () => {
     const projects = [makeSnapshot({ sourceId: "a", lastActivityMs: daysAgo(1) })]
     expect(selectRecentProjects(projects, 0, NOW).map((p) => p.sourceId)).toEqual(["a"])
     expect(selectRecentProjects(projects, Number.NaN, NOW).map((p) => p.sourceId)).toEqual(["a"])
+  })
+
+  it("excludes registered-but-empty projects whose lastUpdatedMs defaults to now", () => {
+    const projects = [
+      makeSnapshot({ sourceId: "game-life", label: "Game Life", lastActivityMs: undefined, lastUpdatedMs: NOW, sessions: [] }),
+      makeSnapshot({ sourceId: "fresh", lastActivityMs: daysAgo(1) }),
+    ]
+    const result = selectRecentProjects(projects, 6, NOW)
+    expect(result.map((p) => p.sourceId)).toEqual(["fresh"])
+  })
+
+  it("still trusts lastUpdatedMs when the snapshot carries sessions", () => {
+    const projects = [
+      makeSnapshot({ sourceId: "with-sessions", lastActivityMs: undefined, lastUpdatedMs: daysAgo(1), sessions: [
+        { sessionId: "s1", sessionLabel: "s", agent: "build", status: "idle", lastUpdated: "1h ago", currentTool: "-", currentModel: null, tokenUsage: null },
+      ] }),
+    ]
+    const result = selectRecentProjects(projects, 6, NOW)
+    expect(result.map((p) => p.sourceId)).toEqual(["with-sessions"])
   })
 
   it("returns nothing when every project is outside the dynamic window", () => {

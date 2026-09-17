@@ -84,7 +84,7 @@ describe("selectRecentProjects", () => {
         sourceId,
         lastUpdatedMs: updated,
         sessions: [
-          { sessionId: sourceId, sessionLabel: "s", agent: "build", status: "idle", lastUpdated: "x", currentTool: "-", currentModel: null, tokenUsage: null },
+          { sessionId: sourceId, sessionLabel: "s", agent: "build", status: "idle", lastUpdated: "x", currentTool: "-", currentModel: "m", lastUpdatedMs: 0 },
         ],
       })
     const projects = [
@@ -115,7 +115,7 @@ describe("selectRecentProjects", () => {
   it("still trusts lastUpdatedMs when the snapshot carries sessions", () => {
     const projects = [
       makeSnapshot({ sourceId: "with-sessions", lastActivityMs: undefined, lastUpdatedMs: daysAgo(1), sessions: [
-        { sessionId: "s1", sessionLabel: "s", agent: "build", status: "idle", lastUpdated: "1h ago", currentTool: "-", currentModel: null, tokenUsage: null },
+        { sessionId: "s1", sessionLabel: "s", agent: "build", status: "idle", lastUpdated: "1h ago", currentTool: "-", currentModel: "m", lastUpdatedMs: 0 },
       ] }),
     ]
     const result = selectRecentProjects(projects, 6, NOW)

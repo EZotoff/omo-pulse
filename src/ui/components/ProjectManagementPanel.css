@@ -182,24 +182,6 @@
   outline-offset: 2px;
 }
 
-.project-management-panel__recent-limit {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-}
 
-.project-management-panel__recent-limit-label {
-  font-size: 0.8em;
-  opacity: 0.75;
-}
 
-.project-management-panel__recent-limit-slider {
-  width: 110px;
-}
 
-.project-management-panel__recent-limit-value {
-  min-width: 2ch;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}

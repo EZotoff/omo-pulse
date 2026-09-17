@@ -152,7 +152,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   const { config: soundConfig, setConfig: setSoundConfig, playWaiting, playAllClear, playAttention, playQuestion } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
-  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode, setMiniSparklineMode, setQuotaIconMode, setRecentProjectsLimit } = useStripConfig()
+  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode, setMiniSparklineMode, setQuotaIconMode, setRecentProjectsLimit, setProjectListMode } = useStripConfig()
   const { quotas } = useQuotas()
   const [activeOverlay, setActiveOverlay] = useState<ActiveOverlay>('none')
 
@@ -336,10 +336,13 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
     return data.projects.filter((p) => isVisible(p.sourceId))
   }, [data, isVisible])
 
-  const sortedProjects = useMemo(
-    () => selectRecentProjects(visibleProjects, stripConfig.recentProjectsLimit),
-    [visibleProjects, stripConfig.recentProjectsLimit],
-  )
+  const sortedProjects = useMemo(() => {
+    if (stripConfig.projectListMode === "manual") {
+      /* Manual pins: every visible project, ordered by the user's drag order */
+      return visibleProjects
+    }
+    return selectRecentProjects(visibleProjects, stripConfig.recentProjectsLimit)
+  }, [visibleProjects, stripConfig.recentProjectsLimit, stripConfig.projectListMode])
 
   /* Sync orderedIds when project list changes */
   useEffect(() => {
@@ -546,6 +549,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         onSetMiniSparklineMode={setMiniSparklineMode}
         onSetQuotaIconMode={setQuotaIconMode}
         onSetRecentProjectsLimit={setRecentProjectsLimit}
+        onSetProjectListMode={setProjectListMode}
         soundConfig={soundConfig}
         onSoundConfigChange={setSoundConfig}
         onTestSound={handleTestSound}
@@ -564,8 +568,6 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         open={activeOverlay === 'projectManagement'}
         onClose={handleCloseOverlay}
         projects={managementProjects}
-        recentProjectsLimit={stripConfig.recentProjectsLimit}
-        onRecentProjectsLimitChange={setRecentProjectsLimit}
         orderedIds={orderedIds}
         visibility={visibility}
         onToggleVisibility={toggleVisibility}

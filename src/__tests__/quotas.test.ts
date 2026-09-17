@@ -343,3 +343,54 @@ describe("createQuotaService", () => {
     expect(zai?.status).toBe("unconfigured")
   })
 })
+
+describe("createQuotaService stale-while-error", () => {
+  it("serves last successful windows when a later refresh fails", async () => {
+    const authPath = await withTempAuth(
+      JSON.stringify({ "zai-coding-plan": { type: "api", key: "sk-zai" } }),
+    )
+    let fail = false
+    const fetchImpl: FetchLike = async (input) => {
+      if (new URL(String(input)).host === "api.z.ai") {
+        if (fail) return jsonResponse({ message: "upstream down" }, 503)
+        return jsonResponse({
+          data: { limits: [{ type: "TOKENS_LIMIT", unit: 3, number: 5, percentage: 22 }] },
+        })
+      }
+      return jsonResponse({})
+    }
+    let nowMs = NOW_MS
+    const service = createQuotaService({
+      authPath,
+      fetchImpl,
+      now: () => nowMs,
+      cacheTtlMs: 1_000,
+    })
+
+    const first = await service.getQuotas()
+    const good = first.providers.find((p) => p.providerId === "zai-coding-plan")
+    expect(good).toMatchObject({ status: "ok" })
+    expect(good?.windows[0]).toMatchObject({ usedPercent: 22 })
+
+    nowMs += 5_000 // TTL elapsed → refetch, this time upstream fails
+    fail = true
+    const second = await service.getQuotas()
+    const stale = second.providers.find((p) => p.providerId === "zai-coding-plan")
+    expect(stale).toMatchObject({ status: "ok" })
+    expect(stale?.windows[0]).toMatchObject({ usedPercent: 22 })
+  })
+
+  it("reports error with empty windows when the first fetch fails", async () => {
+    const authPath = await withTempAuth(
+      JSON.stringify({ "zai-coding-plan": { type: "api", key: "sk-zai" } }),
+    )
+    const fetchImpl: FetchLike = async (input) => {
+      if (new URL(String(input)).host === "api.z.ai") return jsonResponse({}, 500)
+      return jsonResponse({})
+    }
+    const service = createQuotaService({ authPath, fetchImpl })
+    const payload = await service.getQuotas()
+    const zai = payload.providers.find((p) => p.providerId === "zai-coding-plan")
+    expect(zai).toMatchObject({ status: "error", windows: [] })
+  })
+})

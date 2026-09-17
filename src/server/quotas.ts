@@ -635,6 +635,8 @@ export function createQuotaService(opts: QuotaServiceOptions = {}): QuotaService
   const fetchImpl = opts.fetchImpl ?? fetch
   const now = opts.now ?? (() => Date.now())
   const iconCache = new Map<string, CachedIcon>()
+  /** Last successful windows per provider — served when a later refresh fails */
+  const lastGoodWindows = new Map<string, { windows: QuotaWindow[]; fetchedAtMs: number }>()
   let cache: { atMs: number; payload: ProviderQuotasPayload } | null = null
   let inFlight: Promise<ProviderQuotasPayload> | null = null
 
@@ -667,6 +669,7 @@ export function createQuotaService(opts: QuotaServiceOptions = {}): QuotaService
     }
     try {
       const windows = await def.fetchWindows({ auth, entry, fetchImpl, nowMs: fetchedAtMs })
+      lastGoodWindows.set(def.providerId, { windows, fetchedAtMs })
       return {
         providerId: def.providerId,
         name: def.name,
@@ -677,6 +680,20 @@ export function createQuotaService(opts: QuotaServiceOptions = {}): QuotaService
         fetchedAtMs,
       }
     } catch (err) {
+      /* Stale-while-error: transient upstream timeouts should not blank out
+         a provider's strip — keep showing the last successful windows. */
+      const stale = lastGoodWindows.get(def.providerId)
+      if (stale) {
+        return {
+          providerId: def.providerId,
+          name: def.name,
+          symbol: def.symbol,
+          icon: await iconPromise,
+          windows: stale.windows,
+          status: "ok",
+          fetchedAtMs: stale.fetchedAtMs,
+        }
+      }
       return {
         providerId: def.providerId,
         name: def.name,

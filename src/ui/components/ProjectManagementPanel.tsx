@@ -32,6 +32,9 @@ export type ProjectManagementPanelProps = {
   onProjectAdded?: () => void
   onOpenSettings?: () => void
   onRefresh?: () => void
+  /** How many recently-active projects the dashboard shows (dynamic display size) */
+  recentProjectsLimit: number
+  onRecentProjectsLimitChange: (n: number) => void
 }
 
 type SortableProjectCardProps = {
@@ -102,6 +105,8 @@ export function ProjectManagementPanel({
   onProjectAdded,
   onOpenSettings,
   onRefresh,
+  recentProjectsLimit,
+  onRecentProjectsLimitChange,
 }: ProjectManagementPanelProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const isSearchActive = searchQuery.trim().length > 0
@@ -167,6 +172,20 @@ export function ProjectManagementPanel({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            <label className="project-management-panel__recent-limit" title="How many recently active projects are shown on the dashboard">
+              <span className="project-management-panel__recent-limit-label">Recent</span>
+              <input
+                type="range"
+                className="project-management-panel__recent-limit-slider"
+                min={1}
+                max={24}
+                step={1}
+                value={recentProjectsLimit}
+                onChange={(e) => onRecentProjectsLimitChange(Number(e.target.value))}
+                aria-label="Number of recently active projects shown on the dashboard"
+              />
+              <span className="project-management-panel__recent-limit-value">{recentProjectsLimit}</span>
+            </label>
             <div className="project-management-panel__add-form">
               <AddProjectForm onProjectAdded={onProjectAdded} />
             </div>

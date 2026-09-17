@@ -3,7 +3,7 @@ import * as path from "node:path"
 import { Database as BunDatabase } from "bun:sqlite"
 import { classifySqliteError } from "./sqlite-utils"
 import type { SessionMetadata, StoredMessageMeta, StoredToolPart } from "./session"
-import { realpathSafe } from "./paths"
+import { isTransientProjectDir, realpathSafe } from "./paths"
 import { getDataDir, getOpenCodeStorageDirFromDataDir, type Env } from "./paths"
 
 const REQUIRED_TABLES = ["session", "message", "part"] as const
@@ -223,8 +223,10 @@ export function discoverProjectActivitySqlite(opts: {
     rows.push({ directory, lastActivityMs })
   }
 
-  rows.sort((a, b) => b.lastActivityMs - a.lastActivityMs)
-  return { ok: true, rows }
+  const usable = rows.filter((row) => !isTransientProjectDir(row.directory))
+  usable.sort((a, b) => b.lastActivityMs - a.lastActivityMs)
+  usable.sort((a, b) => b.lastActivityMs - a.lastActivityMs)
+  return { ok: true, rows: usable }
 }
 
 

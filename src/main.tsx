@@ -13,6 +13,8 @@ function DashboardRoot() {
   const { data, connected, lastUpdate, refresh } = useDashboardData(previewMode)
 
   if (isRemote) {
+    // Window title is how focus-remote-start.sh finds and raises this window.
+    document.title = "omo-pulse · focus remote"
     return <FocusRemote />
   }
 

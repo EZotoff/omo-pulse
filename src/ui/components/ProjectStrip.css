@@ -387,18 +387,6 @@
   color: color-mix(in srgb, var(--status-script) 70%, var(--text-secondary));
 }
 
-/* Expanded dot size */
-.project-strip[data-expanded="true"] .strip-status-dot {
-  width: 16px;
-  height: 16px;
-}
-
-.project-strip[data-expanded="true"] .strip-status-dot[data-avatar="true"] {
-  width: 24px;
-  height: 24px;
-  font-size: 11px;
-}
-
 /* Project label */
 .strip-label {
   font-size: var(--font-sm);
@@ -562,20 +550,6 @@
   text-align: right;
 }
 
-/* Expand/collapse chevron */
-.strip-chevron {
-  font-size: var(--font-sm);
-  color: var(--text-muted);
-  flex-shrink: 0;
-  width: 14px;
-  text-align: center;
-  transition: color var(--transition-fast);
-}
-
-.strip-header:hover .strip-chevron {
-  color: var(--text-secondary);
-}
-
 /* ── Expanded body ── */
 .strip-body {
   max-height: 0;
@@ -583,26 +557,6 @@
   z-index: 3;
   overflow: hidden;
   transition: max-height var(--transition-normal);
-}
-
-/* When constrained (max-height set), allow vertical scroll */
-.strip-body--constrained {
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-primary) transparent;
-}
-.strip-body--constrained::-webkit-scrollbar {
-  width: 4px;
-}
-.strip-body--constrained::-webkit-scrollbar-track {
-  background: transparent;
-}
-.strip-body--constrained::-webkit-scrollbar-thumb {
-  background: var(--border-primary);
-  border-radius: 2px;
-}
-.strip-body--constrained::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
 }
 
 .strip-body-inner {
@@ -871,21 +825,6 @@
 
 
 
-
-/* ── Dot animations — expanded strips ONLY ── */
-
-/* idle — breathing glow, 4s cycle */
-.project-strip[data-expanded="true"] .strip-status-dot[data-status="idle"] {
-  animation: status-glow 4s ease-in-out infinite;
-}
-
-/* error — no pulse animation, just static intense red glow defined in main selector */
-.project-strip[data-expanded="true"] .strip-status-dot[data-status="error"] {
-  animation: none;
-}
-
-
-
 /* ── Density overrides ── */
 
 /* Dense mode: 40px strips, tighter padding, smaller font */
@@ -1030,11 +969,6 @@
   font-size: 0.55rem;
   min-width: 3ch;
 }
-[data-density="ultra-dense"] .strip-chevron {
-  font-size: var(--font-xs);
-  width: 10px;
-  background: var(--bg-tertiary);
-}
 
 /* ── Status border colors (via data-status on .project-strip root) ── */
 
@@ -1083,54 +1017,6 @@
 .project-strip[data-status="unknown"] {
   border-color: var(--status-unknown);
   --strip-glow-color: transparent;
-}
-
-
-/* ── Strip glow (expanded only) ── */
-/* (Replaced by general shadow-drift on strip level) */
-
-/* ── Enhanced strip glow — expanded active only ── */
-.project-strip[data-expanded="true"][data-status="busy"],
-.project-strip[data-expanded="true"][data-status="running_tool"],
-.project-strip[data-expanded="true"][data-status="bg_agent"],
-.project-strip[data-expanded="true"][data-status="thinking"] {
-  box-shadow: 0 0 15px 2px var(--status-border-glow-faint), inset 0 1px 0 var(--status-border-glow-inset);
-}
-.project-strip[data-expanded="true"][data-status="running_script"] {
-  box-shadow: 0 0 12px 2px var(--status-script-glow), inset 0 1px 0 rgba(124, 96, 64, 0.05);
-}
-
-/* ── Scanning sheen — expanded active only ── */
-/* (Removed strip-level animation from busy/thinking/running_tool) */
-
-/* ── Collapsed strips: NO animations, static only ── */
-
-.project-strip[data-expanded="false"] {
-  animation: none;
-}
-
-.project-strip[data-expanded="false"]::before {
-  animation: none;
-}
-
-.project-strip[data-expanded="false"]::after {
-  animation: none;
-  opacity: 0;
-}
-
-.project-strip[data-expanded="false"] .strip-status-dot {
-  animation: none;
-}
-
-.project-strip[data-expanded="true"][data-status="question"]::after {
-  left: 30%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--status-question-border) 50%,
-    transparent 100%
-  );
-  opacity: 0.3;
 }
 
 @media (max-width: 900px) {
@@ -1198,55 +1084,6 @@
   .project-strip::after {
     opacity: 0;
   }
-}
-
-/* ── Resize handle ── */
-.resize-handle {
-  height: 14px;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  cursor: row-resize;
-  background: transparent;
-  flex-shrink: 0;
-  transition: background var(--transition-fast);
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.resize-handle::after {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 3px;
-  background: transparent;
-  border-radius: 1px;
-  transition: background var(--transition-fast);
-}
-.resize-handle:hover::after {
-  background: var(--border-primary);
-}
-
-/* ── Release / constrain button ── */
-.release-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: var(--font-xs);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: color var(--transition-fast), background var(--transition-fast);
-}
-.release-btn:hover {
-  color: var(--text-primary);
-  background: var(--bg-tertiary);
 }
 
 /* ── Plan History ── */

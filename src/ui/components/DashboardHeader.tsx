@@ -5,8 +5,6 @@ import { useEffect, useState, memo } from "react"
 export type DashboardHeaderProps = {
   connected: boolean
   lastUpdatedMs: number | null
-  onExpandAll: () => void
-  onCollapseAll: () => void
   columns?: number
   onSetColumns?: (n: number) => void
   onSettingsOpen?: () => void
@@ -64,8 +62,6 @@ function LastUpdatedLabel({ lastUpdatedMs }: LastUpdatedLabelProps) {
 export const DashboardHeader = memo(function DashboardHeader({
   connected,
   lastUpdatedMs,
-  onExpandAll,
-  onCollapseAll,
   columns,
   onSetColumns,
   onSettingsOpen,
@@ -97,12 +93,6 @@ export const DashboardHeader = memo(function DashboardHeader({
             aria-label="Open focus remote window"
           >
             ⌖ Focus Remote
-          </button>
-          <button className="header-btn" onClick={onExpandAll} type="button" title="Expand all" aria-label="Expand all">
-            +
-          </button>
-          <button className="header-btn" onClick={onCollapseAll} type="button" title="Collapse all" aria-label="Collapse all">
-            −
           </button>
 
           {onSetColumns && (

@@ -20,7 +20,6 @@ import { PreviewNav } from "./components/PreviewNav"
 import type { PreviewMode } from "./types"
 
 import "./App.css"
-import { useExpandState } from "./hooks/useExpandState"
 import { useDensityMode } from "./hooks/useDensityMode"
 import { useSoundNotifications } from "./hooks/useSoundNotifications"
 import { useQuotas } from "./hooks/useQuotas"
@@ -148,7 +147,6 @@ function safeSetItem(key: string, value: string): void {
 /* ── Component ── */
 
 export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: AppProps) {
-  const { expandedIds, toggle, expandAll, collapseAll } = useExpandState()
   const { config: soundConfig, setConfig: setSoundConfig, playWaiting, playAllClear, playAttention, playQuestion } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
@@ -279,11 +277,6 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
   const prevSessionMapsRef = useRef<ProjectSessionStatusMaps>(new Map())
   const prevPlanStatusesRef = useRef<ProjectPlanStatuses>(new Map())
 
-  const handleExpandAll = useCallback(() => {
-    if (!data) return
-    expandAll(data.projects.map((p) => p.sourceId))
-  }, [data, expandAll])
-
   /* Sound notifications on status transitions */
   useEffect(() => {
     if (!data || !connected) return
@@ -391,27 +384,11 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
 
   const isPreviewMode = previewMode !== null
 
-  const effectiveExpandedIds = useMemo(() => {
-    if (!isPreviewMode) return expandedIds
-    const previewIds = new Set<string>()
-    if (data) {
-      for (const project of data.projects) {
-        if (project.sourceId.startsWith('preview-')) {
-          previewIds.add(project.sourceId)
-        }
-      }
-    }
-    const filtered = new Set(expandedIds)
-    for (const id of previewIds) {
-      filtered.delete(id)
-    }
-    return filtered
-  }, [isPreviewMode, expandedIds, data])
 
   const projectCount = displayProjects.length
   const density = useDensityMode(projectCount)
 
-  /* DnD sensors — 8px activation distance to avoid conflicts with click-to-expand */
+  /* DnD sensors - 8px activation distance so drags do not fire on plain clicks */
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
@@ -457,8 +434,6 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
         <DashboardHeader
           connected={connected}
           lastUpdatedMs={lastUpdatedMs}
-          onExpandAll={handleExpandAll}
-          onCollapseAll={collapseAll}
           columns={columns}
           onSetColumns={setColumns}
           onSettingsOpen={handleSettingsOpen}
@@ -508,20 +483,15 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
                   className="project-stack"
                   style={{ gridTemplateColumns: currentWidths.map((w: number) => `${w}fr`).join(' ') }}
                 >
-                  {displayProjects.map((project) => {
-                    const expanded = effectiveExpandedIds.has(project.sourceId)
-                    return (
-                      <SortableProjectStrip
-                        key={project.sourceId}
-                        id={project.sourceId}
-                        project={project}
-                        expanded={expanded}
-                        onToggleExpand={() => toggle(project.sourceId)}
-                        stripConfig={effectiveStripConfig}
-                        idleTimeoutMs={idleTimeoutMs}
-                      />
-                    )
-                  })}
+                  {displayProjects.map((project) => (
+                    <SortableProjectStrip
+                      key={project.sourceId}
+                      id={project.sourceId}
+                      project={project}
+                      stripConfig={effectiveStripConfig}
+                      idleTimeoutMs={idleTimeoutMs}
+                    />
+                  ))}
                   {columns > 1 && resizeHandleIds.map((handleId, i: number) => {
                     const totalFr = currentWidths.reduce((a: number, b: number) => a + b, 0)
                     const precedingFr = currentWidths.slice(0, i + 1).reduce((a: number, b: number) => a + b, 0)
@@ -585,13 +555,11 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
 type SortableProjectStripProps = {
   id: string
   project: ProjectSnapshot
-  expanded: boolean
-  onToggleExpand: () => void
   stripConfig?: StripConfigState
   idleTimeoutMs: number
 }
 
-function SortableProjectStrip({ id, project, expanded, onToggleExpand, stripConfig, idleTimeoutMs }: SortableProjectStripProps) {
+function SortableProjectStrip({ id, project, stripConfig, idleTimeoutMs }: SortableProjectStripProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
 
   const style: React.CSSProperties = {
@@ -603,8 +571,6 @@ function SortableProjectStrip({ id, project, expanded, onToggleExpand, stripConf
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <ProjectStripWithChildren
         project={project}
-        expanded={expanded}
-        onToggleExpand={onToggleExpand}
         stripConfig={stripConfig}
         idleTimeoutMs={idleTimeoutMs}
       />
@@ -616,18 +582,14 @@ function SortableProjectStrip({ id, project, expanded, onToggleExpand, stripConf
 
 type ProjectStripWithChildrenProps = {
   project: ProjectSnapshot
-  expanded: boolean
-  onToggleExpand: () => void
   stripConfig?: StripConfigState
   idleTimeoutMs: number
 }
 
-function ProjectStripWithChildren({ project, expanded, onToggleExpand, stripConfig, idleTimeoutMs }: ProjectStripWithChildrenProps) {
+function ProjectStripWithChildren({ project, stripConfig, idleTimeoutMs }: ProjectStripWithChildrenProps) {
   return (
     <ProjectStrip
       project={project}
-      expanded={expanded}
-      onToggleExpand={onToggleExpand}
       stripConfig={stripConfig}
       idleTimeoutMs={idleTimeoutMs}
     >

@@ -1,7 +1,6 @@
 import type React from "react"
-import { memo, useCallback, useEffect, useRef, useState } from "react"
+import { memo, useCallback, useState } from "react"
 import type { ProjectSnapshot, StripConfigState } from "../../types"
-import { useProjectPaneHeights } from "../hooks/useProjectPaneHeights"
 import { getInitials } from "../utils/avatar"
 import "./ProjectStrip.css"
 
@@ -96,8 +95,6 @@ function formatCompletionDate(completedAt: string): string {
 
 export type ProjectStripProps = {
   project: ProjectSnapshot
-  expanded: boolean
-  onToggleExpand: () => void
   stripConfig?: StripConfigState
   idleTimeoutMs?: number
   children?: {
@@ -436,7 +433,7 @@ const StripPlans = memo(function StripPlans({ project, planProgress, unintiatedP
   )
 })
 
-function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idleTimeoutMs, children }: ProjectStripProps) {
+function ProjectStripInner({ project, stripConfig, idleTimeoutMs, children }: ProjectStripProps) {
   const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount, unintiatedPlans } = project
   const sourceId = project.sourceId
   const projectName = resolveProjectName(project)
@@ -467,10 +464,6 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
   const previewPublicNameMatch = sourceId.startsWith('preview-all-') ? sourceId.match(/^preview-all-(.+)-\d+$/) : null
   const previewPublicName = previewPublicNameMatch?.[1] ?? null
 
-  /* ── Pane height management ── */
-  const { setHeight, releaseHeight, isReleased, getHeight } = useProjectPaneHeights()
-  const released = isReleased(sourceId)
-  const currentHeight = getHeight(sourceId)
 
   /* ── Uninitiated plans state ── */
   const [expandedUninitiatedPlans, setExpandedUninitiatedPlans] = useState<Set<string>>(new Set())
@@ -488,71 +481,9 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
     })
   }, [])
 
-  /* ── Drag-to-resize refs ── */
-  const bodyRef = useRef<HTMLDivElement>(null)
-  const draggingRef = useRef(false)
-  const startYRef = useRef(0)
-  const startHeightRef = useRef(0)
-
-  const handleResizeMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      if (!bodyRef.current) return
-      draggingRef.current = true
-      startYRef.current = e.clientY
-      startHeightRef.current = bodyRef.current.getBoundingClientRect().height
-      document.body.style.cursor = "row-resize"
-      document.body.style.userSelect = "none"
-    },
-    [],
-  )
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!draggingRef.current) return
-      const delta = e.clientY - startYRef.current
-      const next = Math.max(150, startHeightRef.current + delta)
-      if (bodyRef.current) {
-        bodyRef.current.style.maxHeight = `${next}px`
-      }
-    }
-    const handleMouseUp = (e: MouseEvent) => {
-      if (!draggingRef.current) return
-      draggingRef.current = false
-      document.body.style.cursor = ""
-      document.body.style.userSelect = ""
-      const delta = e.clientY - startYRef.current
-      const finalHeight = Math.max(150, startHeightRef.current + delta)
-      setHeight(sourceId, finalHeight)
-    }
-    document.addEventListener("mousemove", handleMouseMove)
-    document.addEventListener("mouseup", handleMouseUp)
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove)
-      document.removeEventListener("mouseup", handleMouseUp)
-    }
-  }, [sourceId, setHeight])
-
-  const handleReleaseToggle = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation()
-      if (released) {
-        setHeight(sourceId, 400)
-      } else {
-        releaseHeight(sourceId)
-      }
-    },
-    [released, sourceId, setHeight, releaseHeight],
-  )
-
-  /* ── Body style ── */
-  const bodyStyle: React.CSSProperties = expanded
-    ? { maxHeight: released ? "none" : `${currentHeight}px` }
-    : {}
 
   return (
-    <div className="project-strip" data-project-id={sourceId} data-expanded={expanded} data-stale={isStale} data-status={finalDisplayStatus}>
+    <div className="project-strip" data-project-id={sourceId} data-stale={isStale} data-status={finalDisplayStatus}>
       {stripConfig?.miniSparklineMode === "ambient" && children?.miniSparkline && (
         <div className="strip-bg-sparkline" aria-hidden="true">
           {children.miniSparkline}
@@ -578,13 +509,7 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
         </a>
       ) : (
         <div className="strip-header-row">
-          <button
-            type="button"
-            className="strip-header strip-header-button"
-            onClick={onToggleExpand}
-            aria-expanded={expanded}
-            aria-label={`${project.label} — ${finalDisplayStatus}`}
-          >
+          <div className="strip-header">
             <StripHeaderContent
               project={project}
               finalDisplayStatus={finalDisplayStatus}
@@ -595,26 +520,10 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
               unintiatedPlans={unintiatedPlans}
               slots={children}
             />
-            <span className="strip-chevron" aria-hidden="true">{expanded ? "▾" : "▸"}</span>
-          </button>
-          {expanded && (
-            <button
-              type="button"
-              className="release-btn"
-              onClick={handleReleaseToggle}
-              title={released ? "Constrain height" : "Release height"}
-              aria-label={released ? "Constrain pane height" : "Release pane height"}
-            >
-              {released ? "⊟" : "⤢"}
-            </button>
-          )}
+          </div>
         </div>
       )}
-      <div
-        className={`strip-body${expanded && !released ? " strip-body--constrained" : ""}`}
-        ref={bodyRef}
-        style={bodyStyle}
-      >
+      <div className="strip-body">
         <div className="strip-body-inner">
           <div className="strip-project-header">
             <span className="strip-project-name">{projectName}</span>
@@ -644,9 +553,6 @@ function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idl
             slots={children}
           />
         </div>
-        {expanded && !released && (
-          <button type="button" className="resize-handle" onMouseDown={handleResizeMouseDown} aria-label="Resize project pane" />
-        )}
       </div>
     </div>
   )

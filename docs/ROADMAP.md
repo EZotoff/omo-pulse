@@ -11,7 +11,18 @@ desktop: clicking a session in the dashboard jumps a dedicated terminal window s
 that session's TUI.
 
 - `POST /focus/:sourceId/:sessionId` API endpoint (localhost-only) in `src/server/api.ts`
-- **Session viewer window**: one dedicated Alacritty window (`omo-focus`) running a tiny
+- **Session viewer window (always-on panel)**: one dedicated Alacritty window
+  (`omo-focus`, WM_CLASS `omoPulseFocus`) launched at login via
+  `~/.config/autostart/omo-focus-viewer.desktop` → `scripts/focus-viewer-start.sh`
+  (idempotent; display auto-detected). Inside runs `scripts/focus-viewer.sh`: a FIFO
+  request loop with a watchdog — each `POST /focus` swaps the attached TUI
+  (`opencode attach … -s <sessionId>`) and raises the window via wmctrl.
+  Key pitfalls handled: background jobs get stdin=/dev/null (pty fds are dup'd to
+  fd3/4/5 and passed explicitly), FIFO write-open deadlock (O_RDWR fd8), and
+  preemption while a TUI is foreground (watchdog kills the child via a pid file).
+  Viewer diagnostics: `~/.local/state/omo-pulse/viewer.log`.
+- Window raised via `wmctrl`/`xdotool` (GNOME X11); the window is NOT a child of the
+  dashboard's systemd cgroup — it survives dashboard restarts.
   wrapper script — a FIFO request loop that SIGTERMs the current `opencode attach` and
   spawns the next (`oa <dir> -s <sessionId>`). No zellij involvement; content is replaced
   per click, real state lives on the port-3030 daemon.

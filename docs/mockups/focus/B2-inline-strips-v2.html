@@ -70,14 +70,12 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radi
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .strip.all-busy .t{color:#3d5a52}
 
-/* ── peek line: label + initiating prompt of the selected attention session ── */
+/* ── peek line: initiating prompt of the selected attention session ── */
 .strip.has-att{padding-bottom:5px}
 .peek{display:flex;align-items:center;gap:9px;height:21px;
   padding:0 99px 0 302px; /* aligns under the chips column */
   min-width:0}
-.peek-dot{flex:none;font-size:9px;color:var(--pc);line-height:1}
-.peek-label{flex:none;font:11px var(--mono);font-weight:600;color:var(--pc);
-  white-space:nowrap}
+.peek-dot{flex:none;width:6px;height:6px;border-radius:50%}
 .peek-prompt{flex:1;min-width:0;font:11px var(--mono);color:var(--tx2);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .peek-wait{flex:none;font:10.5px var(--mono);color:var(--tx3);white-space:nowrap}
@@ -104,7 +102,7 @@ button:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radi
 <header class="top">
   <h1>omo-pulse</h1>
   <span class="opt">Option B2 · inline strips + prompt peek</span>
-  <p class="sub">Every session needing attention gets its own chip — not just the top one. The peek line shows the selected session's <b>label + initiating prompt</b>; hover (or tab to) any attention chip to move the peek. Click a chip to focus that session's terminal. Strips only grow when attention is pending.</p>
+  <p class="sub">Every session needing attention gets its own chip — not just the top one. The peek line shows the selected session's <b>initiating prompt</b>; hover (or tab to) any attention chip to move the peek. Click a chip to focus that session's terminal. Strips only grow when attention is pending.</p>
 </header>
 
 <div class="strips"><div class="strips-inner" id="strips"></div></div>
@@ -197,8 +195,7 @@ document.getElementById('strips').innerHTML = order.map((p,si)=>{
   /* peek line: only when attention is pending */
   const peek=!allBusy
     ?'<div class="peek" role="status" aria-live="polite">'
-      +'<span class="peek-dot">▶</span>'
-      +'<span class="peek-label">'+esc(n.label)+'</span>'
+      +'<span class="peek-dot" style="background:'+COLOR[n.status]+'"></span>'
       +'<span class="peek-prompt">'+esc(n.prompt)+'</span>'
       +'<span class="peek-wait">'+esc(n.wait)+'</span></div>'
     :'';
@@ -232,8 +229,7 @@ function select(e){
   b.classList.add('sel');
   const sess=PROJECTS.find(p=>p.name===strip.dataset.name).sessions.find(s=>s.label===b.dataset.peek);
   const col=PEEK_COLOR[sess.status];
-  peek.innerHTML='<span class="peek-dot" style="color:'+col+'">▶</span>'
-    +'<span class="peek-label" style="color:'+col+'">'+esc(sess.label)+'</span>'
+  peek.innerHTML='<span class="peek-dot" style="background:'+col+'"></span>'
     +'<span class="peek-prompt">'+esc(sess.prompt)+'</span>'
     +'<span class="peek-wait">'+esc(sess.wait)+'</span>';
 }

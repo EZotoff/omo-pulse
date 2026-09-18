@@ -89,6 +89,15 @@ export const DashboardHeader = memo(function DashboardHeader({
 
       <div className="dashboard-header__right">
         <div className="dashboard-header__actions">
+          <button
+            className="header-btn"
+            onClick={() => window.open(`${window.location.pathname}?view=remote`, "omoFocusRemote", "popup,width=420,height=680")}
+            type="button"
+            title="Open focus remote window"
+            aria-label="Open focus remote window"
+          >
+            ⌖ Focus Remote
+          </button>
           <button className="header-btn" onClick={onExpandAll} type="button" title="Expand all" aria-label="Expand all">
             +
           </button>

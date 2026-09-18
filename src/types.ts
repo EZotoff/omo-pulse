@@ -307,3 +307,31 @@ export type ProviderQuotasPayload = {
   providers: ProviderQuota[]
   serverNowMs: number
 }
+
+/** Attention state for a session */
+export type AttentionState = "question" | "error" | "awaiting_input" | "plan_complete" | "working"
+
+/** Attention session needing user action */
+export type AttentionSession = {
+  sessionId: string
+  sessionLabel: string
+  state: AttentionState
+  waitMs: number
+}
+
+/** Project attention summary */
+export type AttentionProject = {
+  sourceId: string
+  label: string
+  projectRoot: string
+  next: AttentionSession | null
+  queue: number
+  busySessions: number
+  totalSessions: number
+}
+
+/** Payload for GET /api/attention */
+export type AttentionPayload = {
+  projects: AttentionProject[]
+  serverNowMs: number
+}

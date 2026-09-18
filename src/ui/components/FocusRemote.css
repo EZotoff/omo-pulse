@@ -1,0 +1,273 @@
+/* Focus Remote — compact 420×680 popup view (mock-up: docs/mockups/focus/A-focus-remote-window.html) */
+
+/* Component-local tokens (mock-up colors not covered by global tokens.css) */
+.focus-remote {
+  --focus-error: #ef4444;
+  --focus-hover-bg: #22223a;
+  --focus-busy-n: #3d5a52;
+}
+
+/* Compact popup layout: the remote view owns the whole viewport */
+html:has(.focus-remote),
+body:has(.focus-remote) {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+#root:has(.focus-remote) {
+  height: 100%;
+}
+
+.focus-remote {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: 14px/1.45 var(--font-family);
+}
+
+/* ── Header ── */
+
+.focus-rhead {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 14px var(--sp-4) 12px;
+  border-bottom: 1px solid var(--border-secondary);
+  flex: none;
+}
+
+.focus-rdot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  box-shadow: 0 0 8px var(--accent-primary);
+  flex: none;
+}
+
+.focus-remote[data-connected="false"] .focus-rdot {
+  background: var(--status-danger);
+  box-shadow: 0 0 8px var(--status-danger-glow);
+}
+
+.focus-rhead h1 {
+  font-size: 13.5px;
+  font-weight: 650;
+  margin: 0;
+}
+
+.focus-rhead h1 span {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.focus-rsort {
+  margin-left: auto;
+  font: 10px var(--font-mono);
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* ── List ── */
+
+.focus-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.focus-proj-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.focus-pname {
+  font: 12px var(--font-mono);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.focus-ptime {
+  font: 10px var(--font-mono);
+  color: var(--text-muted);
+}
+
+/* ── Focus target button ── */
+
+.focus-target {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-left: 3px solid var(--sc, var(--text-muted));
+  border-radius: 6px;
+  padding: 10px var(--sp-3);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.focus-target[data-state="question"] {
+  --sc: var(--status-question);
+}
+.focus-target[data-state="error"] {
+  --sc: var(--focus-error);
+}
+.focus-target[data-state="awaiting_input"] {
+  --sc: var(--accent-warning);
+}
+.focus-target[data-state="plan_complete"] {
+  --sc: var(--status-plan-complete);
+}
+
+.focus-target:hover {
+  background: var(--focus-hover-bg);
+  border-color: var(--sc);
+  box-shadow: 0 0 14px -4px var(--sc);
+}
+
+.focus-target--urgent {
+  animation: focus-breath 2.6s ease-in-out infinite;
+}
+
+@keyframes focus-breath {
+  0%,
+  100% {
+    box-shadow: 0 0 5px -3px var(--sc);
+  }
+  50% {
+    box-shadow: 0 0 14px -3px var(--sc);
+  }
+}
+
+.focus-target:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.focus-target:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.focus-t-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.focus-t-label {
+  font: 12px var(--font-mono);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.focus-t-focus {
+  flex: none;
+  font: 10px var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--sc);
+}
+
+.focus-queue {
+  font: 10px var(--font-mono);
+  color: var(--text-muted);
+  padding-left: 4px;
+}
+
+.focus-error {
+  font: 10.5px var(--font-mono);
+  color: var(--focus-error);
+  padding: 3px 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── All-busy divider ── */
+
+.focus-divider {
+  font: 10px var(--font-mono);
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding: 6px 4px 0;
+  border-top: 1px solid var(--border-secondary);
+  margin-top: 4px;
+}
+
+.focus-busy-row {
+  display: flex;
+  justify-content: space-between;
+  font: 11px var(--font-mono);
+  color: var(--text-muted);
+  padding: 4px 4px 0;
+}
+
+.focus-busy-row .focus-busy-n {
+  color: var(--focus-busy-n);
+}
+
+/* ── All-clear panel ── */
+
+.focus-clear-panel {
+  text-align: center;
+  padding: 40px var(--sp-3);
+}
+
+.focus-clear-ck {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--status-plan-complete);
+  border: 1px solid var(--status-plan-complete-ring-1);
+  background: var(--status-plan-complete-bg-faint);
+  font-size: 16px;
+}
+
+.focus-clear-panel h2 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.focus-clear-panel p {
+  font: 11px var(--font-mono);
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-target,
+  .focus-target--urgent,
+  .focus-rdot {
+    animation: none !important;
+    transition: none !important;
+  }
+}

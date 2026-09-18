@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>omo-pulse · Option A — focus remote</title>
+<style>
+:root{
+  --bg:#0a0a0f; --bg2:#12121a; --bg3:#1a1a2e;
+  --tx:#e8e8ed; --tx2:#a0a0b0; --tx3:#666680;
+  --bd:#2a2a3e; --bd2:#1e1e30;
+  --acc:#00d4aa; --danger:#ff6b6b; --ok:#4ecdc4; --warn:#ffa502;
+  --q:#5a43e4; --err:#ef4444; --ai:#ffa502; --pc:#10b981; --wk:#00d4aa; --idle:#475569;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--tx);
+  font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:4px}
+.mono{font-family:var(--mono)}
+
+/* fixed mock-up badge */
+.badge{position:fixed;bottom:14px;right:14px;z-index:99;
+  font:10px/1 var(--mono);letter-spacing:.08em;color:var(--warn);
+  border:1px solid rgba(255,165,2,.45);background:rgba(255,165,2,.08);
+  padding:6px 10px;border-radius:4px;pointer-events:none}
+
+/* ── main page ── */
+.top{max-width:1040px;margin:0 auto;padding:34px 24px 10px}
+.top h1{font-size:19px;font-weight:650;letter-spacing:.01em;display:flex;align-items:center;gap:12px}
+.top .opt{font:11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--acc);border:1px solid rgba(0,212,170,.4);padding:5px 9px;border-radius:4px}
+.top .sub{color:var(--tx2);font-size:13px;margin-top:8px}
+
+.stage{max-width:1040px;margin:22px auto 60px;padding:0 24px;position:relative}
+.dash{border:1px solid var(--bd);border-radius:8px;overflow:hidden;
+  pointer-events:none;user-select:none;opacity:.45;filter:saturate(.7)}
+.stage::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(10,10,15,0) 0%,rgba(10,10,15,.65) 100%);
+  border-radius:8px;pointer-events:none}
+
+/* decorative strips (not clickable) */
+.dstrip{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px;
+  background:var(--bg2);border-bottom:1px solid var(--bd2)}
+.dstrip:last-child{border-bottom:none}
+.dstrip .dot{width:9px;height:9px;border-radius:50%;background:var(--sc);box-shadow:0 0 8px var(--sc)}
+.dstrip .name{font-weight:600;font-size:13px;width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dstrip .lamp{width:7px;height:7px;border-radius:50%;background:var(--sc)}
+.dstrip .chips{display:flex;gap:6px;flex:1;overflow:hidden}
+.dstrip .dchip{font:11px var(--mono);color:var(--tx3);background:var(--bg3);
+  border:1px solid var(--bd);border-radius:4px;padding:3px 8px;white-space:nowrap}
+.dstrip .t{font:11px var(--mono);color:var(--tx3);white-space:nowrap}
+
+.cta{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);z-index:5;
+  text-align:center;background:rgba(18,18,26,.92);border:1px solid var(--bd);
+  border-radius:8px;padding:26px 34px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+.open-btn{display:inline-flex;align-items:center;gap:10px;
+  background:rgba(0,212,170,.12);color:var(--acc);
+  border:1px solid rgba(0,212,170,.55);border-radius:6px;
+  font-size:15px;font-weight:650;padding:13px 26px;
+  transition:background 150ms ease,box-shadow 150ms ease}
+.open-btn:hover{background:rgba(0,212,170,.2);box-shadow:0 0 18px -4px rgba(0,212,170,.6)}
+.cta .hint{margin-top:12px;color:var(--tx3);font:11px var(--mono)}
+.cta .warn{margin-top:6px;color:var(--tx3);font-size:11px;display:none}
+
+/* toast (main page — popup-blocked feedback) */
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,12px);
+  background:var(--bg3);border:1px solid var(--bd);border-radius:6px;
+  color:var(--tx);font:12px var(--mono);padding:10px 16px;
+  opacity:0;pointer-events:none;transition:opacity 150ms ease,transform 150ms ease;
+  box-shadow:0 6px 24px rgba(0,0,0,.55);z-index:100;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="badge">MOCK-UP — simulated focus</div>
+
+<header class="top">
+  <h1>omo-pulse <span class="opt">Option A · focus remote</span></h1>
+  <p class="sub">Attention lives in a separate compact window. The dashboard below stays ambient and decorative — nothing here is clickable.</p>
+</header>
+
+<main class="stage">
+  <div class="dash" id="dash" aria-hidden="true"></div>
+  <div class="cta">
+    <button id="openRemote" class="open-btn">⌘ Open Focus Remote</button>
+    <p class="hint">compact window · sorted by urgency · one click to focus</p>
+    <p class="warn" id="popupWarn">popup blocked — allow popups for file:// pages</p>
+  </div>
+</main>
+
+<div id="toast" class="toast mono" role="status" aria-live="polite"></div>
+
+<script>
+/* ── shared fake data + ranking (mirrors B-inline-strips.html) ── */
+const RANK = {question:0, error:1, 'awaiting-input':2, 'plan-complete':3, working:4};
+const COLOR = {question:'#5a43e4', error:'#ef4444', 'awaiting-input':'#ffa502', 'plan-complete':'#10b981', working:'#00d4aa'};
+const PROJECTS = [
+  {name:'ez-omo-config', sessions:[
+    {label:'retry-policy',    prompt:'fix(worktree): portable timeout helper dies on slow binds', status:'question',       wait:'4m ago',    waitMin:4},
+    {label:'checkpoint-sweep',prompt:'sweep stale agent/* checkpoints from worktree state',       status:'working',        wait:'running 12m', waitMin:0}]},
+  {name:'ez-omo-bench', sessions:[
+    {label:'bench-runner',    prompt:'baseline the vitest suite across 5 repos',                  status:'working',        wait:'running 47m', waitMin:0}]},
+  {name:'Ds_AI', sessions:[
+    {label:'dataset-etl',     prompt:'dedupe 2.3M rows, shard train/val 95/5',                    status:'error',          wait:'2m ago',    waitMin:2},
+    {label:'embed-cache',     prompt:'precompute bge-small embeddings for eval set',              status:'working',        wait:'running 31m', waitMin:0},
+    {label:'eval-harness',    prompt:'wire lm-eval into the nightly runner',                      status:'plan-complete',  wait:'3m ago',    waitMin:3}]},
+  {name:'BIM', sessions:[
+    {label:'ifc-parser',      prompt:'handle IFC4x3 irregular storey refs',                       status:'question',       wait:'7m ago',    waitMin:7},
+    {label:'revit-export',    prompt:'export curtain-wall families to glTF',                      status:'awaiting-input', wait:'15m ago',   waitMin:15}]},
+  {name:'debate', sessions:[
+    {label:'panel-review',    prompt:'run 3-hunter panel on auth-bridge diff',                    status:'awaiting-input', wait:'1m ago',    waitMin:1},
+    {label:'judge-sim',       prompt:'calibrate judge prompts against the golden set',            status:'working',        wait:'running 22m', waitMin:0}]},
+  {name:'bi-tkg', sessions:[
+    {label:'tkg-loader',      prompt:'bulk-load 40M triples, checkpoint every 5M',               status:'plan-complete',  wait:'11m ago',   waitMin:11}]},
+  {name:'ComfyUI', sessions:[
+    {label:'node-migration',  prompt:'port v1 custom nodes to the new slot order',                status:'working',        wait:'running 55m', waitMin:0},
+    {label:'workflow-lint',   prompt:'lint workflow JSONs for hidden control slots',              status:'working',        wait:'running 19m', waitMin:0}]},
+  {name:'factory', sessions:[
+    {label:'droid-pool',      prompt:'tune retry backoff for 429 storms',                         status:'error',          wait:'9m ago',    waitMin:9},
+    {label:'auth-bridge',     prompt:'wire OAuth token refresh into the droid pool',              status:'awaiting-input', wait:'6m ago',    waitMin:6}]},
+  {name:'tau20', sessions:[
+    {label:'tau-migration',   prompt:'migrate plan engine to v2 step contracts',                  status:'question',       wait:'30s ago',   waitMin:0.5}]},
+  {name:'rag_base', sessions:[
+    {label:'chunker-v2',      prompt:'semantic chunking with a 15% overlap cap',                  status:'plan-complete',  wait:'6m ago',    waitMin:6},
+    {label:'retrieval-eval',  prompt:'score hybrid retrieval vs the BM25 baseline',               status:'working',        wait:'running 14m', waitMin:0}]},
+];
+function nextOf(p){return p.sessions.reduce((a,b)=>RANK[b.status]<RANK[a.status]?b:a)}
+function extraWaiting(p){const n=nextOf(p);return p.sessions.filter(s=>s!==n&&RANK[s.status]<4).length}
+
+/* ── decorative dashboard preview ── */
+document.getElementById('dash').innerHTML = PROJECTS.map(p=>{
+  const n=nextOf(p);
+  const chips=p.sessions.map(s=>'<span class="dchip">'+s.label+'</span>').join('');
+  return '<div class="dstrip" style="--sc:'+COLOR[n.status]+'">'
+    +'<span class="dot"></span><span class="name">'+p.name+'</span><span class="lamp"></span>'
+    +'<span class="chips">'+chips+'</span><span class="t">'+n.wait+'</span></div>';
+}).join('');
+
+/* ── toast ── */
+let toastT;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;
+  t.classList.add('show');clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove('show'),1400)}
+
+document.getElementById('openRemote').addEventListener('click',()=>{
+  const w=window.open('','focusRemote','width=420,height=680');
+  if(!w){document.getElementById('popupWarn').style.display='block';
+    toast('popup blocked — allow popups, then retry');return}
+  w.document.open();w.document.write(REMOTE_HTML);w.document.close();
+  w.focus();
+});
+
+/* ── the remote window, built as a document string ── */
+const json = JSON.stringify(PROJECTS).replace(/</g,'\\u003c');
+const REMOTE_CSS = `
+:root{--bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a2e;--tx:#e8e8ed;--tx2:#a0a0b0;--tx3:#666680;
+  --bd:#2a2a3e;--bd2:#1e1e30;--acc:#00d4aa;--warn:#ffa502;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--tx);font:13px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:4px}
+.mono{font-family:var(--mono)}
+.badge{position:fixed;bottom:10px;right:10px;z-index:99;font:9px/1 var(--mono);
+  letter-spacing:.08em;color:var(--warn);border:1px solid rgba(255,165,2,.45);
+  background:rgba(255,165,2,.08);padding:5px 8px;border-radius:4px;pointer-events:none}
+.rhead{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:9px;
+  padding:12px 14px;background:rgba(10,10,15,.94);border-bottom:1px solid var(--bd);
+  backdrop-filter:blur(6px)}
+.rdot{width:8px;height:8px;border-radius:50%;background:var(--acc);
+  box-shadow:0 0 8px var(--acc);animation:beat 2.4s ease-in-out infinite}
+@keyframes beat{0%,100%{opacity:1}50%{opacity:.45}}
+.rhead h1{font-size:13px;font-weight:650;flex:1}
+.rhead h1 span{color:var(--tx2);font-weight:400}
+.rsort{font:10px var(--mono);color:var(--tx3);letter-spacing:.08em;text-transform:uppercase}
+#list{padding:10px 12px 46px}
+.proj{margin-bottom:10px}
+.proj-head{display:flex;justify-content:space-between;align-items:baseline;padding:0 2px 5px}
+.proj-head .pname{font-size:11px;font-weight:650;color:var(--tx2);letter-spacing:.03em}
+.proj-head .ptime{font:10px var(--mono);color:var(--tx3)}
+.target{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  background:var(--bg2);border:1px solid var(--bd);border-left:3px solid var(--sc);
+  border-radius:6px;padding:10px 12px;transition:background 150ms ease,transform 150ms ease,border-color 150ms ease}
+.target:hover{background:var(--bg3);border-color:var(--sc);
+  box-shadow:0 0 14px -4px var(--sc);transform:translateX(2px)}
+.t-main{flex:1;min-width:0}
+.t-label{font:12.5px var(--mono);color:var(--tx);font-weight:600;display:block}
+.t-prompt{font-size:11px;color:var(--tx3);display:block;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.t-focus{font:10px var(--mono);letter-spacing:.1em;color:var(--sc);
+  border:1px solid var(--sc);border-radius:4px;padding:5px 8px;white-space:nowrap}
+.target.urgent{animation:breath 2.6s ease-in-out infinite}
+@keyframes breath{0%,100%{box-shadow:0 0 6px -3px var(--sc)}50%{box-shadow:0 0 14px -2px var(--sc)}}
+.queue{font:10px var(--mono);color:var(--tx3);padding:4px 2px 0}
+.divider{display:flex;align-items:center;gap:8px;margin:16px 0 8px;
+  font:10px var(--mono);color:var(--tx3);letter-spacing:.12em;text-transform:uppercase}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--bd)}
+.busy-row{display:flex;justify-content:space-between;font:11px var(--mono);
+  color:var(--tx3);padding:6px 10px;border:1px solid var(--bd2);border-radius:5px;margin-bottom:6px}
+.busy-row .n{color:var(--wk,#00d4aa);opacity:.75}
+.clear-panel{margin:48px 20px;text-align:center;border:1px solid var(--bd);
+  border-radius:8px;background:var(--bg2);padding:34px 16px}
+.clear-panel .ck{width:34px;height:34px;border-radius:50%;margin:0 auto 14px;
+  display:flex;align-items:center;justify-content:center;color:#10b981;
+  border:1px solid rgba(16,185,129,.5);box-shadow:0 0 16px -4px rgba(16,185,129,.6)}
+.clear-panel h2{font-size:14px;font-weight:650}
+.clear-panel p{color:var(--tx3);font-size:11.5px;margin-top:6px}
+.rfoot{position:fixed;bottom:0;left:0;right:0;padding:8px 14px;
+  border-top:1px solid var(--bd);background:rgba(10,10,15,.94)}
+.linkish{font:10px var(--mono);color:var(--tx3);text-decoration:underline dotted;padding:2px}
+.linkish:hover{color:var(--tx2)}
+.toast{position:fixed;left:50%;bottom:44px;transform:translate(-50%,10px);
+  background:var(--bg3);border:1px solid var(--bd);border-radius:6px;
+  font:11px var(--mono);padding:9px 14px;opacity:0;pointer-events:none;
+  transition:opacity 150ms ease,transform 150ms ease;box-shadow:0 6px 24px rgba(0,0,0,.55);
+  z-index:100;white-space:nowrap;max-width:380px;overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+`;
+const REMOTE_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>omo-pulse · focus remote</title><style>${REMOTE_CSS}<\/style></head><body>
+<div class="badge">MOCK-UP — simulated focus</div>
+<header class="rhead"><span class="rdot"></span><h1>omo-pulse <span>· focus remote</span></h1>
+<span class="rsort">by urgency</span></header>
+<main id="list"></main>
+<footer class="rfoot"><button id="demoToggle" class="linkish">preview: all-clear state</button></footer>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>
+const RANK={question:0,error:1,'awaiting-input':2,'plan-complete':3,working:4};
+const COLOR={question:'#5a43e4',error:'#ef4444','awaiting-input':'#ffa502','plan-complete':'#10b981',working:'#00d4aa'};
+const PROJECTS=${json};
+function nextOf(p){return p.sessions.reduce((a,b)=>RANK[b.status]<RANK[a.status]?b:a)}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+let empty=false;
+function render(){
+  const el=document.getElementById('list');
+  if(empty){el.innerHTML='<div class="clear-panel"><div class="ck">\u2713</div><h2>All clear</h2><p>no sessions need your attention right now</p></div>';return}
+  const sorted=[...PROJECTS].sort((a,b)=>{const na=nextOf(a),nb=nextOf(b);
+    return (RANK[na.status]-RANK[nb.status])||(na.waitMin-nb.waitMin)});
+  const att=sorted.filter(p=>RANK[nextOf(p).status]<4);
+  const busy=sorted.filter(p=>RANK[nextOf(p).status]===4);
+  let h='';
+  for(const p of att){
+    const n=nextOf(p),c=COLOR[n.status];
+    const q=p.sessions.filter(s=>s!==n&&RANK[s.status]<4).length;
+    const urgent=RANK[n.status]<=1;
+    h+='<div class="proj"><div class="proj-head"><span class="pname">'+esc(p.name)
+      +'</span><span class="ptime">'+n.wait+'</span></div>'
+      +'<button class="target'+(urgent?' urgent':'')+'" style="--sc:'+c+'" data-p="'+esc(p.name)
+      +'" data-s="'+esc(n.label)+'">'
+      +'<span class="t-main"><span class="t-label">'+esc(n.label)+'</span>'
+      +'<span class="t-prompt">'+esc(n.prompt)+'</span></span>'
+      +'<span class="t-focus">FOCUS \u25B6</span></button>'
+      +(q?'<div class="queue">+'+q+' more waiting</div>':'')+'</div>';
+  }
+  if(busy.length){h+='<div class="divider">all busy</div>';
+    for(const p of busy){h+='<div class="busy-row"><span>'+esc(p.name)+'</span>'
+      +'<span class="n">'+p.sessions.length+' working</span></div>'}}
+  el.innerHTML=h;
+}
+let toastT;
+function toast(m){const t=document.getElementById('toast');t.textContent=m;
+  t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1200)}
+document.getElementById('list').addEventListener('click',e=>{
+  const b=e.target.closest('button.target');if(!b)return;
+  toast('\u2192 switching terminal to '+b.dataset.p+' \u203A '+b.dataset.s+'\u2026')});
+document.getElementById('demoToggle').addEventListener('click',function(){
+  empty=!empty;this.textContent=empty?'back to attention list':'preview: all-clear state';render()});
+render();
+<\/script></body></html>`;
+</script>
+</body>
+</html>

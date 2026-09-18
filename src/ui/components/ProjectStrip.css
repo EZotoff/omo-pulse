@@ -180,39 +180,16 @@
   align-items: center;
   gap: var(--sp-3);
   height: var(--collapsed-pane-height, 40px);
-  position: relative;
-  z-index: 3;
-  padding: 0 var(--sp-3);
-  cursor: pointer;
-  user-select: none;
-  transition: background var(--transition-fast);
-}
-
-.strip-header-row {
-  display: flex;
-  position: relative;
-  z-index: 3;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
-.strip-header-button {
   width: 100%;
   min-width: 0;
+  position: relative;
+  z-index: 3;
   border: 0;
   background: transparent;
   color: inherit;
   font: inherit;
   text-align: left;
   flex: 1 1 auto;
-}
-
-.strip-header:hover {
-  background: color-mix(in srgb, var(--bg-tertiary) 78%, transparent);
-}
-.strip-header:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
 }
 
 

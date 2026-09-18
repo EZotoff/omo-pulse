@@ -12,6 +12,12 @@ STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/omo-pulse"
 FIFO="$STATE_DIR/focus.fifo"
 ENV_FILE="$HOME/.config/opencode/serve-interactive.env"
 DAEMON_URL="http://127.0.0.1:3030"
+# PATH: opencode may live outside a service's default PATH (this box:
+# ~/.local/bin/opencode).
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
 export DISPLAY="${DISPLAY:-:0}"
 
 mkdir -p "$STATE_DIR"

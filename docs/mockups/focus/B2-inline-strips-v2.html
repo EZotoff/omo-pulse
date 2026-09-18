@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>omo-pulse · Option B2 — inline strips, full queue + prompt peek</title>
+<style>
+:root{
+  --bg:#0a0a0f; --bg2:#12121a; --bg3:#1a1a2e;
+  --tx:#e8e8ed; --tx2:#a0a0b0; --tx3:#666680;
+  --bd:#2a2a3e; --bd2:#1e1e30;
+  --acc:#00d4aa; --danger:#ff6b6b; --ok:#4ecdc4; --warn:#ffa502;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--tx);
+  font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:4px}
+.mono{font-family:var(--mono)}
+
+.badge{position:fixed;bottom:14px;right:14px;z-index:99;
+  font:10px/1 var(--mono);letter-spacing:.08em;color:var(--warn);
+  border:1px solid rgba(255,165,2,.45);background:rgba(255,165,2,.08);
+  padding:6px 10px;border-radius:4px;pointer-events:none}
+
+.top{max-width:1180px;margin:0 auto;padding:30px 24px 6px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.top h1{font-size:19px;font-weight:650;letter-spacing:.01em}
+.top .opt{font:11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--acc);border:1px solid rgba(0,212,170,.4);padding:5px 9px;border-radius:4px;align-self:center}
+.top .sub{color:var(--tx2);font-size:12.5px;width:100%;margin-top:2px}
+.top .sub b{color:var(--tx2);font-weight:600}
+
+.strips{max-width:1180px;margin:18px auto 70px;padding:0 24px}
+.strips-inner{border:1px solid var(--bd);border-radius:8px;overflow:hidden;background:var(--bg2)}
+
+/* ── strip: single 44px row, grows an adaptive peek line when attention is pending ── */
+.strip{border-bottom:1px solid var(--bd2);transition:background 150ms ease}
+.strip:last-child{border-bottom:none}
+.strip:hover{background:#15151f}
+.strip-main{display:flex;align-items:center;gap:11px;height:44px;padding:0 13px}
+.avat{width:23px;height:23px;border-radius:50%;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  font:9px var(--mono);font-weight:700;color:var(--sc);
+  background:var(--sc-soft);border:1px solid var(--sc-line)}
+.name{font-weight:600;font-size:13px;width:132px;flex:none;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lamp{width:7px;height:7px;border-radius:50%;flex:none;background:var(--sc);
+  box-shadow:0 0 7px var(--sc)}
+.strip.all-busy .lamp{box-shadow:none;opacity:.6}
+.spark{flex:none;opacity:.75}
+.chips{display:flex;gap:7px;flex:1;overflow:hidden;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;flex:none;
+  font:11px var(--mono);color:var(--tx3);background:var(--bg3);
+  border:1px solid var(--bd);border-radius:4px;padding:4px 9px;
+  white-space:nowrap;cursor:pointer;
+  transition:background 150ms ease,border-color 150ms ease,color 150ms ease,box-shadow 150ms ease}
+.chip:hover{background:#22223a;border-color:var(--sc);color:var(--tx);
+  box-shadow:0 0 10px -3px var(--sc)}
+.chip .tri{font-size:8px;color:var(--sc)}
+/* attention chips: any session needing you, colored by its own status */
+.chip.att{color:var(--tx2);border-color:color-mix(in srgb,var(--sc) 55%,var(--bd))}
+.chip.att:hover{border-color:var(--sc)}
+/* the top-ranked one */
+.chip.next{color:var(--tx);border-color:var(--sc);
+  background:var(--sc-soft);font-weight:600}
+/* selected = whose prompt is on the peek line */
+.chip.sel{box-shadow:0 0 0 1px var(--sc),0 0 12px -3px var(--sc);color:var(--tx)}
+.t{flex:none;font:10.5px var(--mono);color:var(--tx3);width:86px;text-align:right;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strip.all-busy .t{color:#3d5a52}
+
+/* ── peek line: label + initiating prompt of the selected attention session ── */
+.strip.has-att{padding-bottom:5px}
+.peek{display:flex;align-items:center;gap:9px;height:21px;
+  padding:0 99px 0 302px; /* aligns under the chips column */
+  min-width:0}
+.peek-dot{flex:none;font-size:9px;color:var(--pc);line-height:1}
+.peek-label{flex:none;font:11px var(--mono);font-weight:600;color:var(--pc);
+  white-space:nowrap}
+.peek-prompt{flex:1;min-width:0;font:11px var(--mono);color:var(--tx2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.peek-wait{flex:none;font:10.5px var(--mono);color:var(--tx3);white-space:nowrap}
+.legend{max-width:1180px;margin:0 auto 40px;padding:0 24px;
+  font:11px var(--mono);color:var(--tx3);display:flex;gap:18px;flex-wrap:wrap}
+.legend i{font-style:normal;display:inline-flex;align-items:center;gap:6px}
+.legend .sw{width:8px;height:8px;border-radius:2px;display:inline-block}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,12px);
+  background:var(--bg3);border:1px solid var(--bd);border-radius:6px;
+  color:var(--tx);font:12px var(--mono);padding:10px 16px;
+  opacity:0;pointer-events:none;transition:opacity 150ms ease,transform 150ms ease;
+  box-shadow:0 6px 24px rgba(0,0,0,.55);z-index:100;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="badge">MOCK-UP — simulated focus</div>
+
+<header class="top">
+  <h1>omo-pulse</h1>
+  <span class="opt">Option B2 · inline strips + prompt peek</span>
+  <p class="sub">Every session needing attention gets its own chip — not just the top one. The peek line shows the selected session's <b>label + initiating prompt</b>; hover (or tab to) any attention chip to move the peek. Click a chip to focus that session's terminal. Strips only grow when attention is pending.</p>
+</header>
+
+<div class="strips"><div class="strips-inner" id="strips"></div></div>
+
+<div class="legend">
+  <i><span class="sw" style="background:#5a43e4"></span>question</i>
+  <i><span class="sw" style="background:#ef4444"></span>error</i>
+  <i><span class="sw" style="background:#ffa502"></span>awaiting input</i>
+  <i><span class="sw" style="background:#10b981"></span>plan complete</i>
+  <i><span class="sw" style="background:#00d4aa"></span>working</i>
+  <i style="margin-left:auto">hover a colored chip → peek line follows</i>
+</div>
+
+<div id="toast" class="toast mono" role="status" aria-live="polite"></div>
+
+<script>
+/* ── shared fake data + ranking (mirrors A-focus-remote.html) ── */
+const RANK = {question:0, error:1, 'awaiting-input':2, 'plan-complete':3, working:4};
+const COLOR = {question:'#5a43e4', error:'#ef4444', 'awaiting-input':'#ffa502', 'plan-complete':'#10b981', working:'#00d4aa'};
+const PROJECTS = [
+  {name:'ez-omo-config', sessions:[
+    {label:'retry-policy',    prompt:'fix(worktree): portable timeout helper dies on slow binds', status:'question',       wait:'4m ago',    waitMin:4},
+    {label:'checkpoint-sweep',prompt:'sweep stale agent/* checkpoints from worktree state',       status:'working',        wait:'running 12m', waitMin:0}]},
+  {name:'ez-omo-bench', sessions:[
+    {label:'bench-runner',    prompt:'baseline the vitest suite across 5 repos',                  status:'working',        wait:'running 47m', waitMin:0}]},
+  {name:'Ds_AI', sessions:[
+    {label:'dataset-etl',     prompt:'dedupe 2.3M rows, shard train/val 95/5',                    status:'error',          wait:'2m ago',    waitMin:2},
+    {label:'embed-cache',     prompt:'precompute bge-small embeddings for eval set',              status:'working',        wait:'running 31m', waitMin:0},
+    {label:'eval-harness',    prompt:'wire lm-eval into the nightly runner',                      status:'plan-complete',  wait:'3m ago',    waitMin:3}]},
+  {name:'BIM', sessions:[
+    {label:'ifc-parser',      prompt:'handle IFC4x3 irregular storey refs',                       status:'question',       wait:'7m ago',    waitMin:7},
+    {label:'revit-export',    prompt:'export curtain-wall families to glTF',                      status:'awaiting-input', wait:'15m ago',   waitMin:15}]},
+  {name:'debate', sessions:[
+    {label:'panel-review',    prompt:'run 3-hunter panel on auth-bridge diff',                    status:'awaiting-input', wait:'1m ago',    waitMin:1},
+    {label:'judge-sim',       prompt:'calibrate judge prompts against the golden set',            status:'working',        wait:'running 22m', waitMin:0}]},
+  {name:'bi-tkg', sessions:[
+    {label:'tkg-loader',      prompt:'bulk-load 40M triples, checkpoint every 5M',               status:'plan-complete',  wait:'11m ago',   waitMin:11}]},
+  {name:'ComfyUI', sessions:[
+    {label:'node-migration',  prompt:'port v1 custom nodes to the new slot order',                status:'working',        wait:'running 55m', waitMin:0},
+    {label:'workflow-lint',   prompt:'lint workflow JSONs for hidden control slots',              status:'working',        wait:'running 19m', waitMin:0}]},
+  {name:'factory', sessions:[
+    {label:'droid-pool',      prompt:'tune retry backoff for 429 storms',                         status:'error',          wait:'9m ago',    waitMin:9},
+    {label:'auth-bridge',     prompt:'wire OAuth token refresh into the droid pool',              status:'awaiting-input', wait:'6m ago',    waitMin:6}]},
+  {name:'tau20', sessions:[
+    {label:'tau-migration',   prompt:'migrate plan engine to v2 step contracts',                  status:'question',       wait:'30s ago',   waitMin:0.5}]},
+  {name:'rag_base', sessions:[
+    {label:'chunker-v2',      prompt:'semantic chunking with a 15% overlap cap',                  status:'plan-complete',  wait:'6m ago',    waitMin:6},
+    {label:'retrieval-eval',  prompt:'score hybrid retrieval vs the BM25 baseline',               status:'working',        wait:'running 14m', waitMin:0}]},
+];
+
+function attSessions(p){
+  return p.sessions.filter(s=>RANK[s.status]<4)
+    .sort((a,b)=>(RANK[a.status]-RANK[b.status])||(a.waitMin-b.waitMin));
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function soft(hex,a){
+  const n=parseInt(hex.slice(1),16);
+  return 'rgba('+(n>>16)+','+((n>>8)&255)+','+(n&255)+','+a+')'}
+function initials(name){
+  return name.split(/[-_ ]/).map(w=>w[0]).join('').slice(0,2).toUpperCase()}
+function sparkPath(seed){
+  const pts=[];let v=10;
+  for(let i=0;i<26;i++){
+    v+=Math.sin(seed*2.7+i*1.3)*3.2+(i%6===0?2.6:-1.1);
+    v=Math.max(2.5,Math.min(19,v));
+    pts.push((i*3.2).toFixed(1)+','+v.toFixed(1));}
+  return pts.join(' ')}
+
+const order=[...PROJECTS].sort((a,b)=>{
+  const aa=attSessions(a),bb=attSessions(b);
+  const na=aa[0],nb=bb[0];
+  if(!na&&!nb)return 0; if(!na)return 1; if(!nb)return -1;
+  return (RANK[na.status]-RANK[nb.status])||(na.waitMin-nb.waitMin)});
+
+document.getElementById('strips').innerHTML = order.map((p,si)=>{
+  const att=attSessions(p), n=att[0];
+  const allBusy=!n, c=n?COLOR[n.status]:COLOR.working;
+  /* chips: attention chips (all of them) first, then working ones */
+  const attSet=new Set(att);
+  const chips=[...att,...p.sessions.filter(s=>!attSet.has(s))].map(s=>{
+    const isAtt=attSet.has(s), isNext=s===n, sc=COLOR[s.status];
+    return '<button class="chip'+(isAtt?' att':'')+(isNext?' next':'')+'" '
+      +'style="--sc:'+sc+';--sc-soft:'+soft(sc,isNext?0.14:0)+'" '
+      +'title="'+esc(p.name+' · '+s.label+' — '+s.prompt)+'" '
+      +'data-p="'+esc(p.name)+'" data-s="'+esc(s.label)+'" '
+      +'data-att="'+(isAtt?1:0)+'"'
+      +(isAtt?' data-peek="'+esc(s.label)+'"':'')
+      +'>'+(isNext?'<span class="tri">▶</span>':'')+esc(s.label)+'</button>';
+  }).join('');
+  /* peek line: only when attention is pending */
+  const peek=!allBusy
+    ?'<div class="peek" role="status" aria-live="polite">'
+      +'<span class="peek-dot">▶</span>'
+      +'<span class="peek-label">'+esc(n.label)+'</span>'
+      +'<span class="peek-prompt">'+esc(n.prompt)+'</span>'
+      +'<span class="peek-wait">'+esc(n.wait)+'</span></div>'
+    :'';
+  return '<div class="strip'+(allBusy?' all-busy':' has-att')+'" '
+    +'style="--sc:'+c+';--sc-soft:'+soft(c,0.16)+';--sc-line:'+soft(c,0.55)+'" data-name="'+esc(p.name)+'">'
+    +'<div class="strip-main">'
+    +'<span class="avat">'+initials(p.name)+'</span>'
+    +'<span class="name">'+esc(p.name)+'</span>'
+    +'<span class="lamp"></span>'
+    +'<svg class="spark" width="84" height="22" viewBox="0 0 84 22" aria-hidden="true" focusable="false">'
+    +'<polyline points="'+sparkPath(si+3)+'" fill="none" stroke="'+soft(c,0.8)
+    +'" stroke-width="1.4" stroke-linejoin="round"/></svg>'
+    +'<span class="chips">'+chips+'</span>'
+    +'<span class="t">'+(n?n.wait:p.sessions[0].wait)+'</span></div>'
+    +peek+'</div>';
+}).join('');
+
+let toastT;
+function toast(m){const t=document.getElementById('toast');
+  t.textContent=m;t.classList.add('show');clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove('show'),1200)}
+
+/* selected-chip tracking: default = top-ranked; hover/focus moves it; peek line follows */
+const PEEK_COLOR={question:'#5a43e4', error:'#ef4444', 'awaiting-input':'#ffa502', 'plan-complete':'#10b981'};
+document.getElementById('strips').addEventListener('pointerover',e=>{select(e,true)});
+document.getElementById('strips').addEventListener('focusin',select);
+function select(e){
+  const b=e.target.closest('button.chip');if(!b||b.dataset.att!=='1')return;
+  const strip=b.closest('.strip'),peek=strip.querySelector('.peek');if(!peek)return;
+  strip.querySelectorAll('.chip.sel').forEach(x=>x.classList.remove('sel'));
+  b.classList.add('sel');
+  const sess=PROJECTS.find(p=>p.name===strip.dataset.name).sessions.find(s=>s.label===b.dataset.peek);
+  const col=PEEK_COLOR[sess.status];
+  peek.innerHTML='<span class="peek-dot" style="color:'+col+'">▶</span>'
+    +'<span class="peek-label" style="color:'+col+'">'+esc(sess.label)+'</span>'
+    +'<span class="peek-prompt">'+esc(sess.prompt)+'</span>'
+    +'<span class="peek-wait">'+esc(sess.wait)+'</span>';
+}
+document.getElementById('strips').addEventListener('click',e=>{
+  const b=e.target.closest('button.chip');if(!b)return;
+  toast('→ switching terminal to '+b.dataset.p+' › '+b.dataset.s+'…');
+});
+</script>
+</body>
+</html>

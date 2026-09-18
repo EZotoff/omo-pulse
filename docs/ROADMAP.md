@@ -45,6 +45,10 @@ remote window, and the Stream Deck keys below.
   dashboard clicks.
 - Open question: behavior when the displayed session was already handled (auto-advance to
   the next in queue on second press vs. explicit cycle control).
+- Queue depth: one key surfaces the top-ranked session only; how the rest of the queue is
+  reached (second LCD page, long-press cycle) is open — the dashboard's B2 mock-up solves
+  the same problem in UI space via per-session chips
+  (`docs/mockups/focus/B2-inline-strips-v2.html`).
 
 ### OC Beacon desktop parity
 

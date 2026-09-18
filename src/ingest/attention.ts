@@ -14,9 +14,16 @@
  * "unknown" is a disconnected/error-derivation state — not actionable,
  * so it never surfaces as attention.
  */
-import type { ProjectSnapshot, SessionStatus } from "../types"
+import type {
+  AttentionPayload,
+  AttentionProject,
+  AttentionSession,
+  AttentionState,
+  ProjectSnapshot,
+  SessionStatus,
+} from "../types"
 
-export type AttentionState = "question" | "error" | "awaiting_input" | "plan_complete" | "working"
+export type { AttentionPayload, AttentionProject, AttentionSession, AttentionState }
 
 export const ATTENTION_RANK: Readonly<Record<AttentionState, number>> = {
   question: 0,
@@ -42,31 +49,6 @@ export function attentionStateForStatus(status: SessionStatus): AttentionState |
   return STATUS_TO_ATTENTION[status] ?? null
 }
 
-export type AttentionSession = {
-  sessionId: string
-  sessionLabel: string
-  state: AttentionState
-  /** ms since the session last showed activity (clamped ≥ 0) */
-  waitMs: number
-}
-
-export type AttentionProject = {
-  sourceId: string
-  label: string
-  projectRoot: string
-  /** Highest-ranked session needing attention; null when nothing is pending */
-  next: AttentionSession | null
-  /** Additional attention sessions behind `next` */
-  queue: number
-  /** Sessions currently working (busy / thinking / tool / bg agent) */
-  busySessions: number
-  totalSessions: number
-}
-
-export type AttentionPayload = {
-  projects: AttentionProject[]
-  serverNowMs: number
-}
 
 function toAttentionSession(
   sessionId: string,

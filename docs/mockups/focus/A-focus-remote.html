@@ -4,13 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>omo-pulse · Option A — focus remote</title>
-<script>
-/* mode switch: ?remote=1 renders only the compact remote UI (normal page load — no document.write) */
-if (new URLSearchParams(location.search).has('remote')) {
-  document.documentElement.classList.add('remote');
-  document.title = 'omo-pulse · focus remote';
-}
-</script>
 <style>
 :root{
   --bg:#0a0a0f; --bg2:#12121a; --bg3:#1a1a2e;
@@ -24,18 +17,12 @@ html,body{background:var(--bg);color:var(--tx);
   font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 button:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:4px}
-.mono{font-family:var(--mono)}
-
-/* mode visibility */
-html.remote #main-app{display:none}
-html:not(.remote) #remote-app{display:none}
 
 .badge{position:fixed;bottom:14px;right:14px;z-index:99;
   font:10px/1 var(--mono);letter-spacing:.08em;color:var(--warn);
   border:1px solid rgba(255,165,2,.45);background:rgba(255,165,2,.08);
   padding:6px 10px;border-radius:4px;pointer-events:none}
 
-/* ── main dashboard page (ambient) ── */
 .top{max-width:1180px;margin:0 auto;padding:30px 24px 6px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
 .top h1{font-size:19px;font-weight:650;letter-spacing:.01em}
 .top .opt{font:11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
@@ -60,7 +47,6 @@ html:not(.remote) #remote-app{display:none}
   white-space:nowrap}
 .t{flex:none;font:10.5px var(--mono);color:var(--tx3);width:86px;text-align:right;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* launch overlay */
 .launch{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
   background:rgba(10,10,15,.72);backdrop-filter:blur(2px);z-index:50}
 .launch-card{display:flex;flex-direction:column;align-items:center;gap:14px;
@@ -74,61 +60,6 @@ html:not(.remote) #remote-app{display:none}
 .launch-cap{font:11px var(--mono);color:var(--tx3)}
 .warn{display:none;font:11.5px var(--mono);color:var(--warn)}
 
-/* ── compact remote window ── */
-#remote-app{height:100vh;display:flex;flex-direction:column}
-#remote-app #list{flex:1;overflow-y:auto}
-.rhead{display:flex;align-items:center;gap:9px;padding:14px 16px 12px;
-  border-bottom:1px solid var(--bd2)}
-.rdot{width:8px;height:8px;border-radius:50%;background:var(--acc);
-  box-shadow:0 0 8px var(--acc);flex:none}
-.rhead h1{font-size:13.5px;font-weight:650}
-.rhead h1 span{color:var(--tx3);font-weight:400}
-.rsort{margin-left:auto;font:10px var(--mono);letter-spacing:.08em;color:var(--tx3);
-  text-transform:uppercase}
-#list{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:9px}
-.proj-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px}
-.pname{font:12px var(--mono);font-weight:600;color:var(--tx2)}
-.ptime{font:10px var(--mono);color:var(--tx3)}
-.target{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-  background:var(--bg3);border:1px solid var(--bd);border-left:3px solid var(--sc);
-  border-radius:6px;padding:10px 12px;cursor:pointer;
-  transition:background 150ms ease,border-color 150ms ease,box-shadow 150ms ease}
-.target:hover{background:#22223a;border-color:var(--sc);
-  box-shadow:0 0 14px -4px var(--sc)}
-.target.urgent{animation:breath 2.6s ease-in-out infinite}
-@keyframes breath{0%,100%{box-shadow:0 0 5px -3px var(--sc)}50%{box-shadow:0 0 14px -3px var(--sc)}}
-.t-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-.t-label{font:12px var(--mono);font-weight:600;color:var(--tx);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.t-prompt{font:10.5px var(--mono);color:var(--tx2);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.t-focus{flex:none;font:10px var(--mono);font-weight:700;letter-spacing:.06em;
-  color:var(--sc)}
-.queue{font:10px var(--mono);color:var(--tx3);padding-left:4px}
-.divider{font:10px var(--mono);letter-spacing:.1em;color:var(--tx3);
-  text-transform:uppercase;padding:6px 4px 0;border-top:1px solid var(--bd2);margin-top:4px}
-.busy-row{display:flex;justify-content:space-between;font:11px var(--mono);
-  color:var(--tx3);padding:4px 4px 0}
-.busy-row .n{color:#3d5a52}
-.rfoot{padding:10px 16px;border-top:1px solid var(--bd2)}
-.linkish{font:10.5px var(--mono);color:var(--tx3);text-decoration:underline;
-  text-underline-offset:3px;cursor:pointer}
-.linkish:hover{color:var(--tx2)}
-.clear-panel{text-align:center;padding:40px 12px}
-.clear-panel .ck{width:34px;height:34px;margin:0 auto 12px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  color:#10b981;border:1px solid rgba(16,185,129,.5);background:rgba(16,185,129,.1);
-  font-size:16px}
-.clear-panel h2{font-size:13px;font-weight:600;margin-bottom:4px}
-.clear-panel p{font:11px var(--mono);color:var(--tx3)}
-
-.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,12px);
-  background:var(--bg3);border:1px solid var(--bd);border-radius:6px;
-  color:var(--tx);font:12px var(--mono);padding:10px 16px;
-  opacity:0;pointer-events:none;transition:opacity 150ms ease,transform 150ms ease;
-  box-shadow:0 6px 24px rgba(0,0,0,.55);z-index:100;white-space:nowrap}
-.toast.show{opacity:1;transform:translate(-50%,0)}
-
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
@@ -137,37 +68,23 @@ html:not(.remote) #remote-app{display:none}
 <body>
 <div class="badge">MOCK-UP — simulated focus</div>
 
-<!-- ── main dashboard page ── -->
-<div id="main-app">
-  <header class="top">
-    <h1>omo-pulse</h1>
-    <span class="opt">Option A · focus remote</span>
-    <p class="sub">Attention lives in a separate compact window. The dashboard below stays ambient and decorative — nothing here is clickable.</p>
-  </header>
-  <div class="strips"><div class="strips-inner" id="strips"></div></div>
-  <div class="launch">
-    <div class="launch-card">
-      <button class="openbtn" id="openRemote">⌖ Open Focus Remote</button>
-      <span class="launch-cap">compact window · sorted by urgency · one click to focus</span>
-      <span class="warn" id="popupWarn">popup blocked — allow popups for file:// pages, then retry</span>
-    </div>
+<header class="top">
+  <h1>omo-pulse</h1>
+  <span class="opt">Option A · focus remote</span>
+  <p class="sub">Attention lives in a separate compact window (<span class="mono">A-focus-remote-window.html</span>). The dashboard below stays ambient and decorative — nothing here is clickable.</p>
+</header>
+<div class="strips"><div class="strips-inner" id="strips"></div></div>
+
+<div class="launch">
+  <div class="launch-card">
+    <button class="openbtn" id="openRemote">⌖ Open Focus Remote</button>
+    <span class="launch-cap">compact window · sorted by urgency · one click to focus</span>
+    <span class="warn" id="popupWarn">popup blocked — allow popups for file:// pages, then retry (or open A-focus-remote-window.html directly)</span>
   </div>
 </div>
 
-<!-- ── compact remote window (?remote=1) ── -->
-<div id="remote-app">
-  <header class="rhead"><span class="rdot"></span>
-    <h1>omo-pulse <span>· focus remote</span></h1>
-    <span class="rsort">by urgency</span>
-  </header>
-  <main id="list"></main>
-  <footer class="rfoot"><button id="demoToggle" class="linkish">preview: all-clear state</button></footer>
-</div>
-
-<div id="toast" class="toast mono" role="status" aria-live="polite"></div>
-
 <script>
-/* ── shared fake data + ranking ── */
+/* fake data duplicated from A-focus-remote-window.html — keep in sync while mocking */
 const RANK = {question:0, error:1, 'awaiting-input':2, 'plan-complete':3, working:4};
 const COLOR = {question:'#5a43e4', error:'#ef4444', 'awaiting-input':'#ffa502', 'plan-complete':'#10b981', working:'#00d4aa'};
 const PROJECTS = [
@@ -212,80 +129,32 @@ function soft(hex,a){
 function initials(name){
   return name.split(/[-_ ]/).map(w=>w[0]).join('').slice(0,2).toUpperCase()}
 
-let toastT;
-function toast(m){const t=document.getElementById('toast');
-  t.textContent=m;t.classList.add('show');clearTimeout(toastT);
-  toastT=setTimeout(()=>t.classList.remove('show'),1200)}
+document.getElementById('strips').innerHTML = [...PROJECTS].sort((a,b)=>{
+  const na=attSessions(a)[0],nb=attSessions(b)[0];
+  if(!na&&!nb)return 0; if(!na)return 1; if(!nb)return -1;
+  return (RANK[na.status]-RANK[nb.status])||(na.waitMin-nb.waitMin)}).map(p=>{
+  const att=attSessions(p), n=att[0]||p.sessions[0];
+  const c=COLOR[n.status];
+  const chips=p.sessions.map(s=>{
+    const isAtt=att.includes(s);
+    return '<span class="chip" style="--sc:'+COLOR[s.status]
+      +(isAtt?';border-color:color-mix(in srgb,'+COLOR[s.status]+' 55%,var(--bd));color:var(--tx2)':'')
+      +'">'+esc(s.label)+'</span>'}).join('');
+  return '<div class="strip" '
+    +'style="--sc:'+c+';--sc-soft:'+soft(c,0.16)+';--sc-line:'+soft(c,0.55)+'">'
+    +'<span class="avat">'+initials(p.name)+'</span>'
+    +'<span class="name">'+esc(p.name)+'</span>'
+    +'<span class="lamp"></span>'
+    +'<span class="chips">'+chips+'</span>'
+    +'<span class="t">'+esc(n.wait)+'</span></div>';
+}).join('');
 
-const REMOTE = document.documentElement.classList.contains('remote');
-
-if (REMOTE) {
-  /* ── compact remote: attention targets sorted by urgency ── */
-  let empty=false;
-  function render(){
-    const el=document.getElementById('list');
-    if(empty){el.innerHTML='<div class="clear-panel"><div class="ck">✓</div><h2>All clear</h2><p>no sessions need your attention right now</p></div>';return}
-    const sorted=[...PROJECTS].map(p=>({p,att:attSessions(p)})).filter(x=>x.att.length)
-      .sort((a,b)=>(RANK[a.att[0].status]-RANK[b.att[0].status])||(a.att[0].waitMin-b.att[0].waitMin));
-    const busy=PROJECTS.filter(p=>attSessions(p).length===0);
-    let h='';
-    for(const {p,att} of sorted){
-      const n=att[0],c=COLOR[n.status];
-      const q=att.length-1;
-      const urgent=RANK[n.status]<=1;
-      h+='<div class="proj"><div class="proj-head"><span class="pname">'+esc(p.name)
-        +'</span><span class="ptime">'+esc(n.wait)+'</span></div>'
-        +'<button class="target'+(urgent?' urgent':'')+'" style="--sc:'+c+'" '
-        +'data-p="'+esc(p.name)+'" data-s="'+esc(n.label)+'">'
-        +'<span class="t-main"><span class="t-label">'+esc(n.label)+'</span>'
-        +'<span class="t-prompt">'+esc(n.prompt)+'</span></span>'
-        +'<span class="t-focus">FOCUS ▶</span></button>'
-        +(q?'<div class="queue">+'+q+' more waiting</div>':'')+'</div>';
-    }
-    if(busy.length){h+='<div class="divider">all busy</div>';
-      for(const p of busy){h+='<div class="busy-row"><span>'+esc(p.name)+'</span>'
-        +'<span class="n">'+p.sessions.length+' working</span></div>'}}
-    el.innerHTML=h;
-  }
-  document.getElementById('list').addEventListener('click',e=>{
-    const b=e.target.closest('button.target');if(!b)return;
-    toast('→ switching terminal to '+b.dataset.p+' › '+b.dataset.s+'…')});
-  const dt=document.getElementById('demoToggle');
-  if(dt)dt.addEventListener('click',function(){
-    empty=!empty;this.textContent=empty?'back to attention list':'preview: all-clear state';render()});
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render);else render();
-
-} else {
-  /* ── ambient main page + launch button ── */
-  const order=[...PROJECTS].sort((a,b)=>{
-    const na=attSessions(a)[0],nb=attSessions(b)[0];
-    if(!na&&!nb)return 0; if(!na)return 1; if(!nb)return -1;
-    return (RANK[na.status]-RANK[nb.status])||(na.waitMin-nb.waitMin)});
-  document.getElementById('strips').innerHTML = order.map(p=>{
-    const att=attSessions(p), n=att[0]||p.sessions[0];
-    const c=COLOR[n.status];
-    const chips=p.sessions.map(s=>{
-      const isAtt=att.includes(s);
-      return '<span class="chip" style="--sc:'+COLOR[s.status]
-        +(isAtt?';border-color:color-mix(in srgb,'+COLOR[s.status]+' 55%,var(--bd));color:var(--tx2)':'')
-        +'">'+esc(s.label)+'</span>'}).join('');
-    return '<div class="strip" '
-      +'style="--sc:'+c+';--sc-soft:'+soft(c,0.16)+';--sc-line:'+soft(c,0.55)+'">'
-      +'<span class="avat">'+initials(p.name)+'</span>'
-      +'<span class="name">'+esc(p.name)+'</span>'
-      +'<span class="lamp"></span>'
-      +'<span class="chips">'+chips+'</span>'
-      +'<span class="t">'+esc(n.wait)+'</span></div>';
-  }).join('');
-
-  document.getElementById('openRemote').addEventListener('click',function(){
-    const u=location.href.split('?')[0].split('#')[0]+'?remote=1';
-    const w=window.open(u,'focusRemote','width=420,height=680');
-    if(!w){document.getElementById('popupWarn').style.display='block';
-      toast('popup blocked — allow popups, then retry');return}
-    try{w.focus()}catch(e){}
-  });
-}
+document.getElementById('openRemote').addEventListener('click',function(){
+  const dir=location.href.replace(/[^/]*$/,'');
+  const w=window.open(dir+'A-focus-remote-window.html','focusRemote','width=420,height=680');
+  if(!w){document.getElementById('popupWarn').style.display='block';return}
+  try{w.focus()}catch(e){}
+});
 </script>
 </body>
 </html>

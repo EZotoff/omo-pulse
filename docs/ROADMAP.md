@@ -61,6 +61,17 @@ remote window, and the Stream Deck keys below.
   the same problem in UI space via per-session chips
   (`docs/mockups/focus/B2-inline-strips-v2.html`).
 
+### Viewer switch latency (optimization attempt, parked 2026-09-19)
+
+Each focus click spawns a fresh `opencode attach` (~2-4s to render), while OC Beacon's
+phone push feels instant. A tab-based warm-tab viewer (zellij session with one tab per
+session, LRU-capped, hover-prewarmed via `?mode=prewarm`) was prototyped
+(`scripts/focus-viewer-tabs.wip.sh`) but is blocked on snap alacritty exiting silently
+when its `-e zellij` child runs under systemd services outside a user session —
+single-attach viewer restored in the meantime. UI hover-prewarm wiring is already live
+(`FocusRemote.tsx`); it activates once the tab viewer lands. First probe for a future
+attempt: run zellij OUTSIDE snap confinement.
+
 ### OC Beacon desktop parity
 
 Desktop notification actions (`notify-send`) reusing the same focus pipeline, so phone

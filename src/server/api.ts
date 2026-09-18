@@ -2,7 +2,9 @@ import { Hono } from "hono"
 import * as path from "node:path"
 import * as fs from "node:fs"
 import { homedir } from "node:os"
-import { listSources, getDefaultSourceId, addOrUpdateSource, updateSourceLabelById, deleteSourceById } from "../ingest/sources-registry"
+import { listSources, getDefaultSourceId, addOrUpdateSource, updateSourceLabelById, deleteSourceById, getSourceById } from "../ingest/sources-registry"
+import { buildAttentionPayload } from "./dashboard"
+import { focusSession } from "./focus"
 import { getStorageRoots, getMessageDir } from "../ingest/session"
 import { assertAllowedPath, expandTilde } from "../ingest/paths"
 import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../ingest/tool-calls"
@@ -135,6 +137,35 @@ export function createApi(opts: {
     }
     return c.json(project)
   })
+
+  // -------------------------------------------------------------------------
+  // GET /attention — per project, ranked "next session requiring my attention"
+  // -------------------------------------------------------------------------
+  api.get("/attention", async (c) => {
+    const payload = await multiProjectService.getMultiProjectPayload()
+    return c.json(buildAttentionPayload(payload.projects, payload.serverNowMs))
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /focus/:sourceId/:sessionId — jump the focus viewer window to a session
+  // -------------------------------------------------------------------------
+  api.post("/focus/:sourceId/:sessionId", async (c) => {
+    const sourceId = c.req.param("sourceId")
+    const sessionId = c.req.param("sessionId")
+    if (!SESSION_ID_PATTERN.test(sessionId)) {
+      return c.json({ ok: false, error: "Invalid session id" }, 400)
+    }
+    const source = getSourceById(opts.storageRoot, sourceId)
+    if (!source) {
+      return c.json({ ok: false, error: "Source not found", sourceId }, 404)
+    }
+    const result = await focusSession(source.projectRoot, sessionId)
+    if (!result.ok) {
+      return c.json({ ok: false, error: result.error }, 500)
+    }
+    return c.json({ ok: true, action: result.action })
+  })
+
 
   // -------------------------------------------------------------------------
   // GET /quotas — provider subscription quota usage (cached ~3 min server-side)

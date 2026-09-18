@@ -271,9 +271,10 @@ function toast(m){const t=document.getElementById('toast');t.textContent=m;
 document.getElementById('list').addEventListener('click',e=>{
   const b=e.target.closest('button.target');if(!b)return;
   toast('\u2192 switching terminal to '+b.dataset.p+' \u203A '+b.dataset.s+'\u2026')});
-document.getElementById('demoToggle').addEventListener('click',function(){
+const dt=document.getElementById('demoToggle');
+if(dt)dt.addEventListener('click',function(){
   empty=!empty;this.textContent=empty?'back to attention list':'preview: all-clear state';render()});
-render();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render);else render();
 <\/script></body></html>`;
 </script>
 </body>

@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite"
 import * as path from "node:path"
-import { ACTIVE_BUSY_WINDOW_MS, hasFreshMainSessionActivity, isStaleQuestionTool, shouldSuppressStaleToolActivity } from "./activity-status"
+import { ACTIVE_BUSY_WINDOW_MS, hasFreshMainSessionActivity, isStaleActiveTool, shouldSuppressStaleToolActivity } from "./activity-status"
 import { realpathSafe } from "./paths"
 import type { SessionMetadata } from "./session"
 import { isActiveQuestionTool } from "./tool-names"
@@ -38,7 +38,7 @@ function deriveSessionStatusFromMaps(
   const hasFreshActivity = hasFreshMainSessionActivity(lastUpdated, nowMs)
 
   for (const activePart of activeParts) {
-    if (!isStaleQuestionTool(activePart.tool, activePart.status, activePart.startedAt, nowMs)) {
+    if (!isStaleActiveTool(activePart.tool, activePart.status, activePart.startedAt, nowMs)) {
       if (isActiveQuestionTool(activePart.tool, activePart.status)) return "question"
       if (!shouldSuppressStaleToolActivity(activePart.tool, activePart.status, hasFreshActivity)) return "running_tool"
     }

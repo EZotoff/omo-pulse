@@ -84,8 +84,10 @@ phone push feels instant. A tab-based warm-tab viewer (zellij session with one t
 session, LRU-capped, hover-prewarmed via `?mode=prewarm`) was prototyped
 (`scripts/focus-viewer-tabs.wip.sh`) but is blocked on snap alacritty exiting silently
 when its `-e zellij` child runs under systemd services outside a user session —
-single-attach viewer restored in the meantime. UI hover-prewarm wiring is already live
-(`FocusRemote.tsx`); it activates once the tab viewer lands. First probe for a future
+single-attach viewer restored in the meantime. Hover-prewarm wiring was REMOVED from the UI: in the
+single-attach viewer a prewarm is a real TUI swap, and hover-triggered swaps
+stole focus (operator feedback 2026-09-19). Re-add hover-prewarm only with the
+tab-based viewer, where preparation is genuinely passive. First probe for a future
 attempt: run zellij OUTSIDE snap confinement.
 
 ### OC Beacon desktop parity

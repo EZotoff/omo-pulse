@@ -40,20 +40,6 @@ function FocusTargetButton({
 }: FocusTargetButtonProps) {
   const [hideError, setHideError] = useState<string | null>(null)
   const busyRef = useRef(false)
-  const prewarmedRef = useRef(false)
-
-  /* Hover prewarm: prepare the session tab in the viewer before the click,
-     so switching feels instant (mirrors the phone's push-tap latency). */
-  const onPrewarm = useCallback((): void => {
-    if (busyRef.current || prewarmedRef.current) return
-    prewarmedRef.current = true
-    void fetch(
-      `/api/focus/${encodeURIComponent(sourceId)}/${encodeURIComponent(session.sessionId)}?mode=prewarm`,
-      { method: "POST" },
-    ).catch(() => {
-      prewarmedRef.current = false
-    })
-  }, [sourceId, session.sessionId])
 
   const onHide = useCallback(() => {
     if (busyRef.current) return

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, memo } from "react"
 import type { AttentionProject, AttentionSession } from "../../types"
 import { useAttention } from "../hooks/useAttention"
+import { useFocusRemoteControls } from "../hooks/useFocusRemoteControls"
 import "./FocusRemote.css"
 
 /* ── Helpers ── */
@@ -22,11 +23,22 @@ type FocusTargetButtonProps = {
   sourceId: string
   session: AttentionSession
   onHidden?: (sessionId: string) => void
+  onFocus: (sourceId: string, sessionId: string) => void
+  isSelected: boolean
+  isSwitching: boolean
+  focusError: string | null
 }
 
-function FocusTargetButton({ sourceId, session, onHidden }: FocusTargetButtonProps) {
-  const [isSwitching, setIsSwitching] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+function FocusTargetButton({
+  sourceId,
+  session,
+  onHidden,
+  onFocus,
+  isSelected,
+  isSwitching,
+  focusError,
+}: FocusTargetButtonProps) {
+  const [hideError, setHideError] = useState<string | null>(null)
   const busyRef = useRef(false)
   const prewarmedRef = useRef(false)
 
@@ -43,31 +55,6 @@ function FocusTargetButton({ sourceId, session, onHidden }: FocusTargetButtonPro
     })
   }, [sourceId, session.sessionId])
 
-  const onFocus = useCallback(async (): Promise<void> => {
-    if (busyRef.current) return
-    busyRef.current = true
-    setIsSwitching(true)
-    setError(null)
-
-    const minDelay = new Promise((resolve) => setTimeout(resolve, 800))
-    try {
-      const call = fetch(
-        `/api/focus/${encodeURIComponent(sourceId)}/${encodeURIComponent(session.sessionId)}`,
-        { method: "POST" },
-      ).then(async (res) => {
-        const body: { ok: boolean; error?: string } = await res.json()
-        if (!res.ok || !body.ok) throw new Error(body.error ?? `HTTP ${res.status}`)
-        return body
-      })
-      await Promise.all([call, minDelay])
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setIsSwitching(false)
-      busyRef.current = false
-    }
-  }, [sourceId, session.sessionId])
-
   const onHide = useCallback(() => {
     if (busyRef.current) return
     void fetch(`/api/attention/hide/${encodeURIComponent(session.sessionId)}`, { method: "POST" })
@@ -76,7 +63,7 @@ function FocusTargetButton({ sourceId, session, onHidden }: FocusTargetButtonPro
         onHidden?.(session.sessionId)
       })
       .catch(() => {
-        setError("could not hide session")
+        setHideError("could not hide session")
       })
   }, [session.sessionId, onHidden])
 
@@ -86,9 +73,10 @@ function FocusTargetButton({ sourceId, session, onHidden }: FocusTargetButtonPro
     <div className="focus-cardwrap">
       <button
         type="button"
-        className={`focus-target${urgent ? " focus-target--urgent" : ""}`}
+        className={`focus-target${urgent ? " focus-target--urgent" : ""}${isSelected ? " focus-target--selected" : ""}`}
         data-state={session.state}
-        onClick={onFocus}
+        data-session-id={session.sessionId}
+        onClick={() => onFocus(sourceId, session.sessionId)}
         onMouseEnter={onPrewarm}
         disabled={isSwitching}
       >
@@ -107,9 +95,9 @@ function FocusTargetButton({ sourceId, session, onHidden }: FocusTargetButtonPro
       >
         ✕
       </button>
-      {error && (
+      {(focusError ?? hideError) && (
         <div className="focus-error" role="alert">
-          {error}
+          {focusError ?? hideError}
         </div>
       )}
     </div>
@@ -125,24 +113,16 @@ type ViewMode = "top" | "all"
 export function FocusRemote() {
   const { projects, connected, hiddenCount, refresh } = useAttention()
   const [viewMode, setViewMode] = useState<ViewMode>("top")
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   const attention = projects.filter((p) => p.next !== null)
   const busy = projects.filter((p) => p.next === null && p.busySessions > 0)
   const allClear = attention.length === 0
-
-  const toggleProject = useCallback((sourceId: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(sourceId)) next.delete(sourceId)
-      else next.add(sourceId)
-      return next
-    })
-  }, [])
+  const controls = useFocusRemoteControls(attention)
 
   const onHidden = useCallback(() => {
+    controls.clearSelection()
     void refresh()
-  }, [refresh])
+  }, [controls, refresh])
 
   const unhideAll = useCallback(() => {
     void fetch("/api/attention/unhide-all", { method: "POST" }).then(() => refresh())
@@ -173,6 +153,15 @@ export function FocusRemote() {
         </div>
       </header>
       <main className="focus-list">
+        <button
+          type="button"
+          className="focus-next"
+          onClick={controls.focusNext}
+          disabled={allClear || controls.switchingId !== null}
+        >
+          {controls.switchingId === "next" ? "switching…" : "▶ NEXT"}
+        </button>
+        {controls.nextError && <div className="focus-error focus-next-error" role="alert">{controls.nextError}</div>}
         {allClear ? (
           <div className="focus-clear-panel">
             <div className="focus-clear-ck" aria-hidden="true">
@@ -183,7 +172,7 @@ export function FocusRemote() {
           </div>
         ) : (
           attention.map((project) => {
-            const expanded = viewMode === "all" || expandedIds.has(project.sourceId)
+            const expanded = viewMode === "all" || controls.expandedIds.has(project.sourceId)
             const visible = expanded ? project.sessions : project.sessions.slice(0, 1)
             return (
               <div className="focus-project" key={project.sourceId}>
@@ -195,7 +184,7 @@ export function FocusRemote() {
                       aria-expanded={expanded}
                       aria-label={`${expanded ? "Collapse" : "Expand"} ${project.label} session queue`}
                       title={expanded ? "Show top session only" : `Show all ${project.sessions.length} waiting sessions`}
-                      onClick={() => toggleProject(project.sourceId)}
+                      onClick={() => controls.toggleProject(project.sourceId)}
                     >
                       {expanded ? "▾" : "▸"}
                     </button>
@@ -211,13 +200,17 @@ export function FocusRemote() {
                     sourceId={project.sourceId}
                     session={session}
                     onHidden={onHidden}
+                    onFocus={controls.focusTarget}
+                    isSelected={controls.selectedId === session.sessionId}
+                    isSwitching={controls.switchingId === session.sessionId}
+                    focusError={controls.focusError?.sessionId === session.sessionId ? controls.focusError.message : null}
                   />
                 ))}
                 {!expanded && project.queue > 0 && (
                   <button
                     type="button"
                     className="focus-queue focus-queue--button"
-                    onClick={() => toggleProject(project.sourceId)}
+                    onClick={() => controls.toggleProject(project.sourceId)}
                   >
                     +{project.queue} more waiting
                   </button>

@@ -498,10 +498,18 @@ export function createDashboardStore(opts: {
   storageRoot: string
   storageBackend?: StorageBackend
   pollIntervalMs?: number
+  /**
+   * Delays this store's first (and thus every subsequent) refresh, spreading
+   * refreshes of many stores evenly across the poll interval. Without it, N
+   * stores expire in sync and their synchronous SQLite rebuilds block the
+   * event loop as one multi-second freeze.
+   */
+  staggerMs?: number
 }): DashboardStore {
   const storage = getStorageRoots(opts.storageRoot)
   const pollIntervalMs = opts.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS
 
+  const staggerMs = opts.staggerMs ?? 0
   let lastComputedAt = 0
   let cached: DashboardPayload | null = null
 
@@ -515,7 +523,10 @@ export function createDashboardStore(opts: {
           nowMs: now,
           storageBackend: opts.storageBackend,
         })
-        lastComputedAt = now
+        // Push the timestamp into the future by the stagger so N stores
+        // created together expire spread across the interval instead of
+        // rebuilding as one synchronous multi-second block.
+        lastComputedAt = now + staggerMs
       }
       return cached
     },

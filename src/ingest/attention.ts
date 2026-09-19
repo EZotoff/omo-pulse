@@ -74,8 +74,7 @@ export function buildAttentionProject(
   snapshot: ProjectSnapshot,
   serverNowMs: number,
 ): AttentionProject {
-  let next: AttentionSession | null = null
-  let queue = 0
+  const ranked: AttentionSession[] = []
   let busySessions = 0
 
   for (const session of snapshot.sessions) {
@@ -92,20 +91,17 @@ export function buildAttentionProject(
       busySessions += 1
       continue
     }
-    if (!next || compareSessions(entry, next) < 0) {
-      if (next) queue += 1
-      next = entry
-    } else {
-      queue += 1
-    }
+    ranked.push(entry)
   }
+  ranked.sort(compareSessions)
 
   return {
     sourceId: snapshot.sourceId,
     label: snapshot.label,
     projectRoot: snapshot.projectRoot,
-    next,
-    queue,
+    next: ranked[0] ?? null,
+    queue: Math.max(0, ranked.length - 1),
+    sessions: ranked,
     busySessions,
     totalSessions: snapshot.sessions.length,
   }

@@ -271,3 +271,104 @@ body:has(.focus-remote) {
     transition: none !important;
   }
 }
+
+
+/* ── queue view + hide controls ── */
+
+.focus-viewtoggle {
+  margin-left: auto;
+  display: inline-flex;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.focus-viewtoggle button {
+  font: var(--font-xs) var(--font-mono);
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.focus-viewtoggle button.is-active {
+  color: var(--accent-primary);
+  background: rgba(0, 212, 170, 0.1);
+}
+
+.focus-proj-head .focus-chevron {
+  flex: none;
+  width: 18px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0;
+}
+.focus-chevron--spacer {
+  display: inline-block;
+}
+.focus-queue--button {
+  background: transparent;
+  border: 0;
+  padding: 2px 4px;
+  cursor: pointer;
+  text-align: left;
+}
+.focus-queue--button:hover {
+  color: var(--text-secondary);
+}
+
+.focus-cardwrap {
+  position: relative;
+}
+.focus-hide {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  line-height: 1;
+  font-size: 9px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.focus-cardwrap:hover .focus-hide {
+  opacity: 1;
+}
+.focus-hide:hover {
+  color: var(--accent-danger);
+  border-color: var(--border-secondary);
+}
+
+.focus-t-wait {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.focus-rfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px var(--sp-3);
+  border-top: 1px solid var(--border-secondary);
+  font: var(--font-xs) var(--font-mono);
+  color: var(--text-muted);
+}
+.focus-linkish {
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font: var(--font-xs) var(--font-mono);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.focus-linkish:hover {
+  color: var(--text-secondary);
+}

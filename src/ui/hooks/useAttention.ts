@@ -21,12 +21,14 @@ const POLL_MS = 3000
 export type UseAttentionReturn = {
   projects: AttentionProject[]
   connected: boolean
+  hiddenCount: number | null
   refresh: () => Promise<void>
 }
 
 export function useAttention(): UseAttentionReturn {
   const [projects, setProjects] = useState<AttentionProject[]>([])
   const [connected, setConnected] = useState(false)
+  const [hiddenCount, setHiddenCount] = useState<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -36,6 +38,7 @@ export function useAttention(): UseAttentionReturn {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const raw: AttentionPayload = await res.json()
       setProjects(raw.projects)
+      setHiddenCount(raw.hiddenCount ?? 0)
       setConnected(true)
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") return
@@ -87,5 +90,5 @@ export function useAttention(): UseAttentionReturn {
   }, [fetchNow])
 
 
-  return { projects, connected, refresh }
+  return { projects, connected, hiddenCount, refresh }
 }

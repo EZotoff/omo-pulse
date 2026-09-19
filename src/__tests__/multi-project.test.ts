@@ -126,7 +126,7 @@ describe("createMultiProjectService", () => {
 
     const payload = await service.getMultiProjectPayload()
     expect(payload.projects).toEqual([])
-    expect(payload.pollIntervalMs).toBe(2000)
+    expect(payload.pollIntervalMs).toBe(10_000)
     expect(typeof payload.serverNowMs).toBe("number")
   })
 

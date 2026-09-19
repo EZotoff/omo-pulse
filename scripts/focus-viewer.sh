@@ -72,13 +72,26 @@ run_session() {
     sleep 2
     return 0
   fi
+  # (returns 0 = go idle; only preemption returns 1)
   # Explicit pty fds: background jobs get stdin from /dev/null (POSIX), which
   # makes the TUI see instant EOF and exit — wire the saved pty fds instead.
   opencode attach http://127.0.0.1:3030 --dir "$dir" -s "$sid" <&3 >&4 2>&5 &
   CHILD=$!
+  # Interruptible wait: while the TUI runs, keep polling the FIFO — a new
+  # request preempts (returns 1 so the caller re-runs with the pending pair).
+  while kill -0 "$CHILD" 2>/dev/null; do
+    if IFS=$'\t' read -t 0.5 -r pdir psid ppw <&8; then
+      if [ -n "${pdir:-}" ] && [ -n "${psid:-}" ]; then
+        PENDING_DIR="$pdir"; PENDING_SID="$psid"
+        log "preempt dir=$dir sid=$sid"
+        return 1
+      fi
+    fi
+  done
   wait "$CHILD"
   log "attach dir=$dir sid=$sid exit=$?"
   CHILD=""
+  return 0
 }
 
 show_idle() {
@@ -105,12 +118,18 @@ fi
 # Single-consumer poll: `read -t` on the FIFO doubles as the sleep between
 # idle polls AND the preemption check while a TUI is attached. No subshell,
 # no pending file — nothing to race or lose.
+PENDING_DIR=""; PENDING_SID=""
 while :; do
   if ! IFS=$'\t' read -t 0.5 -r dir sid prewarm <&8; then
     continue
   fi
   [ -n "${dir:-}" ] && [ -n "${sid:-}" ] || continue
-  run_session "$dir" "$sid"
+  # run_session returns 1 when preempted — service the chain immediately.
+  until run_session "$dir" "$sid"; do
+    dir="$PENDING_DIR"; sid="$PENDING_SID"
+    PENDING_DIR=""; PENDING_SID=""
+    [ -n "$dir" ] && [ -n "$sid" ] || break
+  done
   show_idle
 done
 # Initial request from argv (e.g. manual testing); otherwise idle until FIFO.

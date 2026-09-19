@@ -81,7 +81,7 @@ const INCLUDED_SESSION_IDLE_WINDOW_MS = 2 * 60 * 60_000
 const MAX_CACHE_ENTRIES = 100
 /** Upper bound on auto-discovered projects materialized per payload (most recent first) */
 const MAX_DISCOVERED_PROJECTS = 20
-const DEFAULT_POLL_INTERVAL_MS = 2_000
+const DEFAULT_POLL_INTERVAL_MS = 10_000
 
 function evictOldest<K>(map: Map<K, { fetchedAt: number }>, maxSize: number): void {
   if (map.size < maxSize) return
@@ -332,11 +332,15 @@ export function createMultiProjectService(opts: {
       return byRoot
     }
 
+    // Spread refreshes of concurrently-registered stores across the poll
+    // interval (store count at creation time defines the stride).
+    const stride = storeByProjectRoot.size + 1
     const created = createDashboardStore({
       projectRoot,
       storageRoot: legacyStorageRoot,
       storageBackend: opts.storageBackend,
       pollIntervalMs,
+      staggerMs: Math.round((pollIntervalMs * (stride - 1)) / Math.max(1, stride)),
     })
     storeBySourceId.set(sourceId, created)
     storeByProjectRoot.set(projectRoot, created)

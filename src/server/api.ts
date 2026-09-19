@@ -5,6 +5,7 @@ import { homedir } from "node:os"
 import { listSources, getDefaultSourceId, addOrUpdateSource, updateSourceLabelById, deleteSourceById, getSourceById } from "../ingest/sources-registry"
 import { buildAttentionPayload } from "./dashboard"
 import { focusSession } from "./focus"
+import { readHiddenSessionIds, writeHiddenSessionIds } from "./attention-hidden"
 import { getStorageRoots, getMessageDir } from "../ingest/session"
 import { assertAllowedPath, expandTilde } from "../ingest/paths"
 import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../ingest/tool-calls"
@@ -143,7 +144,48 @@ export function createApi(opts: {
   // -------------------------------------------------------------------------
   api.get("/attention", async (c) => {
     const payload = await multiProjectService.getMultiProjectPayload()
-    return c.json(buildAttentionPayload(payload.projects, payload.serverNowMs))
+    const attention = buildAttentionPayload(payload.projects, payload.serverNowMs)
+    // Apply the operator's hide list: drop hidden sessions, recompute next/queue.
+    const hidden = readHiddenSessionIds(opts.storageRoot)
+    let hiddenCount = 0
+    if (hidden.size > 0) {
+      const projects: typeof attention.projects = []
+      for (const project of attention.projects) {
+        const sessions = project.sessions.filter((session) => {
+          if (hidden.has(session.sessionId)) {
+            hiddenCount += 1
+            return false
+          }
+          return true
+        })
+        if (sessions.length === 0 && project.busySessions === 0 && project.totalSessions === 0) continue
+        projects.push({ ...project, sessions, next: sessions[0] ?? null, queue: Math.max(0, sessions.length - 1) })
+      }
+      attention.projects = projects
+    }
+    return c.json({ ...attention, hiddenCount })
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /attention/hide/:sessionId — never show this session in the attention list
+  // -------------------------------------------------------------------------
+  api.post("/attention/hide/:sessionId", async (c) => {
+    const sessionId = c.req.param("sessionId")
+    if (!SESSION_ID_PATTERN.test(sessionId)) {
+      return c.json({ ok: false, error: "Invalid session id" }, 400)
+    }
+    const hidden = readHiddenSessionIds(opts.storageRoot)
+    hidden.add(sessionId)
+    writeHiddenSessionIds(opts.storageRoot, hidden)
+    return c.json({ ok: true, hiddenCount: hidden.size })
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /attention/unhide-all — restore hidden sessions
+  // -------------------------------------------------------------------------
+  api.post("/attention/unhide-all", (c) => {
+    writeHiddenSessionIds(opts.storageRoot, new Set())
+    return c.json({ ok: true, hiddenCount: 0 })
   })
 
   // -------------------------------------------------------------------------
@@ -159,7 +201,8 @@ export function createApi(opts: {
     if (!source) {
       return c.json({ ok: false, error: "Source not found", sourceId }, 404)
     }
-    const result = await focusSession(source.projectRoot, sessionId)
+    const prewarm = c.req.query("mode") === "prewarm"
+    const result = await focusSession(source.projectRoot, sessionId, prewarm)
     if (!result.ok) {
       return c.json({ ok: false, error: result.error }, 500)
     }

@@ -326,6 +326,8 @@ export type AttentionProject = {
   projectRoot: string
   next: AttentionSession | null
   queue: number
+  /** ALL attention sessions, ranked most-urgent first (drives the queue view) */
+  sessions: AttentionSession[]
   busySessions: number
   totalSessions: number
 }
@@ -334,4 +336,6 @@ export type AttentionProject = {
 export type AttentionPayload = {
   projects: AttentionProject[]
   serverNowMs: number
+  /** Sessions the operator hid; set by the /attention route, not the pure builder */
+  hiddenCount?: number
 }

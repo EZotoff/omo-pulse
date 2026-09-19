@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, memo } from "react"
-import type { AttentionProject } from "../../types"
+import type { AttentionProject, AttentionSession } from "../../types"
 import { useAttention } from "../hooks/useAttention"
 import "./FocusRemote.css"
 
@@ -16,18 +16,35 @@ function formatWait(waitMs: number): string {
   return `${hours}h ago`
 }
 
+/* ── One session card (top item or queue item) ── */
+
 type FocusTargetButtonProps = {
-  project: AttentionProject
+  sourceId: string
+  session: AttentionSession
+  onHidden?: (sessionId: string) => void
 }
 
-function FocusTargetButton({ project }: FocusTargetButtonProps) {
-  const next = project.next
+function FocusTargetButton({ sourceId, session, onHidden }: FocusTargetButtonProps) {
   const [isSwitching, setIsSwitching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const busyRef = useRef(false)
+  const prewarmedRef = useRef(false)
+
+  /* Hover prewarm: prepare the session tab in the viewer before the click,
+     so switching feels instant (mirrors the phone's push-tap latency). */
+  const onPrewarm = useCallback((): void => {
+    if (busyRef.current || prewarmedRef.current) return
+    prewarmedRef.current = true
+    void fetch(
+      `/api/focus/${encodeURIComponent(sourceId)}/${encodeURIComponent(session.sessionId)}?mode=prewarm`,
+      { method: "POST" },
+    ).catch(() => {
+      prewarmedRef.current = false
+    })
+  }, [sourceId, session.sessionId])
 
   const onFocus = useCallback(async (): Promise<void> => {
-    if (!next || busyRef.current) return
+    if (busyRef.current) return
     busyRef.current = true
     setIsSwitching(true)
     setError(null)
@@ -35,7 +52,7 @@ function FocusTargetButton({ project }: FocusTargetButtonProps) {
     const minDelay = new Promise((resolve) => setTimeout(resolve, 800))
     try {
       const call = fetch(
-        `/api/focus/${encodeURIComponent(project.sourceId)}/${encodeURIComponent(next.sessionId)}`,
+        `/api/focus/${encodeURIComponent(sourceId)}/${encodeURIComponent(session.sessionId)}`,
         { method: "POST" },
       ).then(async (res) => {
         const body: { ok: boolean; error?: string } = await res.json()
@@ -49,36 +66,52 @@ function FocusTargetButton({ project }: FocusTargetButtonProps) {
       setIsSwitching(false)
       busyRef.current = false
     }
-  }, [next, project.sourceId])
+  }, [sourceId, session.sessionId])
 
-  if (!next) return null
+  const onHide = useCallback(() => {
+    if (busyRef.current) return
+    void fetch(`/api/attention/hide/${encodeURIComponent(session.sessionId)}`, { method: "POST" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        onHidden?.(session.sessionId)
+      })
+      .catch(() => {
+        setError("could not hide session")
+      })
+  }, [session.sessionId, onHidden])
 
-  const urgent = URGENT_STATES.has(next.state)
+  const urgent = URGENT_STATES.has(session.state)
 
   return (
-    <div className="focus-project">
-      <div className="focus-proj-head">
-        <span className="focus-pname">{project.label}</span>
-        <span className="focus-ptime">{formatWait(next.waitMs)}</span>
-      </div>
+    <div className="focus-cardwrap">
       <button
         type="button"
         className={`focus-target${urgent ? " focus-target--urgent" : ""}`}
-        data-state={next.state}
+        data-state={session.state}
         onClick={onFocus}
+        onMouseEnter={onPrewarm}
         disabled={isSwitching}
       >
         <span className="focus-t-main">
-          <span className="focus-t-label">{next.sessionLabel}</span>
+          <span className="focus-t-label">{session.sessionLabel}</span>
+          <span className="focus-t-wait">{formatWait(session.waitMs)}</span>
         </span>
         <span className="focus-t-focus">{isSwitching ? "switching…" : "FOCUS ▶"}</span>
+      </button>
+      <button
+        type="button"
+        className="focus-hide"
+        title="Hide this session from the attention list"
+        aria-label={`Hide session ${session.sessionLabel}`}
+        onClick={onHide}
+      >
+        ✕
       </button>
       {error && (
         <div className="focus-error" role="alert">
           {error}
         </div>
       )}
-      {project.queue > 0 && <div className="focus-queue">+{project.queue} more waiting</div>}
     </div>
   )
 }
@@ -87,11 +120,33 @@ const MemoFocusTarget = memo(FocusTargetButton)
 
 /* ── Component ── */
 
+type ViewMode = "top" | "all"
+
 export function FocusRemote() {
-  const { projects, connected } = useAttention()
+  const { projects, connected, hiddenCount, refresh } = useAttention()
+  const [viewMode, setViewMode] = useState<ViewMode>("top")
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+
   const attention = projects.filter((p) => p.next !== null)
   const busy = projects.filter((p) => p.next === null && p.busySessions > 0)
   const allClear = attention.length === 0
+
+  const toggleProject = useCallback((sourceId: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(sourceId)) next.delete(sourceId)
+      else next.add(sourceId)
+      return next
+    })
+  }, [])
+
+  const onHidden = useCallback(() => {
+    void refresh()
+  }, [refresh])
+
+  const unhideAll = useCallback(() => {
+    void fetch("/api/attention/unhide-all", { method: "POST" }).then(() => refresh())
+  }, [refresh])
 
   return (
     <div className="focus-remote" data-connected={connected}>
@@ -100,7 +155,22 @@ export function FocusRemote() {
         <h1>
           omo-pulse <span>· focus remote</span>
         </h1>
-        <span className="focus-rsort">by urgency</span>
+        <div className="focus-viewtoggle" role="group" aria-label="Sessions per project">
+          <button
+            type="button"
+            className={viewMode === "top" ? "is-active" : ""}
+            onClick={() => setViewMode("top")}
+          >
+            top
+          </button>
+          <button
+            type="button"
+            className={viewMode === "all" ? "is-active" : ""}
+            onClick={() => setViewMode("all")}
+          >
+            all
+          </button>
+        </div>
       </header>
       <main className="focus-list">
         {allClear ? (
@@ -112,7 +182,49 @@ export function FocusRemote() {
             <p>no sessions need your attention right now</p>
           </div>
         ) : (
-          attention.map((project) => <MemoFocusTarget key={project.sourceId} project={project} />)
+          attention.map((project) => {
+            const expanded = viewMode === "all" || expandedIds.has(project.sourceId)
+            const visible = expanded ? project.sessions : project.sessions.slice(0, 1)
+            return (
+              <div className="focus-project" key={project.sourceId}>
+                <div className="focus-proj-head">
+                  {project.sessions.length > 1 ? (
+                    <button
+                      type="button"
+                      className="focus-chevron"
+                      aria-expanded={expanded}
+                      aria-label={`${expanded ? "Collapse" : "Expand"} ${project.label} session queue`}
+                      title={expanded ? "Show top session only" : `Show all ${project.sessions.length} waiting sessions`}
+                      onClick={() => toggleProject(project.sourceId)}
+                    >
+                      {expanded ? "▾" : "▸"}
+                    </button>
+                  ) : (
+                    <span className="focus-chevron focus-chevron--spacer" aria-hidden="true" />
+                  )}
+                  <span className="focus-pname">{project.label}</span>
+                  <span className="focus-ptime">{formatWait(visible[0].waitMs)}</span>
+                </div>
+                {visible.map((session) => (
+                  <MemoFocusTarget
+                    key={session.sessionId}
+                    sourceId={project.sourceId}
+                    session={session}
+                    onHidden={onHidden}
+                  />
+                ))}
+                {!expanded && project.queue > 0 && (
+                  <button
+                    type="button"
+                    className="focus-queue focus-queue--button"
+                    onClick={() => toggleProject(project.sourceId)}
+                  >
+                    +{project.queue} more waiting
+                  </button>
+                )}
+              </div>
+            )
+          })
         )}
         {busy.length > 0 && (
           <>
@@ -126,6 +238,14 @@ export function FocusRemote() {
           </>
         )}
       </main>
+      {(hiddenCount ?? 0) > 0 && (
+        <footer className="focus-rfoot">
+          <span className="focus-hidden-n">{hiddenCount} hidden</span>
+          <button type="button" className="focus-linkish" onClick={unhideAll}>
+            show hidden
+          </button>
+        </footer>
+      )}
     </div>
   )
 }

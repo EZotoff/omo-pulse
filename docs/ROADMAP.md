@@ -48,6 +48,8 @@ Per the contract's pending ledger, in order:
 
 ## Planned
 
+The Focus Remote keymap is the semantic pre-implementation of future tapxr 4-way navigation: n/enter ≈ next/act, j/k ≈ up/down.
+
 ### Attention ranking (shared plumbing) — shipped 2026-09-19 (`GET /api/attention`)
 
 `GET /api/attention` — per project, the ranked "next session requiring my attention":

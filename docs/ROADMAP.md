@@ -2,9 +2,9 @@
 
 Working notes for upcoming interaction work. Statuses: **in design** → **planned** → **shipped**.
 
-## In design
+## Shipped
 
-### Session focus flow (dashboard click → terminal)
+### Session focus flow (dashboard click → terminal) — shipped 2026-09-19
 
 Recreates OC Beacon's "push message with a clickable link to the finished session" on the
 desktop: clicking a session in the dashboard jumps a dedicated terminal window straight to
@@ -32,9 +32,23 @@ that session's TUI.
   `docs/mockups/focus/`
 - **Expanded project view retired** (unused; frees vertical space for the new interactions).
 
+## Next milestone: voice agent integration (Vox)
+
+Contract: `~/ez-omo-config/docs/portable-supervisor-contract.md` (cross-repo changes land
+there FIRST — contract → voice-bridge → omo-pulse). The focus-flow work above completed
+the dash-side prerequisites: `/api/attention` + `POST /api/focus` are exactly the tool
+surface Vox needs, and the Focus Remote (`?view=remote`) is the contract's "remote UI".
+
+Per the contract's pending ledger, in order:
+1. `voice-bridge`: escalation `confidence ≥ 0.7` filter in ledger-tailer (small code task)
+2. `omo-pulse`: **voice widget + Seam 1 context feed** in the remote UI — WSS client
+   (`/voice?client=dash`), send `view-context` frames on navigation/state change
+3. `omo-pulse`: **Seam 2 show-view renderer** — render Vox `show(view, payload)` frames
+4. `ez-omo-config`: real-voice dogfood → MANIFEST evidence upgrade (validation ladder step 1)
+
 ## Planned
 
-### Attention ranking (shared plumbing)
+### Attention ranking (shared plumbing) — shipped 2026-09-19 (`GET /api/attention`)
 
 `GET /api/attention` — per project, the ranked "next session requiring my attention":
 

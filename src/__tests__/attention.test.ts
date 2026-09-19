@@ -7,6 +7,7 @@ import {
   buildAttentionProject,
 } from "../ingest/attention"
 import type { ProjectSnapshot, SessionStatus, SessionSummary } from "../types"
+import { selectAttentionTarget } from "../server/api"
 
 function session(
   sessionId: string,
@@ -207,5 +208,46 @@ describe("buildAttentionPayload", () => {
     const entries = Object.entries(ATTENTION_RANK) as [string, number][]
     const ranks = entries.map(([, rank]) => rank)
     expect(ranks).toEqual([...ranks].sort((a, b) => a - b))
+  })
+})
+
+describe("selectAttentionTarget", () => {
+  it("skips across projects in ranked session order", () => {
+    // Given
+    const attention = buildAttentionPayload(
+      [
+        snapshot({
+          sourceId: "lower-ranked",
+          projectRoot: "/projects/lower",
+          sessions: [session("error", "error")],
+        }),
+        snapshot({
+          sourceId: "top-ranked",
+          projectRoot: "/projects/top",
+          sessions: [session("question", "question"), session("idle", "idle")],
+        }),
+      ],
+      10_000,
+    )
+
+    // When
+    const target = selectAttentionTarget(attention.projects, 2)
+
+    // Then
+    expect(target).toEqual({ projectRoot: "/projects/lower", sessionId: "error" })
+  })
+
+  it("returns no target when nothing is pending", () => {
+    // Given
+    const attention = buildAttentionPayload(
+      [snapshot({ sessions: [session("working", "busy")] })],
+      10_000,
+    )
+
+    // When
+    const target = selectAttentionTarget(attention.projects, 0)
+
+    // Then
+    expect(target).toBeNull()
   })
 })

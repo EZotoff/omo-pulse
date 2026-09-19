@@ -12,13 +12,34 @@ import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../inge
 import { deriveToolCallsSqlite } from "../ingest/sqlite-derive"
 import type { StorageBackend } from "../ingest/storage-backend"
 import { createQuotaService } from "./quotas"
-import type { DashboardMultiProjectPayload, TelegramServiceStatus } from "../types"
+import type { AttentionProject, DashboardMultiProjectPayload, TelegramServiceStatus } from "../types"
 
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/
 
 export type MultiProjectService = {
   getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload>
   invalidate: () => void
+}
+
+type AttentionTarget = {
+  readonly projectRoot: string
+  readonly sessionId: string
+}
+
+export function selectAttentionTarget(
+  projects: readonly AttentionProject[],
+  skip: number,
+): AttentionTarget | null {
+  let remaining = skip
+  for (const project of projects) {
+    for (const session of project.sessions) {
+      if (remaining === 0) {
+        return { projectRoot: project.projectRoot, sessionId: session.sessionId }
+      }
+      remaining -= 1
+    }
+  }
+  return null
 }
 
 export function createApi(opts: {
@@ -203,6 +224,31 @@ export function createApi(opts: {
     }
     const prewarm = c.req.query("mode") === "prewarm"
     const result = await focusSession(source.projectRoot, sessionId, prewarm)
+    if (!result.ok) {
+      return c.json({ ok: false, error: result.error }, 500)
+    }
+    return c.json({ ok: true, action: result.action })
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /focus/next — focus the ranked attention target at ?skip=N
+  // -------------------------------------------------------------------------
+  api.post("/focus/next", async (c) => {
+    const rawSkip = c.req.query("skip")
+    const parsedSkip = rawSkip && /^\d+$/.test(rawSkip) ? Number(rawSkip) : 0
+    const skip = Number.isSafeInteger(parsedSkip) ? parsedSkip : 0
+    const payload = await multiProjectService.getMultiProjectPayload()
+    const attention = buildAttentionPayload(payload.projects, payload.serverNowMs)
+    const hidden = readHiddenSessionIds(opts.storageRoot)
+    const visibleProjects = attention.projects.map((project) => ({
+      ...project,
+      sessions: project.sessions.filter((session) => !hidden.has(session.sessionId)),
+    }))
+    const target = selectAttentionTarget(visibleProjects, skip)
+    if (!target) {
+      return c.json({ ok: true, action: "nothing-pending" })
+    }
+    const result = await focusSession(target.projectRoot, target.sessionId)
     if (!result.ok) {
       return c.json({ ok: false, error: result.error }, 500)
     }

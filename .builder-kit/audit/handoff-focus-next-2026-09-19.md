@@ -87,21 +87,16 @@ selection); vitest + build green; feature verified live against `127.0.0.1:4300`
    scope (see dirty-tree warning).
 
 ## Added scope since emit (2026-09-19 evening) — include in this unit
-1. **Queue view toggle** (user request): "+N more waiting" means N more attention sessions
-   behind the top one. Expose them: add `sessions: AttentionSession[]` (ranked, all
-   attention states) to `AttentionProject` in `src/ingest/attention.ts` +
-   `buildAttentionPayload` (collect all ranked entries, not just next+count). UI: global
-   toggle in the remote header ("top" vs "all" sessions per project) AND a per-project
-   arrow/chevron near the project name to expand that project's full queue. Expanded
-   cards render like the top card (state color, own FOCUS POST).
-2. **Autonomous-session filtering — DONE** (commit "filter subagent sessions"):
-   `buildSessionSummary` (multi-project.ts) drops sessions with `meta.parentID` (subagent
-   children, ~69% of noise; zero new queries — parentID already in SessionMetadata).
-   Remaining gap for NEXT session: top-level autonomous probes (e.g. "PROBE-OK",
-   parent_id NULL) — clean discriminator: their first user message carries
-   agent+model attribution (agents submit via API with model metadata; human TUI prompts
-   don't). One cached part-table query per session, attention-list-only or upstream —
-   decide there. Full evidence: probe compared PROBE-OK vs human rows.
+1. **Queue view toggle — DONE** (032f160): `sessions: AttentionSession[]` on
+   AttentionProject; global top/all toggle + per-project chevron in the remote;
+   "+N more waiting" is now a clickable expand button.
+2. **Autonomous-session filtering — DONE** (032f160): Tier-1 = parent_id filter
+   (subagent children, multi-project.ts). Tier-2 heuristics were REJECTED by evidence
+   (human TUI prompts ALSO carry model metadata; short-prompt heuristics hide real
+   sessions). Instead: operator-controlled hiding — ✕ on any remote card →
+   POST /api/attention/hide/:sessionId, persisted in attention-hidden.json next to the
+   sources registry; "N hidden — show hidden" footer restores. Keep this mechanism; do
+   NOT add heuristics on top.
 3. **FIFO viewer redesign — DONE** (commit "single-consumer FIFO viewer loop"): the
    watchdog subshell could die and strand requests in the FIFO buffer (observed: hours-
    long stall). Replaced with single-threaded `read -t 0.5` poll on fd8 — no subshell,

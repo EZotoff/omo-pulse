@@ -2,7 +2,7 @@
 
 /* Component-local tokens (mock-up colors not covered by global tokens.css) */
 .focus-remote {
-  --focus-error: #ef4444;
+  --focus-error: var(--status-danger);
   --focus-hover-bg: #22223a;
   --focus-busy-n: #3d5a52;
 }
@@ -131,7 +131,7 @@ body:has(.focus-remote) {
   --sc: var(--focus-error);
 }
 .focus-target[data-state="awaiting_input"] {
-  --sc: var(--accent-warning);
+  --sc: var(--status-idle);
 }
 .focus-target[data-state="plan_complete"] {
   --sc: var(--status-plan-complete);

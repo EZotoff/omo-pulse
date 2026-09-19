@@ -103,6 +103,10 @@ function buildSessionSummary(projectRoot: string, db: Database, sqlitePath: stri
 
     // Only compute full session views for sessions that passed the pre-filter
     const summaries = includedMetas.flatMap((meta) => {
+      // Subagent sessions (spawned by other sessions) never surface in the
+      // dashboard: their parents carry the human context. Zero new queries —
+      // parentID is already populated by the session metadata readers.
+      if (meta.parentID) return []
       const result = getMainSessionViewSqlite({
         sqlitePath,
         sessionId: meta.id,

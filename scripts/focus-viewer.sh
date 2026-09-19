@@ -33,20 +33,12 @@ fi
 exec 8<>"$FIFO"
 
 LOG="$STATE_DIR/viewer.log"
-PENDING="$STATE_DIR/focus.pending"
-CHILD_FILE="$STATE_DIR/focus.child"
 log() { echo "[$(date +%H:%M:%S)] $*" >> "$LOG"; }
 
 CHILD=""
-WATCHER=""
 
 cleanup() {
-  if [ -n "$CHILD" ]; then
-    kill "$CHILD" 2>/dev/null
-  fi
-  if [ -n "$WATCHER" ]; then
-    kill "$WATCHER" 2>/dev/null
-  fi
+  [ -n "$CHILD" ] && kill "$CHILD" 2>/dev/null
 }
 trap cleanup EXIT INT TERM
 
@@ -80,15 +72,13 @@ run_session() {
     sleep 2
     return 0
   fi
-  # Explicit pty fds: see the dup note at the top. Never rely on background
-  # stdin defaults or /dev/tty resolving here.
+  # Explicit pty fds: background jobs get stdin from /dev/null (POSIX), which
+  # makes the TUI see instant EOF and exit — wire the saved pty fds instead.
   opencode attach http://127.0.0.1:3030 --dir "$dir" -s "$sid" <&3 >&4 2>&5 &
   CHILD=$!
-  printf '%s' "$CHILD" > "$CHILD_FILE"
   wait "$CHILD"
   log "attach dir=$dir sid=$sid exit=$?"
   CHILD=""
-  : > "$CHILD_FILE"
 }
 
 show_idle() {
@@ -105,29 +95,24 @@ BANNER
 }
 
 log "viewer started (pid $$)"
-rm -f "$PENDING" "$CHILD_FILE"
 show_idle
 
-# Watchdog owns the FIFO. The main loop is blocked in `wait` while a TUI is
-# attached, so requests must be picked up concurrently: record the request,
-# then kill the current TUI so the main loop advances to it immediately.
-(
-  while :; do
-    IFS=$'\t' read -r d s <&8 || d=""
-    [ -n "${d:-}" ] && [ -n "${s:-}" ] || continue
-    printf '%s\t%s' "$d" "$s" > "$PENDING"
-    CPID=$(cat "$CHILD_FILE" 2>/dev/null)
-    [ -n "$CPID" ] && kill "$CPID" 2>/dev/null
-  done
-) &
-WATCHER=$!
+if [ $# -ge 2 ]; then
+  run_session "$1" "$2"
+  show_idle
+fi
 
-cleanup() {
-  [ -n "$CHILD" ] && kill "$CHILD" 2>/dev/null
-  kill "$WATCHER" 2>/dev/null
-}
-trap cleanup EXIT INT TERM
-
+# Single-consumer poll: `read -t` on the FIFO doubles as the sleep between
+# idle polls AND the preemption check while a TUI is attached. No subshell,
+# no pending file — nothing to race or lose.
+while :; do
+  if ! IFS=$'\t' read -t 0.5 -r dir sid prewarm <&8; then
+    continue
+  fi
+  [ -n "${dir:-}" ] && [ -n "${sid:-}" ] || continue
+  run_session "$dir" "$sid"
+  show_idle
+done
 # Initial request from argv (e.g. manual testing); otherwise idle until FIFO.
 if [ $# -ge 2 ]; then
   run_session "$1" "$2"

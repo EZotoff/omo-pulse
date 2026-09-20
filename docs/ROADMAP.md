@@ -50,6 +50,16 @@ Per the contract's pending ledger, in order:
 
 The Focus Remote keymap is the semantic pre-implementation of future tapxr 4-way navigation: n/enter ≈ next/act, j/k ≈ up/down.
 
+### Perf backlog — TOP ITEM: async SQLite reads
+
+Evidence 2026-09-19/20 evening: with 27 registered projects and bench agents
+saturating the disk (7 agents writing opencode.db continuously), the service's
+synchronous bun:sqlite reads block the event loop for tens of seconds to minutes
+(folio I/O waits, CPU only ~15% = waiting, not computing). Mitigations shipped:
+30s snapshot interval, per-store stagger, 250ms busy_timeout, fail-soft caching.
+The real fix: move store rebuilds off the event loop (worker thread) or read from
+a throttled snapshot copy. Until then the dashboard lags under heavy agent I/O.
+
 ### Attention ranking (shared plumbing) — shipped 2026-09-19 (`GET /api/attention`)
 
 `GET /api/attention` — per project, the ranked "next session requiring my attention":

@@ -81,7 +81,10 @@ const INCLUDED_SESSION_IDLE_WINDOW_MS = 2 * 60 * 60_000
 const MAX_CACHE_ENTRIES = 100
 /** Upper bound on auto-discovered projects materialized per payload (most recent first) */
 const MAX_DISCOVERED_PROJECTS = 20
-const DEFAULT_POLL_INTERVAL_MS = 10_000
+// 27 registered projects × per-session SQLite reads ≈ seconds per full
+// refresh; when the interval is shorter than the refresh the event loop
+// never idles and every request (including /focus) queues for seconds.
+const DEFAULT_POLL_INTERVAL_MS = 30_000
 
 function evictOldest<K>(map: Map<K, { fetchedAt: number }>, maxSize: number): void {
   if (map.size < maxSize) return

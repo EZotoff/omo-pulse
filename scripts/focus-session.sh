@@ -13,7 +13,7 @@ if [ $# -lt 2 ]; then
 fi
 DIR=$1
 SID=$2
-if [ "${3:-}" = "1" ]; then
+if [ "${3:-}" = "prewarm" ]; then
   # Hover-prewarm needs the tab-based viewer; single-attach viewer ignores it.
   echo skipped
   exit 0
@@ -46,5 +46,4 @@ if [ ! -p "$FIFO" ]; then
 fi
 
 printf '%s\t%s\n' "$DIR" "$SID" > "$FIFO"
-wmctrl -x -a "$CLASS" 2>/dev/null || true
 echo queued

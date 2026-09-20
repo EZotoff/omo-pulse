@@ -63,7 +63,6 @@ function FocusTargetButton({
         data-state={session.state}
         data-session-id={session.sessionId}
         onClick={() => onFocus(sourceId, session.sessionId)}
-        onMouseEnter={onPrewarm}
         disabled={isSwitching}
       >
         <span className="focus-t-main">

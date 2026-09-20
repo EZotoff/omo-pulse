@@ -10,6 +10,7 @@ export type FocusRemoteControls = {
   readonly focusError: FocusError | null
   readonly nextError: string | null
   readonly toggleProject: (sourceId: string) => void
+  readonly setExpanded: (sourceIds: readonly string[]) => void
   readonly clearSelection: () => void
   readonly focusTarget: (sourceId: string, sessionId: string) => void
   readonly focusNext: () => void
@@ -65,6 +66,10 @@ export function useFocusRemoteControls(
     if (rankedSessions.length === 0) return
     void postFocus("/api/focus/next", "next")
   }, [postFocus, rankedSessions.length])
+
+  const setExpanded = useCallback((sourceIds: readonly string[]): void => {
+    setExpandedIds(new Set(sourceIds))
+  }, [])
 
   const toggleProject = useCallback((sourceId: string): void => {
     setExpandedIds((current) => {
@@ -135,6 +140,7 @@ export function useFocusRemoteControls(
     focusError,
     nextError,
     toggleProject,
+    setExpanded,
     clearSelection: () => setSelectedId(null),
     focusTarget,
     focusNext,

@@ -93,16 +93,26 @@ const MemoFocusTarget = memo(FocusTargetButton)
 
 /* ── Component ── */
 
-type ViewMode = "top" | "all"
-
 export function FocusRemote() {
   const { projects, connected, hiddenCount, refresh } = useAttention()
-  const [viewMode, setViewMode] = useState<ViewMode>("top")
-
   const attention = projects.filter((p) => p.next !== null)
   const busy = projects.filter((p) => p.next === null && p.busySessions > 0)
   const allClear = attention.length === 0
   const controls = useFocusRemoteControls(attention)
+  /* Projects whose queue can expand (more than one attention session) */
+  const multiSession = attention.filter((p) => p.sessions.length > 1)
+  const allExpanded =
+    multiSession.length > 0 && multiSession.every((p) => controls.expandedIds.has(p.sourceId))
+  const noneExpanded = multiSession.every((p) => !controls.expandedIds.has(p.sourceId))
+
+  /* Bulk action only: sets every project at once. Individual chevrons keep
+     full control afterwards — this is not a sticky mode. */
+  const setAllQueues = useCallback(
+    (expand: boolean) => {
+      controls.setExpanded(expand ? multiSession.map((p) => p.sourceId) : [])
+    },
+    [multiSession, controls],
+  )
 
   const onHidden = useCallback(() => {
     controls.clearSelection()
@@ -123,15 +133,15 @@ export function FocusRemote() {
         <div className="focus-viewtoggle" role="group" aria-label="Sessions per project">
           <button
             type="button"
-            className={viewMode === "top" ? "is-active" : ""}
-            onClick={() => setViewMode("top")}
+            className={noneExpanded ? "is-active" : ""}
+            onClick={() => setAllQueues(false)}
           >
             top
           </button>
           <button
             type="button"
-            className={viewMode === "all" ? "is-active" : ""}
-            onClick={() => setViewMode("all")}
+            className={allExpanded ? "is-active" : ""}
+            onClick={() => setAllQueues(true)}
           >
             all
           </button>
@@ -157,7 +167,7 @@ export function FocusRemote() {
           </div>
         ) : (
           attention.map((project) => {
-            const expanded = viewMode === "all" || controls.expandedIds.has(project.sourceId)
+            const expanded = controls.expandedIds.has(project.sourceId)
             const visible = expanded ? project.sessions : project.sessions.slice(0, 1)
             return (
               <div className="focus-project" key={project.sourceId}>

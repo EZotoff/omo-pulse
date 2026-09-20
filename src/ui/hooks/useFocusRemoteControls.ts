@@ -103,7 +103,7 @@ export function useFocusRemoteControls(
         setExpandedIds((current) => new Set(current).add(selected.sourceId))
         return
       }
-      if (event.key === "Enter" || event.key === " ") {
+      if (event.key === "Enter") {
         const selected = rankedSessions.find(({ session }) => session.sessionId === selectedId)
         if (!selected) return
         event.preventDefault()

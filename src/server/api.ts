@@ -223,6 +223,9 @@ export function createApi(opts: {
       return c.json({ ok: false, error: "Source not found", sourceId }, 404)
     }
     const prewarm = c.req.query("mode") === "prewarm"
+    console.log(
+      `[focus-request] session=${sessionId} prewarm=${prewarm} referer=${c.req.header("referer") ?? "-"} ua=${(c.req.header("user-agent") ?? "-").slice(0, 60)}`,
+    )
     const result = await focusSession(source.projectRoot, sessionId, prewarm)
     if (!result.ok) {
       return c.json({ ok: false, error: result.error }, 500)
@@ -234,6 +237,9 @@ export function createApi(opts: {
   // POST /focus/next — focus the ranked attention target at ?skip=N
   // -------------------------------------------------------------------------
   api.post("/focus/next", async (c) => {
+    console.log(
+      `[focus-request] next referer=${c.req.header("referer") ?? "-"} ua=${(c.req.header("user-agent") ?? "-").slice(0, 60)}`,
+    )
     const rawSkip = c.req.query("skip")
     const parsedSkip = rawSkip && /^\d+$/.test(rawSkip) ? Number(rawSkip) : 0
     const skip = Number.isSafeInteger(parsedSkip) ? parsedSkip : 0

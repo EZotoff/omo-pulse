@@ -226,7 +226,12 @@ export function createApi(opts: {
     console.log(
       `[focus-request] session=${sessionId} prewarm=${prewarm} referer=${c.req.header("referer") ?? "-"} ua=${(c.req.header("user-agent") ?? "-").slice(0, 60)}`,
     )
-    const result = await focusSession(source.projectRoot, sessionId, prewarm)
+    if (prewarm) {
+      // Defense in depth: stale clients may still send hover-prewarms. In the
+      // single-attach viewer a prewarm is a real TUI swap — never honor it.
+      return c.json({ ok: true, action: "skipped" })
+    }
+    const result = await focusSession(source.projectRoot, sessionId)
     if (!result.ok) {
       return c.json({ ok: false, error: result.error }, 500)
     }

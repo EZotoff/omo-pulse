@@ -10,9 +10,16 @@ const FOCUS_TIMEOUT_MS = 15_000
 
 export type FocusResult = { ok: true; action: string } | { ok: false; error: string }
 
-export async function focusSession(projectRoot: string, sessionId: string): Promise<FocusResult> {
+export async function focusSession(
+  projectRoot: string,
+  sessionId: string,
+  prewarm = false,
+): Promise<FocusResult> {
   const script = path.resolve(import.meta.dir, "../../scripts/focus-session.sh")
-  const proc = Bun.spawn([script, projectRoot, sessionId], {
+  const args = prewarm
+    ? [script, projectRoot, sessionId, "prewarm"]
+    : [script, projectRoot, sessionId]
+  const proc = Bun.spawn(args, {
     stdout: "pipe",
     stderr: "pipe",
   })

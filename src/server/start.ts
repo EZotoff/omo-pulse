@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { createApi } from "./api";
-import { createMultiProjectService } from "./multi-project";
+import { createWorkerMultiProjectService } from "./worker-multi-project-service";
 import { createTelegramService } from "./telegram";
 import { selectStorageBackend, getLegacyStorageRootForBackend } from "../ingest/storage-backend";
 
@@ -18,7 +18,7 @@ const distRoot = join(import.meta.dir, "../../dist");
 
 const storageBackend = selectStorageBackend();
 const storageRoot = getLegacyStorageRootForBackend(storageBackend);
-const multiProjectService = createMultiProjectService({ storageRoot, storageBackend });
+const multiProjectService = createWorkerMultiProjectService({ storageRoot, storageBackend });
 
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
 const telegramChatId = process.env.TELEGRAM_CHAT_ID

@@ -44,6 +44,10 @@ function mapPlanStatusPill(pill: string): PlanStatus {
   return "not started"
 }
 
+function mapBoulderStatus(value: string | undefined): "active" | "completed" | undefined {
+  return value === "active" || value === "completed" ? value : undefined
+}
+
 function mapBackgroundTasks(payload: DashboardPayload): BackgroundTaskSummary[] {
   return payload.backgroundTasks.map((t) => ({
     taskId: t.id,
@@ -208,7 +212,7 @@ function transformPayloadToSnapshot(
       steps: payload.planProgress.steps,
       planStale: payload.planProgress.planStale,
       planComplete: payload.planProgress.planComplete,
-      boulderStatus: payload.planProgress.boulderStatus,
+      boulderStatus: mapBoulderStatus(payload.planProgress.boulderStatus),
       completedAt: payload.planProgress.completedAt,
     },
     unintiatedPlans: payload.unintiatedPlans,

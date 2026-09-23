@@ -237,6 +237,9 @@ function createPreviewProject(candidate: AttentionCandidate, index: number, nowM
       totalTokens: 20_200 + index * 1_220,
     },
     gitUncommittedCount: 0,
+    sessions: [],
+    aggregateStatus: session.status,
+    unintiatedPlans: [],
     lastUpdatedMs: session.lastUpdatedMs,
   }
 }
@@ -322,6 +325,9 @@ function createAllStatusesProject(publicName: PreviewStatusName, index: number, 
       totalTokens: 12_500 + index * 700,
     },
     gitUncommittedCount: 0,
+    sessions: [],
+    aggregateStatus: session.status,
+    unintiatedPlans: [],
     lastUpdatedMs: session.lastUpdatedMs,
   }
 }
@@ -402,6 +408,9 @@ function createStatusVariantProject(statusPublicName: PreviewStatusName, variant
       totalTokens: 10_000 + variantIndex * 450,
     },
     gitUncommittedCount: 0,
+    sessions: [],
+    aggregateStatus: session.status,
+    unintiatedPlans: [],
     lastUpdatedMs: session.lastUpdatedMs,
   }
 }

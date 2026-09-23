@@ -28,6 +28,8 @@ describe("ProjectStrip plan history rendering", () => {
       planComplete: false
     },
     unintiatedPlans: [],
+    sessions: [],
+    aggregateStatus: "idle",
     timeSeries: { windowMs: 0, bucketMs: 0, buckets: 0, anchorMs: 0, serverNowMs: 0, series: [] },
     backgroundTasks: [],
     sessionTimeSeries: { windowMs: 0, bucketMs: 0, buckets: 0, anchorMs: 0, serverNowMs: 0, sessions: [] },
@@ -44,7 +46,12 @@ describe("ProjectStrip plan history rendering", () => {
     showBackgroundTasks: true,
     showGitWorktrees: true,
     showAvatar: true,
-    showProjectName: true
+    showProjectName: true,
+    showQuotas: false,
+    quotaIconMode: "icons",
+    stripDisplayMode: "project",
+    recentProjectsLimit: 6,
+    projectListMode: "recent"
   }
 
   const children = {

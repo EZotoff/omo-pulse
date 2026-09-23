@@ -7,7 +7,7 @@ const STORAGE_KEY = "dashboard-project-order"
 function readPersistedState(): ProjectOrderState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { orderedIds: [], columns: 1 }
+    if (!raw) return { orderedIds: [], columns: 1, isManualOrder: false }
     const parsed: unknown = JSON.parse(raw)
     if (
       typeof parsed === "object" &&
@@ -17,11 +17,13 @@ function readPersistedState(): ProjectOrderState {
       Array.isArray((parsed as Record<string, unknown>).orderedIds) &&
       typeof (parsed as Record<string, unknown>).columns === "number"
     ) {
-      return parsed as ProjectOrderState
+      // Normalize legacy persisted entries that predate isManualOrder.
+      const rawIsManual = (parsed as Record<string, unknown>).isManualOrder
+      return { ...(parsed as ProjectOrderState), isManualOrder: rawIsManual === true }
     }
-    return { orderedIds: [], columns: 1 }
+    return { orderedIds: [], columns: 1, isManualOrder: false }
   } catch {
-    return { orderedIds: [], columns: 1 }
+    return { orderedIds: [], columns: 1, isManualOrder: false }
   }
 }
 

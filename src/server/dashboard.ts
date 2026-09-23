@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite"
 import * as fs from "node:fs"
 import { buildAttentionPayload } from "../ingest/attention"
 export { buildAttentionPayload };
-import { deriveBackgroundTasks } from "../ingest/background-tasks"
+import { deriveBackgroundTasks, type BackgroundTaskRow } from "../ingest/background-tasks"
 import * as boulderModule from "../ingest/boulder"
 import { type PlanStep, readBoulderState, readPlanProgress, readPlanSteps, scanUninitiatedPlans } from "../ingest/boulder"
 import {
@@ -204,17 +204,7 @@ function buildMainSessionTaskEntry(opts: {
   }
 }
 
-function formatBackgroundTaskForPayload(t: {
-  id: string
-  description: string
-  agent: string
-  lastModel?: string | null
-  status: string
-  toolCalls?: number
-  lastTool?: string
-  timeline: string | unknown
-  sessionId?: string | null
-}): DashboardPayload["backgroundTasks"][number] {
+function formatBackgroundTaskForPayload(t: BackgroundTaskRow): DashboardPayload["backgroundTasks"][number] {
   return {
     id: t.id,
     description: t.description,

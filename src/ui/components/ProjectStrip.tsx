@@ -97,6 +97,10 @@ export type ProjectStripProps = {
   project: ProjectSnapshot
   stripConfig?: StripConfigState
   idleTimeoutMs?: number
+  /** Deep-link target from escalation card (?project=<sourceId>): this strip is the selected project */
+  deeplinkSelected?: boolean
+  /** Deep-linked session id (?session=<sessionId>), set only when it maps to a known session */
+  deeplinkSessionId?: string | null
   children?: {
     miniSparkline: React.ReactNode
     fullSparkline?: React.ReactNode
@@ -433,7 +437,7 @@ const StripPlans = memo(function StripPlans({ project, planProgress, unintiatedP
   )
 })
 
-function ProjectStripInner({ project, stripConfig, idleTimeoutMs, children }: ProjectStripProps) {
+function ProjectStripInner({ project, stripConfig, idleTimeoutMs, children, deeplinkSelected, deeplinkSessionId }: ProjectStripProps) {
   const { mainSession, planProgress, backgroundTasks, tokenUsage, lastUpdatedMs, gitUncommittedCount, unintiatedPlans } = project
   const sourceId = project.sourceId
   const projectName = resolveProjectName(project)
@@ -483,7 +487,14 @@ function ProjectStripInner({ project, stripConfig, idleTimeoutMs, children }: Pr
 
 
   return (
-    <div className="project-strip" data-project-id={sourceId} data-stale={isStale} data-status={finalDisplayStatus}>
+    <div
+      className={`project-strip${deeplinkSelected ? " project-strip--deeplink" : ""}`}
+      data-project-id={sourceId}
+      data-stale={isStale}
+      data-status={finalDisplayStatus}
+      data-deeplink-selected={deeplinkSelected ? "true" : undefined}
+      data-deeplink-session={deeplinkSelected && deeplinkSessionId ? deeplinkSessionId : undefined}
+    >
       {stripConfig?.miniSparklineMode === "ambient" && children?.miniSparkline && (
         <div className="strip-bg-sparkline" aria-hidden="true">
           {children.miniSparkline}

@@ -91,6 +91,61 @@ function makeAttentionPayload(): AttentionPayload {
   }
 }
 
+const NOW = Date.now()
+
+function makeDashboardProject(sourceId: string, label: string, sessionId: string) {
+  const NOW2 = Date.now()
+  return {
+    sourceId,
+    label,
+    projectRoot: `/tmp/opencode/${sourceId}`,
+    mainSession: {
+      agent: "sisyphus",
+      currentModel: "test-model",
+      currentTool: "",
+      lastUpdated: new Date(NOW2 - 5_000).toISOString(),
+      sessionLabel: "Alpha main",
+      sessionId,
+      status: "idle" as const,
+    },
+    sessions: [],
+    aggregateStatus: "idle" as const,
+    planProgress: {
+      name: "plan",
+      completed: 0,
+      total: 1,
+      path: `/plans/${sourceId}.md`,
+      status: "in progress" as const,
+      steps: [{ checked: false, text: "step" }],
+      planStale: false,
+      planComplete: false,
+    },
+    unintiatedPlans: [],
+    timeSeries: {
+      windowMs: 60_000 * 30,
+      bucketMs: 60_000,
+      buckets: 30,
+      anchorMs: NOW2 - 60_000 * 30,
+      serverNowMs: NOW2,
+      series: [],
+    },
+    sessionTimeSeries: {
+      windowMs: 60_000 * 30,
+      bucketMs: 60_000,
+      buckets: 30,
+      anchorMs: NOW2 - 60_000 * 30,
+      serverNowMs: NOW2,
+      sessions: [
+        { sessionId, sessionLabel: "Alpha main", isBackground: false, values: Array.from({ length: 30 }, () => 0) },
+      ],
+    },
+    backgroundTasks: [],
+    tokenUsage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+    lastUpdatedMs: NOW2 - 2_000,
+    lastActivityMs: NOW2 - 5_000,
+  }
+}
+
 /**
  * Fulfill the API routes the focus remote + dashboard shell touch, proxying
  * /api/supervisor/queue to the given real server.
@@ -120,10 +175,16 @@ async function setupRouting(page: Page, supervisorPort: number): Promise<void> {
       return
     }
     if (url.pathname === "/api/projects") {
+      /* proj_alpha snapshot lets the deep-link test assert strip selection;
+         an empty list would also be valid for the remote-view tests */
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ projects: [], serverNowMs: Date.now(), pollIntervalMs: 2200 }),
+        body: JSON.stringify({
+          projects: [makeDashboardProject("proj_alpha", "Alpha Project", "ses_alpha_001")],
+          serverNowMs: Date.now(),
+          pollIntervalMs: 2200,
+        }),
       })
       return
     }
@@ -179,4 +240,24 @@ test("hides the section entirely when the supervisor is absent", async ({ page }
   await expect(page.locator(".focus-clear-panel h2")).toHaveText("All clear")
 
   await page.screenshot({ path: ".sisyphus/evidence/task-4-absent.png", fullPage: true })
+})
+
+test("deep-links from escalation card select the project strip in the dashboard", async ({ page }) => {
+  await setupRouting(page, fixtureServer!.port)
+  await page.goto("/?view=dashboard&project=proj_alpha&session=ses_alpha_001")
+  await page.waitForLoadState("networkidle")
+
+  const strip = page.locator('.project-strip[data-project-id="proj_alpha"][data-deeplink-selected="true"]')
+  await expect(strip).toHaveCount(1)
+  await expect(strip).toHaveAttribute("data-deeplink-session", "ses_alpha_001")
+  await expect(strip).toBeVisible()
+
+  /* Unknown project param is ignored gracefully — no crash, dashboard renders normally */
+  await page.goto("/?view=dashboard&project=proj_does_not_exist&session=ses_nope")
+  await expect(page.locator('.project-strip[data-deeplink-selected="true"]')).toHaveCount(0)
+  await expect(page.locator('.project-strip[data-project-id="proj_alpha"]')).toHaveCount(1)
+
+  await page.goto("/?view=dashboard&project=proj_alpha&session=ses_alpha_001")
+  await expect(page.locator('.project-strip[data-project-id="proj_alpha"][data-deeplink-selected="true"]')).toBeVisible()
+  await page.screenshot({ path: ".sisyphus/evidence/task-4-deeplink.png", fullPage: true })
 })

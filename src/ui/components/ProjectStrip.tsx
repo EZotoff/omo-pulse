@@ -486,6 +486,10 @@ function ProjectStripInner({ project, stripConfig, idleTimeoutMs, children, deep
   }, [])
 
 
+  /* Deep-linked session is only honored when it exists in this project's sessions */
+  const knownSession = deeplinkSelected && deeplinkSessionId != null
+    && project.sessionTimeSeries?.sessions?.some((s) => s.sessionId === deeplinkSessionId)
+
   return (
     <div
       className={`project-strip${deeplinkSelected ? " project-strip--deeplink" : ""}`}
@@ -493,7 +497,7 @@ function ProjectStripInner({ project, stripConfig, idleTimeoutMs, children, deep
       data-stale={isStale}
       data-status={finalDisplayStatus}
       data-deeplink-selected={deeplinkSelected ? "true" : undefined}
-      data-deeplink-session={deeplinkSelected && deeplinkSessionId ? deeplinkSessionId : undefined}
+      data-deeplink-session={knownSession ? deeplinkSessionId : undefined}
     >
       {stripConfig?.miniSparklineMode === "ambient" && children?.miniSparkline && (
         <div className="strip-bg-sparkline" aria-hidden="true">

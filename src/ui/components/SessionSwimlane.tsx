@@ -68,6 +68,7 @@ function GradientDefs({
 
 export interface SessionSwimlaneProps {
   sessionTimeSeries: SessionTimeSeriesPayload
+  deeplinkSessionId?: string | null
 }
 
 type StackRect = {
@@ -81,8 +82,13 @@ type StackRect = {
 
 export const SessionSwimlane = memo(function SessionSwimlane({
   sessionTimeSeries,
+  deeplinkSessionId,
 }: SessionSwimlaneProps) {
   const { buckets, sessions } = sessionTimeSeries
+  /* Highlight only sessions that actually exist in this project's time series */
+  const targetSessionId = deeplinkSessionId != null && sessions.some((s) => s.sessionId === deeplinkSessionId)
+    ? deeplinkSessionId
+    : null
 
   const sessionColors = useMemo(
     () =>
@@ -162,10 +168,15 @@ export const SessionSwimlane = memo(function SessionSwimlane({
         ))}
       </svg>
 
-      {sessions.length > 1 && (
+      {(sessions.length > 1 || targetSessionId) && (
         <div className="swimlane-legend">
           {sorted.map(s => (
-            <span key={s.sessionId} className="swimlane-legend-item">
+            <span
+              key={s.sessionId}
+              className={`swimlane-legend-item${s.sessionId === targetSessionId ? " swimlane-legend-item--deeplink" : ""}`}
+              data-session-id={s.sessionId}
+              data-deeplink-session-target={s.sessionId === targetSessionId ? "true" : undefined}
+            >
               <span className="swimlane-legend-dot" style={{ backgroundColor: s.color }} />
               {s.sessionLabel}
             </span>

@@ -180,12 +180,21 @@ export function App({ data, connected, connection = "polling", lastUpdatedMs, pr
     if (!data || !deepLink.project) return null
     return data.projects.some((p) => p.sourceId === deepLink.project) ? deepLink.project : null
   }, [data, deepLink.project])
-  /* Scroll the deep-linked strip into view once it has rendered (highlight
-     alone can land off-screen in multi-column layouts). */
+  /* Session deep-links are ignored unless the target project actually has that session */
+  const deeplinkSessionId = useMemo((): string | null => {
+    if (!deeplinkProjectId || !deepLink.session) return null
+    const project = data?.projects.find((p) => p.sourceId === deeplinkProjectId)
+    return project?.sessionTimeSeries?.sessions?.some((s) => s.sessionId === deepLink.session) ? deepLink.session : null
+  }, [data, deeplinkProjectId, deepLink.session])
+  /* Scroll the deep-linked strip (and session, when known) into view once it has rendered.
+     Highlight alone can land off-screen in multi-column layouts. */
   useEffect(() => {
     if (!deeplinkProjectId) return
-    document.querySelector('[data-deeplink-selected="true"]')?.scrollIntoView({ behavior: "smooth", block: "center" })
-  }, [deeplinkProjectId])
+    const target = deeplinkSessionId
+      ? document.querySelector('[data-deeplink-session-target="true"]')
+      : null
+    ;(target ?? document.querySelector('[data-deeplink-selected="true"]'))?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [deeplinkProjectId, deeplinkSessionId])
 
 
   /* ── Collapsible header ── */
@@ -398,8 +407,15 @@ export function App({ data, connected, connection = "polling", lastUpdatedMs, pr
     const ordered = currentOrderIds
       .map((id) => map.get(id))
       .filter((p): p is ProjectSnapshot => p !== undefined)
-    return ordered.filter((p) => isVisible(p.sourceId))
-  }, [sortedProjects, currentOrderIds, isVisible])
+    const visible = ordered.filter((p) => isVisible(p.sourceId))
+    /* Deep-linked project is always rendered, even when ordering/visibility/
+       recent-limit would otherwise exclude it — otherwise nothing can be selected */
+    if (deeplinkProjectId && !visible.some((p) => p.sourceId === deeplinkProjectId)) {
+      const deeplinked = data?.projects.find((p) => p.sourceId === deeplinkProjectId)
+      if (deeplinked) return [deeplinked, ...visible]
+    }
+    return visible
+  }, [sortedProjects, currentOrderIds, isVisible, deeplinkProjectId, data])
 
   const resizeHandleIds = useMemo(
     () => Array.from({ length: Math.max(columns - 1, 0) }, (_, handleIndex) => `column-resize-handle-${handleIndex + 1}`),
@@ -526,7 +542,7 @@ export function App({ data, connected, connection = "polling", lastUpdatedMs, pr
                       stripConfig={effectiveStripConfig}
                       idleTimeoutMs={idleTimeoutMs}
                       deeplinkSelected={project.sourceId === deeplinkProjectId}
-                      deeplinkSessionId={project.sourceId === deeplinkProjectId ? deepLink.session : null}
+                      deeplinkSessionId={project.sourceId === deeplinkProjectId ? deeplinkSessionId : null}
                     />
                   ))}
                   {columns > 1 && resizeHandleIds.map((handleId, i: number) => {
@@ -658,7 +674,7 @@ function ProjectStripWithChildren({ project, stripConfig, idleTimeoutMs, deeplin
           />
         ),
         sessionSwimlane: (
-          <SessionSwimlane sessionTimeSeries={project.sessionTimeSeries} />
+          <SessionSwimlane sessionTimeSeries={project.sessionTimeSeries} deeplinkSessionId={deeplinkSessionId} />
         ),
 
       }}

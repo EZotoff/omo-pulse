@@ -261,3 +261,24 @@ test("deep-links from escalation card select the project strip in the dashboard"
   await expect(page.locator('.project-strip[data-project-id="proj_alpha"][data-deeplink-selected="true"]')).toBeVisible()
   await page.screenshot({ path: ".sisyphus/evidence/task-4-deeplink.png", fullPage: true })
 })
+
+test("deep-linked sessions validate membership and highlight the target session", async ({ page }) => {
+  await setupRouting(page, fixtureServer!.port)
+
+  /* Unknown session id on a known project: strip selected, session ignored */
+  await page.goto("/?view=dashboard&project=proj_alpha&session=ses_unknown_999")
+  await page.waitForLoadState("networkidle")
+  const strip = page.locator('.project-strip[data-project-id="proj_alpha"][data-deeplink-selected="true"]')
+  await expect(strip).toHaveCount(1)
+  await expect(strip).not.toHaveAttribute("data-deeplink-session")
+  await expect(page.locator('[data-deeplink-session-target="true"]')).toHaveCount(0)
+
+  /* Valid session id: session attribute + swimlane target highlight render */
+  await page.goto("/?view=dashboard&project=proj_alpha&session=ses_alpha_001")
+  await page.waitForLoadState("networkidle")
+  await expect(strip).toHaveAttribute("data-deeplink-session", "ses_alpha_001")
+  const target = page.locator('.swimlane-legend-item[data-session-id="ses_alpha_001"][data-deeplink-session-target="true"]')
+  await expect(target).toHaveCount(1)
+
+  await page.screenshot({ path: ".sisyphus/evidence/task-4-deeplink-r2.png", fullPage: true })
+})

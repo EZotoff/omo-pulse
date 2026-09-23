@@ -31,6 +31,23 @@ export function isStaleQuestionTool(
   return nowMs - toolStartedAt > ACTIVE_STALE_MS
 }
 
+/**
+ * Generalizes isStaleQuestionTool to ALL tools: any pending/running tool part
+ * whose start is older than ACTIVE_STALE_MS is a zombie left behind by a
+ * crashed/killed session — except pending question tools, which legitimately
+ * wait for user input indefinitely.
+ */
+export function isStaleActiveTool(
+  toolName: string,
+  status: string,
+  toolStartedAt: number | null,
+  nowMs: number,
+): boolean {
+  if (isPendingQuestionTool(toolName, status)) return false
+  if (typeof toolStartedAt !== "number" || !Number.isFinite(toolStartedAt)) return false
+  return nowMs - toolStartedAt > ACTIVE_STALE_MS
+}
+
 export function readToolStartTime(toolPart: unknown): number | null {
   if (!toolPart || typeof toolPart !== "object") return null
   const state = (toolPart as Record<string, unknown>).state

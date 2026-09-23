@@ -78,8 +78,6 @@ describe("ProjectStrip plan history rendering", () => {
     const html = renderToStaticMarkup(
       <ProjectStrip
         project={projectWithHistory}
-        expanded={true}
-        onToggleExpand={() => {}}
         stripConfig={baseConfig}
       >
         {children}
@@ -105,8 +103,6 @@ describe("ProjectStrip plan history rendering", () => {
     const html = renderToStaticMarkup(
       <ProjectStrip
         project={projectEmptyHistory}
-        expanded={true}
-        onToggleExpand={() => {}}
         stripConfig={baseConfig}
       >
         {children}
@@ -121,8 +117,6 @@ describe("ProjectStrip plan history rendering", () => {
     const html = renderToStaticMarkup(
       <ProjectStrip
         project={baseProject}
-        expanded={true}
-        onToggleExpand={() => {}}
         stripConfig={baseConfig}
       >
         {children}
@@ -156,8 +150,6 @@ describe("ProjectStrip plan history rendering", () => {
     const html = renderToStaticMarkup(
       <ProjectStrip
         project={projectWithBadDates}
-        expanded={true}
-        onToggleExpand={() => {}}
         stripConfig={baseConfig}
       >
         {children}

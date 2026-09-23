@@ -2,7 +2,7 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import {
   hasFreshMainSessionActivity,
-  isStaleQuestionTool,
+  isStaleActiveTool,
   readToolStartTime,
   resolveLastUpdatedTime,
 } from "./activity-status"
@@ -330,7 +330,7 @@ export function getMainSessionView(opts: {
   for (const meta of recentMetas) {
     for (const toolPart of readToolPartsForMessage(opts.storage.part, meta.id)) {
       if (toolPart.status !== "pending" && toolPart.status !== "running") continue
-      if (isStaleQuestionTool(toolPart.tool, toolPart.status, toolPart.startedAt ?? meta.time?.created ?? null, nowMs)) {
+      if (isStaleActiveTool(toolPart.tool, toolPart.status, toolPart.startedAt ?? meta.time?.created ?? null, nowMs)) {
         continue
       }
       activeTool = toolPart

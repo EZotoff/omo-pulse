@@ -42,6 +42,7 @@ export type SettingsPanelProps = {
   onSetMiniSparklineMode: (mode: MiniSparklineMode) => void
   onSetQuotaIconMode: (mode: "icons" | "codes") => void
   onSetRecentProjectsLimit: (n: number) => void
+  onSetProjectListMode: (mode: "recent" | "manual") => void
   soundConfig: SoundConfig
   onSoundConfigChange: (config: SoundConfig) => void
   onTestSound: (event: "idle" | "complete" | "error" | "question") => void
@@ -95,6 +96,7 @@ export function SettingsPanel({
   onSetMiniSparklineMode,
   onSetQuotaIconMode,
   onSetRecentProjectsLimit,
+  onSetProjectListMode,
   soundConfig,
   onSoundConfigChange,
   onTestSound,
@@ -192,6 +194,8 @@ export function SettingsPanel({
     (e: React.ChangeEvent<HTMLInputElement>) => onSetRecentProjectsLimit(Number(e.target.value)),
     [onSetRecentProjectsLimit],
   )
+  const handleSetProjectListModeRecent = useCallback(() => onSetProjectListMode("recent"), [onSetProjectListMode])
+  const handleSetProjectListModeManual = useCallback(() => onSetProjectListMode("manual"), [onSetProjectListMode])
 
   return (
     <OverlayShell open={open} onClose={onClose} ariaLabel="Settings">
@@ -386,21 +390,52 @@ export function SettingsPanel({
               <span className="settings-slider-value">{formatTimeout(idleTimeoutMs)}</span>
             </div>
 
-            {/* Recent Projects Limit */}
-            <div className="settings-slider-row">
-              <span className="settings-slider-label">Max Visible Projects</span>
-              <input
-                className="settings-slider"
-                type="range"
-                min={1}
-                max={24}
-                step={1}
-                value={stripConfig.recentProjectsLimit}
-                onChange={handleRecentProjectsLimitChange}
-                aria-label="Maximum number of recently active projects visible on the dashboard"
-              />
-              <span className="settings-slider-value">{stripConfig.recentProjectsLimit}</span>
-            </div>
+            {/* Dashboard project list population */}
+            <fieldset className="settings-fieldset">
+              <legend className="settings-section__subtitle">Project List</legend>
+              <div className="settings-segmented-control">
+                <label className="settings-segmented-option">
+                  <input
+                    type="radio"
+                    name="projectListMode"
+                    value="recent"
+                    checked={stripConfig.projectListMode === "recent"}
+                    onChange={handleSetProjectListModeRecent}
+                  />
+                  <span>Recent activity</span>
+                </label>
+                <label className="settings-segmented-option">
+                  <input
+                    type="radio"
+                    name="projectListMode"
+                    value="manual"
+                    checked={stripConfig.projectListMode === "manual"}
+                    onChange={handleSetProjectListModeManual}
+                  />
+                  <span>Manual pins</span>
+                </label>
+              </div>
+              {stripConfig.projectListMode === "recent" ? (
+                <div className="settings-slider-row">
+                  <span className="settings-slider-label">Max Visible Projects</span>
+                  <input
+                    className="settings-slider"
+                    type="range"
+                    min={1}
+                    max={24}
+                    step={1}
+                    value={stripConfig.recentProjectsLimit}
+                    onChange={handleRecentProjectsLimitChange}
+                    aria-label="Maximum number of recently active projects visible on the dashboard"
+                  />
+                  <span className="settings-slider-value">{stripConfig.recentProjectsLimit}</span>
+                </div>
+              ) : (
+                <p className="settings-section__hint">
+                  Showing the projects toggled on in the Projects menu, in your drag order.
+                </p>
+              )}
+            </fieldset>
           </div>
           
           {/* Sound Notifications */}

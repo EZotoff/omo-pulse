@@ -7,7 +7,7 @@ Type=simple
 WorkingDirectory=__PROJECT_DIR__
 ExecStart=__BUN_PATH__ src/server/start.ts
 Environment=NODE_ENV=production
-Environment=OMO_PULSE_PORT=4300
+Environment=OMO_PULSE_PORT=18030
 Restart=on-failure
 RestartSec=5
 

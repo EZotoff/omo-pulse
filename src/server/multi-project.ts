@@ -2,7 +2,10 @@ import * as path from "node:path"
 import { Database } from "bun:sqlite"
 import { getGitUncommittedCount } from "../ingest/git-status"
 import { getWorktreeInfo } from "../ingest/git-worktrees"
+import { isFreshnessRelevant } from "../ingest/opencode-event-map"
 import { derivePerSessionTimeSeries } from "../ingest/per-session-timeseries"
+import { readRealtimeConfig } from "../ingest/realtime-config"
+import type { OpenCodeEvent, RealtimeBus } from "../ingest/realtime-types"
 import { findIncludedSessionsSqlite } from "../ingest/session-inclusion"
 import { getMainSessionViewSqlite } from "../ingest/sqlite-derive"
 import { canonicalizeProjectRoot, getSourceById, hashProjectRoot, listSources } from "../ingest/sources-registry"
@@ -81,7 +84,10 @@ const INCLUDED_SESSION_IDLE_WINDOW_MS = 2 * 60 * 60_000
 const MAX_CACHE_ENTRIES = 100
 /** Upper bound on auto-discovered projects materialized per payload (most recent first) */
 const MAX_DISCOVERED_PROJECTS = 20
-const DEFAULT_POLL_INTERVAL_MS = 2_000
+// 27 registered projects × per-session SQLite reads ≈ seconds per full
+// refresh; when the interval is shorter than the refresh the event loop
+// never idles and every request (including /focus) queues for seconds.
+const DEFAULT_POLL_INTERVAL_MS = 30_000
 
 function evictOldest<K>(map: Map<K, { fetchedAt: number }>, maxSize: number): void {
   if (map.size < maxSize) return
@@ -103,6 +109,10 @@ function buildSessionSummary(projectRoot: string, db: Database, sqlitePath: stri
 
     // Only compute full session views for sessions that passed the pre-filter
     const summaries = includedMetas.flatMap((meta) => {
+      // Subagent sessions (spawned by other sessions) never surface in the
+      // dashboard: their parents carry the human context. Zero new queries —
+      // parentID is already populated by the session metadata readers.
+      if (meta.parentID) return []
       const result = getMainSessionViewSqlite({
         sqlitePath,
         sessionId: meta.id,
@@ -259,8 +269,11 @@ export function createMultiProjectService(opts: {
   storageRoot: string
   storageBackend: StorageBackend
   pollIntervalMs?: number
-}): { getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload>; invalidate: () => void } {
+  realtimeBus?: RealtimeBus
+  realtimeDebounceMs?: number
+}): { getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload>; invalidate: () => void; onRealtimeEvent: (event: OpenCodeEvent) => void } {
   const pollIntervalMs = opts.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS
+  const debounceMs = opts.realtimeDebounceMs ?? readRealtimeConfig().debounceMs
   const storeBySourceId = new Map<string, DashboardStore>()
   const storeByProjectRoot = new Map<string, DashboardStore>()
   const sessionTimeSeriesByProjectRoot = new Map<string, { value: SessionTimeSeriesPayload; fetchedAt: number }>()
@@ -274,6 +287,8 @@ export function createMultiProjectService(opts: {
   /** Roots whose warm-up failed once — not retried to avoid repeated slow failures */
   const failedDiscoveredRoots = new Set<string>()
   let pumpingDiscovered = false
+  let realtimeTimer: ReturnType<typeof setTimeout> | null = null
+  let latestRealtimeEvent: OpenCodeEvent | null = null
 
   const legacyStorageRoot = getLegacyStorageRootForBackend(opts.storageBackend)
 
@@ -328,11 +343,15 @@ export function createMultiProjectService(opts: {
       return byRoot
     }
 
+    // Spread refreshes of concurrently-registered stores across the poll
+    // interval (store count at creation time defines the stride).
+    const stride = storeByProjectRoot.size + 1
     const created = createDashboardStore({
       projectRoot,
       storageRoot: legacyStorageRoot,
       storageBackend: opts.storageBackend,
       pollIntervalMs,
+      staggerMs: Math.round((pollIntervalMs * (stride - 1)) / Math.max(1, stride)),
     })
     storeBySourceId.set(sourceId, created)
     storeByProjectRoot.set(projectRoot, created)
@@ -507,9 +526,26 @@ export function createMultiProjectService(opts: {
   function invalidate(): void {
     cachedPayload = null
     cachedPayloadAt = 0
+    // Clear each store's in-memory snapshot rather than dropping the stores:
+    // recreating them discards stagger stride and forced discovered-roots
+    // warm-up state, pushing a cold multi-store rebuild onto the next request.
+    for (const store of storeByProjectRoot.values()) store.clearCache()
     sessionTimeSeriesByProjectRoot.clear()
     sessionSummaryByProjectRoot.clear()
   }
 
-  return { getMultiProjectPayload, invalidate }
+  function onRealtimeEvent(event: OpenCodeEvent): void {
+    if (!isFreshnessRelevant(event)) return
+    latestRealtimeEvent = event
+    if (realtimeTimer !== null) return
+    realtimeTimer = setTimeout(() => {
+      realtimeTimer = null
+      invalidate()
+      const published = latestRealtimeEvent
+      latestRealtimeEvent = null
+      if (published) opts.realtimeBus?.publish(published)
+    }, debounceMs)
+  }
+
+  return { getMultiProjectPayload, invalidate, onRealtimeEvent }
 }

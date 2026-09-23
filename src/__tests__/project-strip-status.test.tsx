@@ -48,6 +48,7 @@ const baseConfig: StripConfigState = {
   showProjectName: true,
   stripDisplayMode: "project",
   recentProjectsLimit: 6,
+  projectListMode: "recent",
   showQuotas: true,
   quotaIconMode: "icons",
 }
@@ -64,7 +65,7 @@ describe("ProjectStrip rendered status", () => {
   it("renders with idle status when project is idle", () => {
     const project = { ...baseProject }
     const html = renderToStaticMarkup(
-      <ProjectStrip project={project} expanded={false} onToggleExpand={() => {}} stripConfig={baseConfig}>
+      <ProjectStrip project={project} stripConfig={baseConfig}>
         {children}
       </ProjectStrip>
     )
@@ -78,7 +79,7 @@ describe("ProjectStrip rendered status", () => {
       aggregateStatus: "error" as const,
     }
     const html = renderToStaticMarkup(
-      <ProjectStrip project={project} expanded={false} onToggleExpand={() => {}} stripConfig={baseConfig}>
+      <ProjectStrip project={project} stripConfig={baseConfig}>
         {children}
       </ProjectStrip>
     )
@@ -92,7 +93,7 @@ describe("ProjectStrip rendered status", () => {
       aggregateStatus: "busy" as const,
     }
     const html = renderToStaticMarkup(
-      <ProjectStrip project={project} expanded={false} onToggleExpand={() => {}} stripConfig={baseConfig}>
+      <ProjectStrip project={project} stripConfig={baseConfig}>
         {children}
       </ProjectStrip>
     )
@@ -110,7 +111,7 @@ describe("ProjectStrip rendered status", () => {
       aggregateStatus: "plan_complete" as const,
     }
     const html = renderToStaticMarkup(
-      <ProjectStrip project={project} expanded={false} onToggleExpand={() => {}} stripConfig={baseConfig}>
+      <ProjectStrip project={project} stripConfig={baseConfig}>
         {children}
       </ProjectStrip>
     )
@@ -124,7 +125,7 @@ describe("ProjectStrip rendered status", () => {
       aggregateStatus: "unknown" as const,
     }
     const html = renderToStaticMarkup(
-      <ProjectStrip project={project} expanded={false} onToggleExpand={() => {}} stripConfig={baseConfig}>
+      <ProjectStrip project={project} stripConfig={baseConfig}>
         {children}
       </ProjectStrip>
     )
@@ -144,7 +145,7 @@ describe("ProjectStrip rendered status", () => {
     }
 
     const html = renderToStaticMarkup(
-      <ProjectStrip project={project} expanded={false} onToggleExpand={() => {}} stripConfig={baseConfig}>
+      <ProjectStrip project={project} stripConfig={baseConfig}>
         {children}
       </ProjectStrip>
     )
@@ -168,7 +169,7 @@ describe("ProjectStrip rendered status", () => {
     }
 
     const html = renderToStaticMarkup(
-      <ProjectStrip project={project} expanded={false} onToggleExpand={() => {}} stripConfig={baseConfig}>
+      <ProjectStrip project={project} stripConfig={baseConfig}>
         {children}
       </ProjectStrip>
     )

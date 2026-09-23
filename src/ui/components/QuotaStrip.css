@@ -10,7 +10,10 @@
   /* Two provider columns; all groups left-anchored so icons stay aligned
      across rows even when window counts differ */
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0,1fr): rows do NOT share width constraints — a wide provider row
+     (e.g. three quota windows) overflows its own cell instead of widening the
+     track and pushing the right-column providers toward the page edge. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   justify-items: start;
   gap: var(--sp-2) var(--sp-4);
   padding: 3px var(--sp-4) 0;

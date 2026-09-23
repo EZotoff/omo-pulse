@@ -36,6 +36,10 @@ function withReadonlyDb<T>(sqlitePath: string, fn: (db: BunDatabase) => T): { ok
   let db: BunDatabase | null = null
   try {
     db = new BunDatabase(sqlitePath, { readonly: true })
+    // Fail fast on writer locks instead of blocking the dashboard's event
+    // loop for seconds: under heavy agent write load a stale snapshot beats
+    // a frozen service.
+    db.exec("PRAGMA busy_timeout = 250")
     return { ok: true, value: fn(db) }
   } catch (error) {
     return { ok: false, reason: classifySqliteError(error) }

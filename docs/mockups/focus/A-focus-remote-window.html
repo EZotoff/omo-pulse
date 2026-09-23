@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>omo-pulse · focus remote</title>
+<style>
+:root{
+  --bg:#0a0a0f; --bg2:#12121a; --bg3:#1a1a2e;
+  --tx:#e8e8ed; --tx2:#a0a0b0; --tx3:#666680;
+  --bd:#2a2a3e; --bd2:#1e1e30;
+  --acc:#00d4aa; --warn:#ffa502;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--tx);
+  font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;height:100%}
+body{overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:4px}
+
+.badge{position:fixed;bottom:14px;right:14px;z-index:99;
+  font:10px/1 var(--mono);letter-spacing:.08em;color:var(--warn);
+  border:1px solid rgba(255,165,2,.45);background:rgba(255,165,2,.08);
+  padding:6px 10px;border-radius:4px;pointer-events:none}
+
+.app{height:100vh;display:flex;flex-direction:column}
+.rhead{display:flex;align-items:center;gap:9px;padding:14px 16px 12px;
+  border-bottom:1px solid var(--bd2)}
+.rdot{width:8px;height:8px;border-radius:50%;background:var(--acc);
+  box-shadow:0 0 8px var(--acc);flex:none}
+.rhead h1{font-size:13.5px;font-weight:650}
+.rhead h1 span{color:var(--tx3);font-weight:400}
+.rsort{margin-left:auto;font:10px var(--mono);letter-spacing:.08em;color:var(--tx3);
+  text-transform:uppercase}
+#list{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:9px}
+.proj-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px}
+.pname{font:12px var(--mono);font-weight:600;color:var(--tx2)}
+.ptime{font:10px var(--mono);color:var(--tx3)}
+.target{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  background:var(--bg3);border:1px solid var(--bd);border-left:3px solid var(--sc);
+  border-radius:6px;padding:10px 12px;cursor:pointer;
+  transition:background 150ms ease,border-color 150ms ease,box-shadow 150ms ease}
+.target:hover{background:#22223a;border-color:var(--sc);
+  box-shadow:0 0 14px -4px var(--sc)}
+.target.urgent{animation:breath 2.6s ease-in-out infinite}
+@keyframes breath{0%,100%{box-shadow:0 0 5px -3px var(--sc)}50%{box-shadow:0 0 14px -3px var(--sc)}}
+.t-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.t-label{font:12px var(--mono);font-weight:600;color:var(--tx);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-prompt{font:10.5px var(--mono);color:var(--tx2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-focus{flex:none;font:10px var(--mono);font-weight:700;letter-spacing:.06em;
+  color:var(--sc)}
+.queue{font:10px var(--mono);color:var(--tx3);padding-left:4px}
+.divider{font:10px var(--mono);letter-spacing:.1em;color:var(--tx3);
+  text-transform:uppercase;padding:6px 4px 0;border-top:1px solid var(--bd2);margin-top:4px}
+.busy-row{display:flex;justify-content:space-between;font:11px var(--mono);
+  color:var(--tx3);padding:4px 4px 0}
+.busy-row .n{color:#3d5a52}
+.rfoot{padding:10px 16px;border-top:1px solid var(--bd2)}
+.linkish{font:10.5px var(--mono);color:var(--tx3);text-decoration:underline;
+  text-underline-offset:3px;cursor:pointer}
+.linkish:hover{color:var(--tx2)}
+.clear-panel{text-align:center;padding:40px 12px}
+.clear-panel .ck{width:34px;height:34px;margin:0 auto 12px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  color:#10b981;border:1px solid rgba(16,185,129,.5);background:rgba(16,185,129,.1);
+  font-size:16px}
+.clear-panel h2{font-size:13px;font-weight:600;margin-bottom:4px}
+.clear-panel p{font:11px var(--mono);color:var(--tx3)}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,12px);
+  background:var(--bg3);border:1px solid var(--bd);border-radius:6px;
+  color:var(--tx);font:12px var(--mono);padding:10px 16px;
+  opacity:0;pointer-events:none;transition:opacity 150ms ease,transform 150ms ease;
+  box-shadow:0 6px 24px rgba(0,0,0,.55);z-index:100;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="badge">MOCK-UP — simulated focus</div>
+
+<div class="app">
+  <header class="rhead"><span class="rdot"></span>
+    <h1>omo-pulse <span>· focus remote</span></h1>
+    <span class="rsort">by urgency</span>
+  </header>
+  <main id="list"></main>
+  <footer class="rfoot"><button id="demoToggle" class="linkish">preview: all-clear state</button></footer>
+</div>
+
+<div id="toast" class="toast mono" role="status" aria-live="polite"></div>
+
+<script>
+/* fake data duplicated from A-focus-remote.html — keep in sync while mocking */
+const RANK = {question:0, error:1, 'awaiting-input':2, 'plan-complete':3, working:4};
+const COLOR = {question:'#5a43e4', error:'#ef4444', 'awaiting-input':'#ffa502', 'plan-complete':'#10b981', working:'#00d4aa'};
+const PROJECTS = [
+  {name:'ez-omo-config', sessions:[
+    {label:'retry-policy',    prompt:'fix(worktree): portable timeout helper dies on slow binds', status:'question',       wait:'4m ago',    waitMin:4},
+    {label:'checkpoint-sweep',prompt:'sweep stale agent/* checkpoints from worktree state',       status:'working',        wait:'running 12m', waitMin:0}]},
+  {name:'ez-omo-bench', sessions:[
+    {label:'bench-runner',    prompt:'baseline the vitest suite across 5 repos',                  status:'working',        wait:'running 47m', waitMin:0}]},
+  {name:'Ds_AI', sessions:[
+    {label:'dataset-etl',     prompt:'dedupe 2.3M rows, shard train/val 95/5',                    status:'error',          wait:'2m ago',    waitMin:2},
+    {label:'embed-cache',     prompt:'precompute bge-small embeddings for eval set',              status:'working',        wait:'running 31m', waitMin:0},
+    {label:'eval-harness',    prompt:'wire lm-eval into the nightly runner',                      status:'plan-complete',  wait:'3m ago',    waitMin:3}]},
+  {name:'BIM', sessions:[
+    {label:'ifc-parser',      prompt:'handle IFC4x3 irregular storey refs',                       status:'question',       wait:'7m ago',    waitMin:7},
+    {label:'revit-export',    prompt:'export curtain-wall families to glTF',                      status:'awaiting-input', wait:'15m ago',   waitMin:15}]},
+  {name:'debate', sessions:[
+    {label:'panel-review',    prompt:'run 3-hunter panel on auth-bridge diff',                    status:'awaiting-input', wait:'1m ago',    waitMin:1},
+    {label:'judge-sim',       prompt:'calibrate judge prompts against the golden set',            status:'working',        wait:'running 22m', waitMin:0}]},
+  {name:'bi-tkg', sessions:[
+    {label:'tkg-loader',      prompt:'bulk-load 40M triples, checkpoint every 5M',               status:'plan-complete',  wait:'11m ago',   waitMin:11}]},
+  {name:'ComfyUI', sessions:[
+    {label:'node-migration',  prompt:'port v1 custom nodes to the new slot order',                status:'working',        wait:'running 55m', waitMin:0},
+    {label:'workflow-lint',   prompt:'lint workflow JSONs for hidden control slots',              status:'working',        wait:'running 19m', waitMin:0}]},
+  {name:'factory', sessions:[
+    {label:'droid-pool',      prompt:'tune retry backoff for 429 storms',                         status:'error',          wait:'9m ago',    waitMin:9},
+    {label:'auth-bridge',     prompt:'wire OAuth token refresh into the droid pool',              status:'awaiting-input', wait:'6m ago',    waitMin:6}]},
+  {name:'tau20', sessions:[
+    {label:'tau-migration',   prompt:'migrate plan engine to v2 step contracts',                  status:'question',       wait:'30s ago',   waitMin:0.5}]},
+  {name:'rag_base', sessions:[
+    {label:'chunker-v2',      prompt:'semantic chunking with a 15% overlap cap',                  status:'plan-complete',  wait:'6m ago',    waitMin:6},
+    {label:'retrieval-eval',  prompt:'score hybrid retrieval vs the BM25 baseline',               status:'working',        wait:'running 14m', waitMin:0}]},
+];
+
+function attSessions(p){
+  return p.sessions.filter(s=>RANK[s.status]<4)
+    .sort((a,b)=>(RANK[a.status]-RANK[b.status])||(a.waitMin-b.waitMin));
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+
+let toastT;
+function toast(m){const t=document.getElementById('toast');
+  t.textContent=m;t.classList.add('show');clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove('show'),1200)}
+
+let empty=false;
+function render(){
+  const el=document.getElementById('list');
+  if(empty){el.innerHTML='<div class="clear-panel"><div class="ck">✓</div><h2>All clear</h2><p>no sessions need your attention right now</p></div>';return}
+  const sorted=[...PROJECTS].map(p=>({p,att:attSessions(p)})).filter(x=>x.att.length)
+    .sort((a,b)=>(RANK[a.att[0].status]-RANK[b.att[0].status])||(a.att[0].waitMin-b.att[0].waitMin));
+  const busy=PROJECTS.filter(p=>attSessions(p).length===0);
+  let h='';
+  for(const {p,att} of sorted){
+    const n=att[0],c=COLOR[n.status];
+    const q=att.length-1;
+    const urgent=RANK[n.status]<=1;
+    h+='<div class="proj"><div class="proj-head"><span class="pname">'+esc(p.name)
+      +'</span><span class="ptime">'+esc(n.wait)+'</span></div>'
+      +'<button class="target'+(urgent?' urgent':'')+'" style="--sc:'+c+'" '
+      +'data-p="'+esc(p.name)+'" data-s="'+esc(n.label)+'">'
+      +'<span class="t-main"><span class="t-label">'+esc(n.label)+'</span>'
+      +'<span class="t-prompt">'+esc(n.prompt)+'</span></span>'
+      +'<span class="t-focus">FOCUS ▶</span></button>'
+      +(q?'<div class="queue">+'+q+' more waiting</div>':'')+'</div>';
+  }
+  if(busy.length){h+='<div class="divider">all busy</div>';
+    for(const p of busy){h+='<div class="busy-row"><span>'+esc(p.name)+'</span>'
+      +'<span class="n">'+p.sessions.length+' working</span></div>'}}
+  el.innerHTML=h;
+}
+document.getElementById('list').addEventListener('click',e=>{
+  const b=e.target.closest('button.target');if(!b)return;
+  toast('→ switching terminal to '+b.dataset.p+' › '+b.dataset.s+'…')});
+document.getElementById('demoToggle').addEventListener('click',function(){
+  empty=!empty;this.textContent=empty?'back to attention list':'preview: all-clear state';render()});
+render();
+</script>
+</body>
+</html>

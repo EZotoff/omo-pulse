@@ -3,8 +3,12 @@ import { Hono } from "hono";
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { createApi } from "./api";
-import { createMultiProjectService } from "./multi-project";
+import { createWorkerMultiProjectService } from "./worker-multi-project-service";
 import { createTelegramService } from "./telegram";
+import { isFreshnessRelevant } from "../ingest/opencode-event-map";
+import { createOpenCodeSseClient } from "../ingest/opencode-sse-client";
+import { readRealtimeConfig } from "../ingest/realtime-config";
+import { createRealtimeBus, type OpenCodeEvent } from "../ingest/realtime-types";
 import { selectStorageBackend, getLegacyStorageRootForBackend } from "../ingest/storage-backend";
 
 const here = dirname(new URL(import.meta.url).pathname);
@@ -18,7 +22,37 @@ const distRoot = join(import.meta.dir, "../../dist");
 
 const storageBackend = selectStorageBackend();
 const storageRoot = getLegacyStorageRootForBackend(storageBackend);
-const multiProjectService = createMultiProjectService({ storageRoot, storageBackend });
+const realtimeConfig = readRealtimeConfig();
+const realtimeBus = createRealtimeBus();
+const multiProjectService = createWorkerMultiProjectService({ storageRoot, storageBackend });
+const sseClient = realtimeConfig.sseEnabled ? createOpenCodeSseClient({ endpoint: realtimeConfig.opencodeEndpoint }) : null;
+let realtimeTimer: ReturnType<typeof setTimeout> | null = null;
+let latestEvent: OpenCodeEvent | null = null;
+sseClient?.subscribe((event) => {
+  if (!isFreshnessRelevant(event)) return;
+  latestEvent = event;
+  if (realtimeTimer !== null) return;
+  realtimeTimer = setTimeout(() => {
+    realtimeTimer = null;
+    const published = latestEvent;
+    latestEvent = null;
+    // Publish only AFTER the caches are actually cleared: the worker-backed
+    // service invalidates off-thread, so a fire-and-forget call could let the
+    // browser refetch stale data. Await the ack when the service supports it.
+    const cleared = multiProjectService.invalidateAndWait
+      ? multiProjectService.invalidateAndWait()
+      : Promise.resolve(multiProjectService.invalidate());
+    void cleared.then(() => {
+        if (published) realtimeBus.publish(published);
+      },
+      () => {
+        // Invalidation could not be confirmed (worker timeout/error): skip the
+        // refresh signal rather than inviting a refetch of unconfirmed data.
+        console.warn("realtime: skipped refresh signal; worker invalidation unconfirmed");
+      },
+    );
+  }, realtimeConfig.debounceMs);
+});
 
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
 const telegramChatId = process.env.TELEGRAM_CHAT_ID
@@ -33,6 +67,8 @@ const apiRouter = createApi({
   storageRoot,
   storageBackend,
   multiProjectService,
+  realtimeBus,
+  getRealtimeState: () => sseClient?.getState() ?? "disabled",
   telegramStatus: telegramService ? () => telegramService.getStatus() : undefined,
   version: APP_VERSION,
 });
@@ -90,12 +126,37 @@ function getContentType(ext: string): string {
   return types[ext] || "text/plain";
 }
 
-Bun.serve({
+const server = Bun.serve({
   fetch: app.fetch,
   hostname: "127.0.0.1",
   port,
   idleTimeout: 60,
 });
+
+sseClient?.start();
+let disconnectedSince: number | null = null;
+let outageLogged = false;
+const healthTimer = sseClient ? setInterval(() => {
+  if (sseClient.getState() === "connected") {
+    disconnectedSince = null;
+    outageLogged = false;
+    return;
+  }
+  disconnectedSince ??= Date.now();
+  if (!outageLogged && Date.now() - disconnectedSince >= 5_000) {
+    console.warn("OpenCode SSE unavailable; dashboard remains on TTL refresh");
+    outageLogged = true;
+  }
+}, 1_000) : null;
+function shutdown(): void {
+  sseClient?.stop();
+  if (healthTimer !== null) clearInterval(healthTimer);
+  if (realtimeTimer !== null) clearTimeout(realtimeTimer);
+  telegramService?.stop();
+  server.stop();
+}
+process.once("SIGTERM", shutdown);
+process.once("SIGINT", shutdown);
 
 if (telegramService) {
   telegramService.start()

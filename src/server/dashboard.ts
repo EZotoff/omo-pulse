@@ -1,5 +1,7 @@
 import { Database } from "bun:sqlite"
 import * as fs from "node:fs"
+import { buildAttentionPayload } from "../ingest/attention"
+export { buildAttentionPayload };
 import { deriveBackgroundTasks } from "../ingest/background-tasks"
 import * as boulderModule from "../ingest/boulder"
 import { type PlanStep, readBoulderState, readPlanProgress, readPlanSteps, scanUninitiatedPlans } from "../ingest/boulder"
@@ -102,6 +104,8 @@ function readBoulderHistorySafe(projectRoot: string): PlanHistory | undefined {
 
 export type DashboardStore = {
   getSnapshot: () => DashboardPayload
+  /** Drops the cached snapshot so the next getSnapshot() rebuilds from source. */
+  clearCache: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -496,10 +500,18 @@ export function createDashboardStore(opts: {
   storageRoot: string
   storageBackend?: StorageBackend
   pollIntervalMs?: number
+  /**
+   * Delays this store's first (and thus every subsequent) refresh, spreading
+   * refreshes of many stores evenly across the poll interval. Without it, N
+   * stores expire in sync and their synchronous SQLite rebuilds block the
+   * event loop as one multi-second freeze.
+   */
+  staggerMs?: number
 }): DashboardStore {
   const storage = getStorageRoots(opts.storageRoot)
   const pollIntervalMs = opts.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS
 
+  const staggerMs = opts.staggerMs ?? 0
   let lastComputedAt = 0
   let cached: DashboardPayload | null = null
 
@@ -513,9 +525,21 @@ export function createDashboardStore(opts: {
           nowMs: now,
           storageBackend: opts.storageBackend,
         })
-        lastComputedAt = now
+        // Push the timestamp into the future by the stagger so N stores
+        // created together expire spread across the interval instead of
+        // rebuilding as one synchronous multi-second block.
+        lastComputedAt = now + staggerMs
       }
       return cached
+    },
+    /**
+     * Drops this store's cached snapshot so the next getSnapshot() rebuilds from
+     * source. Store identity is preserved (unlike recreating the store), keeping
+     * the stagger stride and discovered-roots warm-up bookkeeping intact.
+     */
+    clearCache() {
+      cached = null
+      lastComputedAt = 0
     },
   }
 }

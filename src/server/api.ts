@@ -9,6 +9,7 @@ import { readHiddenSessionIds, writeHiddenSessionIds } from "./attention-hidden"
 import { getStorageRoots, getMessageDir } from "../ingest/session"
 import { assertAllowedPath, expandTilde } from "../ingest/paths"
 import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../ingest/tool-calls"
+import { readSupervisorQueueProjection } from "../ingest/supervisor-queue"
 import { deriveToolCallsSqlite } from "../ingest/sqlite-derive"
 import type { StorageBackend } from "../ingest/storage-backend"
 import { createQuotaService } from "./quotas"
@@ -292,6 +293,19 @@ export function createApi(opts: {
   api.post("/attention/unhide-all", (c) => {
     writeHiddenSessionIds(opts.storageRoot, new Set())
     return c.json({ ok: true, hiddenCount: 0 })
+  })
+
+  // -------------------------------------------------------------------------
+  // GET /supervisor/queue — supervisor attention projection (read-only)
+  // -------------------------------------------------------------------------
+  api.get("/supervisor/queue", (c) => {
+    const result = readSupervisorQueueProjection()
+    if (!result.ok) {
+      // absent supervisor is a healthy state (not installed) — not a server error
+      const status = result.reason === "absent" ? 503 : 500
+      return c.json({ ok: false, error: result.reason }, status)
+    }
+    return c.json({ ...result })
   })
 
   // -------------------------------------------------------------------------

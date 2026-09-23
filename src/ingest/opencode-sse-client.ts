@@ -5,6 +5,7 @@ type JsonObject = Record<string, unknown>
 
 type ClientOptions = {
   readonly endpoint?: string
+  readonly authHeader?: string | null
   readonly fetcher?: (input: string | URL | Request, init?: RequestInit) => Promise<Response>
   readonly retryBaseMs?: number
 }
@@ -58,6 +59,8 @@ function normalize(value: unknown, frameId: string | undefined): OpenCodeEvent |
 export function createOpenCodeSseClient(options: ClientOptions = {}): OpenCodeSseClient {
   const endpoint = options.endpoint ?? readRealtimeConfig().opencodeEndpoint
   const fetcher = options.fetcher ?? fetch
+  const authHeader =
+    options.authHeader === undefined ? readRealtimeConfig().opencodeAuthHeader : options.authHeader
   const retryBaseMs = options.retryBaseMs ?? 500
   const listeners = new Set<(event: OpenCodeEvent) => void>()
   let state: SseConnectionState = "down"
@@ -93,7 +96,13 @@ export function createOpenCodeSseClient(options: ClientOptions = {}): OpenCodeSs
     // Best-effort replay: the pinned OpenCode /global/event ignores `after` and
     // emits UUID payload IDs, so TTL refresh remains the guarantee across gaps.
     if (lastSeq !== undefined) url.searchParams.set("after", String(lastSeq))
-    const response = await fetcher(url, { headers: { Accept: "text/event-stream" }, signal })
+    const response = await fetcher(url, {
+      headers: {
+        Accept: "text/event-stream",
+        ...(authHeader === null || authHeader === undefined ? {} : { Authorization: authHeader }),
+      },
+      signal,
+    })
     if (!response.ok || !response.body || !response.headers.get("content-type")?.includes("text/event-stream")) {
       await response.body?.cancel()
       return

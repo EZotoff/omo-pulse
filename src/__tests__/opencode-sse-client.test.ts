@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createOpenCodeSseClient } from "../ingest/opencode-sse-client"
+import { readRealtimeConfig } from "../ingest/realtime-config"
 import type { OpenCodeEvent } from "../ingest/realtime-types"
 
 const sample = [
@@ -29,7 +30,7 @@ function frame(value: unknown): string {
 }
 
 describe("OpenCode SSE client", () => {
-  afterEach(() => { vi.restoreAllMocks() })
+  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs() })
 
   it("normalizes recorded global-event envelopes without inventing a sequence", async () => {
     const fixture = readFileSync(new URL("./fixtures/opencode-events/synthetic-sample.jsonl", import.meta.url), "utf8")
@@ -115,5 +116,45 @@ describe("OpenCode SSE client", () => {
     await vi.waitFor(() => expect(client.getState()).toBe("down"))
 
     client.stop()
+  })
+
+  it("sends a Basic Authorization header when credentials are configured", async () => {
+    const fetcher = vi.fn((_input: string | URL | Request, init?: RequestInit) =>
+      Promise.resolve(streamResponse([frame(sample[0])], init?.signal ?? new AbortController().signal)),
+    )
+    const client = createOpenCodeSseClient({
+      endpoint: "http://127.0.0.1:4096",
+      fetcher,
+      authHeader: "Basic dGVzdDpzZWNyZXQ=",
+    })
+
+    client.start()
+    await vi.waitFor(() => expect(client.getState()).toBe("connected"))
+
+    const headers = fetcher.mock.calls[0]?.[1]?.headers as Record<string, string>
+    expect(headers.Authorization).toBe("Basic dGVzdDpzZWNyZXQ=")
+    expect(headers.Accept).toBe("text/event-stream")
+    client.stop()
+  })
+
+  it("omits the Authorization header when no credentials are configured", async () => {
+    const fetcher = vi.fn((_input: string | URL | Request, init?: RequestInit) =>
+      Promise.resolve(streamResponse([frame(sample[0])], init?.signal ?? new AbortController().signal)),
+    )
+    const client = createOpenCodeSseClient({ endpoint: "http://127.0.0.1:4096", fetcher, authHeader: null })
+
+    client.start()
+    await vi.waitFor(() => expect(client.getState()).toBe("connected"))
+
+    const headers = fetcher.mock.calls[0]?.[1]?.headers as Record<string, string>
+    expect(headers.Authorization).toBeUndefined()
+    client.stop()
+  })
+
+  it("derives a Basic auth header from OPENCODE_SERVER_USERNAME and OPENCODE_SERVER_PASSWORD", () => {
+    vi.stubEnv("OPENCODE_SERVER_USERNAME", "user")
+    vi.stubEnv("OPENCODE_SERVER_PASSWORD", "pass")
+
+    expect(readRealtimeConfig().opencodeAuthHeader).toBe(`Basic ${Buffer.from("user:pass").toString("base64")}`)
   })
 })

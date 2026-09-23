@@ -15,6 +15,13 @@ export type RealtimeConfig = {
   readonly opencodeEndpoint: string;
   /** Debounce window (ms) for event-driven cache invalidation. */
   readonly debounceMs: number;
+  /**
+   * Optional `Authorization` header value for the opencode server, derived from
+   * OPENCODE_SERVER_USERNAME / OPENCODE_SERVER_PASSWORD when both are set
+   * (the same credentials the managed opencode services expose via serve.env).
+   * `null` when unconfigured - the client then sends no auth header.
+   */
+  readonly opencodeAuthHeader: string | null;
 };
 
 function readBoolEnv(name: string, fallback: boolean): boolean {
@@ -36,5 +43,18 @@ export function readRealtimeConfig(): RealtimeConfig {
     opencodeEndpoint:
       process.env.OMO_PULSE_OPENCODE_ENDPOINT || DEFAULT_OPENCODE_ENDPOINT,
     debounceMs: readIntEnv("OMO_PULSE_OPENCODE_SSE_DEBOUNCE_MS", DEFAULT_SSE_DEBOUNCE_MS),
+    opencodeAuthHeader: readBasicAuthHeader(),
   };
+}
+
+/**
+ * Builds `Basic <base64>` from OPENCODE_SERVER_USERNAME / OPENCODE_SERVER_PASSWORD.
+ * Both must be present - a half-configured pair yields no header (a wrong
+ * Authorization header is worse than none for a read-only observer).
+ */
+function readBasicAuthHeader(): string | null {
+  const username = process.env.OPENCODE_SERVER_USERNAME;
+  const password = process.env.OPENCODE_SERVER_PASSWORD;
+  if (!username || !password) return null;
+  return `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
 }

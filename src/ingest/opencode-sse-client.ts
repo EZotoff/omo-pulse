@@ -54,8 +54,11 @@ function normalize(value: unknown, frameId: string | undefined): OpenCodeEvent |
   }
 }
 
-// The configured OpenCode HTTP endpoint is the discovery mechanism; the SDK is
-// not installed in this project, so this uses the platform's streaming fetch.
+// Discovery via the configured OpenCode HTTP endpoint (OMO_PULSE_OPENCODE_ENDPOINT).
+// De-risking result (2026-09-23): @opencode-ai/sdk@1.18.32 DOES install and import
+// under Bun, but this project keeps a zero-runtime-dependency posture, so the SSE
+// reader stays on the platform fetch/ReadableStream API. The SDK remains a drop-in
+// upgrade if the operator approves adding the dependency.
 export function createOpenCodeSseClient(options: ClientOptions = {}): OpenCodeSseClient {
   const endpoint = options.endpoint ?? readRealtimeConfig().opencodeEndpoint
   const fetcher = options.fetcher ?? fetch

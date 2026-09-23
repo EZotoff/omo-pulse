@@ -40,6 +40,7 @@ const apiRouter = createApi({
   storageBackend,
   multiProjectService,
   realtimeBus,
+  getRealtimeState: () => sseClient?.getState() ?? "disabled",
   telegramStatus: telegramService ? () => telegramService.getStatus() : undefined,
   version: APP_VERSION,
 });

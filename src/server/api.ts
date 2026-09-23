@@ -13,17 +13,21 @@ import { deriveToolCallsSqlite } from "../ingest/sqlite-derive"
 import type { StorageBackend } from "../ingest/storage-backend"
 import { createQuotaService } from "./quotas"
 import { isFreshnessRelevant } from "../ingest/opencode-event-map"
-import type { RealtimeBus } from "../ingest/realtime-types"
+import type { RealtimeBus, SseConnectionState } from "../ingest/realtime-types"
 import type { AttentionProject, DashboardMultiProjectPayload, TelegramServiceStatus } from "../types"
 
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/
 
 /** Heartbeat comment interval for the server→browser SSE stream. */
 const SSE_HEARTBEAT_MS = 10_000
+/** How often the upstream opencode SSE state is re-checked for the status frame. */
+const SSE_STATE_POLL_MS = 2_000
 
 export type MultiProjectService = {
   getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload>
   invalidate: () => void
+  /** Worker-backed implementations resolve after the caches are actually cleared. */
+  invalidateAndWait?: () => Promise<void>
 }
 
 type AttentionTarget = {
@@ -55,6 +59,12 @@ export function createApi(opts: {
   version?: string
   /** Optional realtime bus (T3): when set, GET /events streams refresh signals. */
   realtimeBus?: RealtimeBus
+  /**
+   * Current state of the upstream opencode SSE link. When provided, GET /events
+   * emits `status` frames so the browser badge reflects the real upstream link
+   * rather than merely the browser-to-dashboard stream being open.
+   */
+  getRealtimeState?: () => SseConnectionState
 }): Hono {
   const api = new Hono()
   const version = opts.version ?? "0.0.0"
@@ -78,11 +88,13 @@ export function createApi(opts: {
     const encoder = new TextEncoder()
     let unsubscribe: () => void = () => {}
     let heartbeat: ReturnType<typeof setInterval> | null = null
+    let stateTimer: ReturnType<typeof setInterval> | null = null
     let closed = false
     const cleanup = (): void => {
       if (closed) return
       closed = true
       if (heartbeat !== null) clearInterval(heartbeat)
+      if (stateTimer !== null) clearInterval(stateTimer)
       unsubscribe()
     }
 
@@ -101,6 +113,17 @@ export function createApi(opts: {
           if (!isFreshnessRelevant(event)) return
           write(`event: refresh\ndata: ${JSON.stringify({ ts: event.ts })}\n\n`)
         })
+        // Upstream-state frames: the badge must not claim "live" while the
+        // opencode link itself is down or disabled.
+        let lastState: SseConnectionState | null = null
+        const emitState = (): void => {
+          const state = opts.getRealtimeState ? opts.getRealtimeState() : "connected"
+          if (state === lastState) return
+          lastState = state
+          write(`event: status\ndata: ${JSON.stringify({ state })}\n\n`)
+        }
+        emitState()
+        stateTimer = setInterval(emitState, SSE_STATE_POLL_MS)
         heartbeat = setInterval(() => write(": heartbeat\n\n"), SSE_HEARTBEAT_MS)
       },
       cancel() {

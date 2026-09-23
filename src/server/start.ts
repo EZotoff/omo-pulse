@@ -34,10 +34,17 @@ sseClient?.subscribe((event) => {
   if (realtimeTimer !== null) return;
   realtimeTimer = setTimeout(() => {
     realtimeTimer = null;
-    multiProjectService.invalidate();
     const published = latestEvent;
     latestEvent = null;
-    if (published) realtimeBus.publish(published);
+    // Publish only AFTER the caches are actually cleared: the worker-backed
+    // service invalidates off-thread, so a fire-and-forget call could let the
+    // browser refetch stale data. Await the ack when the service supports it.
+    const cleared = multiProjectService.invalidateAndWait
+      ? multiProjectService.invalidateAndWait()
+      : Promise.resolve(multiProjectService.invalidate());
+    void cleared.then(() => {
+      if (published) realtimeBus.publish(published);
+    });
   }, realtimeConfig.debounceMs);
 });
 
@@ -55,6 +62,7 @@ const apiRouter = createApi({
   storageBackend,
   multiProjectService,
   realtimeBus,
+  getRealtimeState: () => sseClient?.getState() ?? "disabled",
   telegramStatus: telegramService ? () => telegramService.getStatus() : undefined,
   version: APP_VERSION,
 });

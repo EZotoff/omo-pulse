@@ -10,6 +10,10 @@ export default defineConfig({
     port: 5173,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
+    // The e2e mock API binds OMO_PULSE_API_PORT (default 18031, inside the
+    // project's registered 18030-18039 range); vite proxies /api there. Passing
+    // it here keeps harness and proxy agreed and allows collision overrides.
+    env: { OMO_PULSE_API_PORT: process.env.OMO_PULSE_API_PORT ?? "18031" },
   },
   use: {
     baseURL: "http://localhost:5173",

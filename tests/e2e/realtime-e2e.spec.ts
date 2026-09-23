@@ -8,6 +8,13 @@ test.describe.configure({ mode: "serial" })
 let server: http.Server | null = null
 let sseClients: Set<http.ServerResponse> = new Set()
 let currentPayload: DashboardMultiProjectPayload
+/**
+ * Mock API port. Defaults to the repo's configured dev API port (vite proxies
+ * /api to OMO_PULSE_API_PORT, default 18031 - within the project's registered
+ * 18030-18039 range). playwright.config.ts passes this same value to the vite
+ * webServer, and the spec fails fast if the port is already taken.
+ */
+const API_PORT = Number(process.env.OMO_PULSE_API_PORT ?? 18031)
 
 function createMockProjectPayload(updatedIso: string): DashboardMultiProjectPayload {
   return {
@@ -93,7 +100,7 @@ test.beforeAll(async () => {
   currentPayload = createMockProjectPayload(new Date(Date.now() - 300_000).toISOString()) // 5m ago
 
   server = http.createServer((req, res) => {
-    const url = new URL(req.url ?? "/", "http://127.0.0.1:18031")
+    const url = new URL(req.url ?? "/", `http://127.0.0.1:${API_PORT}`)
 
     if (url.pathname === "/api/events") {
       res.writeHead(200, {
@@ -102,6 +109,9 @@ test.beforeAll(async () => {
         Connection: "keep-alive",
       })
       res.write(": heartbeat\n\n")
+      // Mirror the real server contract: the badge derives "live" from this
+      // upstream-state frame, not from the transport merely being open.
+      res.write('event: status\ndata: {"state":"connected"}\n\n')
       sseClients.add(res)
       req.on("close", () => {
         sseClients.delete(res)
@@ -134,8 +144,11 @@ test.beforeAll(async () => {
     res.end(JSON.stringify({ ok: false, error: "not found" }))
   })
 
-  await new Promise<void>((resolve) => {
-    server?.listen(18031, "127.0.0.1", () => resolve())
+  await new Promise<void>((resolve, reject) => {
+    server?.once("error", (error: Error & { code?: string }) => {
+      reject(new Error(`mock API port ${API_PORT} unavailable (${error.code ?? "error"}); set OMO_PULSE_API_PORT to a free port in 18030-18039`))
+    })
+    server?.listen(API_PORT, "127.0.0.1", () => resolve())
   })
 
   mkdirSync(".sisyphus/evidence", { recursive: true })

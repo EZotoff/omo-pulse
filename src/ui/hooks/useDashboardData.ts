@@ -641,6 +641,23 @@ export function useDashboardData(previewMode: PreviewMode | null = null): {
         if (unmounted) return
         void refreshRef.current()
       })
+
+      // Upstream state frames: "live" only when the opencode link itself is up.
+      // onopen alone only proves the browser↔dashboard stream opened.
+      es.addEventListener("status", (event) => {
+        if (unmounted) return
+        const data = (event as MessageEvent).data
+        let upstream = "polling"
+        try {
+          const parsed: unknown = JSON.parse(typeof data === "string" ? data : "")
+          if (parsed !== null && typeof parsed === "object" && (parsed as { state?: unknown }).state === "connected") {
+            upstream = "live"
+          }
+        } catch {
+          // Malformed status frame — stay on polling rather than claiming live.
+        }
+        setConnection(upstream === "live" ? "live" : "polling")
+      })
     } catch {
       setConnection("polling")
     }

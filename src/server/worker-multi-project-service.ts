@@ -103,6 +103,16 @@ export function createWorkerMultiProjectService(opts: {
     return reply.payload
   }
 
+  /**
+   * Invalidates and resolves only once the worker acknowledges it, so callers
+   * can sequence work (e.g. publish a refresh signal) strictly after the caches
+   * are actually cleared. invalidate() remains fire-and-forget for other callers.
+   */
+  async function invalidateAndWait(): Promise<void> {
+    await ensureInit()
+    await request({ id: nextId++, cmd: "invalidate" }, PAYLOAD_TIMEOUT_MS)
+  }
+
   return {
     async getMultiProjectPayload(): Promise<DashboardMultiProjectPayload> {
       try {
@@ -114,9 +124,8 @@ export function createWorkerMultiProjectService(opts: {
       }
     },
     invalidate(): void {
-      void ensureInit().then(() => {
-        worker.postMessage({ id: nextId++, cmd: "invalidate" })
-      })
+      void invalidateAndWait()
     },
+    invalidateAndWait,
   }
 }

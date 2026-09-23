@@ -6,10 +6,12 @@ import type { DashboardMultiProjectPayload } from "../types"
 // ---------------------------------------------------------------------------
 
 vi.mock("bun:sqlite", () => ({
-  Database: vi.fn(() => ({
-    query: vi.fn(() => ({ all: vi.fn(() => []), get: vi.fn(() => null) })),
-    close: vi.fn(),
-  })),
+  Database: vi.fn(function MockDatabase() {
+    return {
+      query: vi.fn(() => ({ all: vi.fn(() => []), get: vi.fn(() => null) })),
+      close: vi.fn(),
+    }
+  }),
 }))
 
 // ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@ import { useEffect, useState, memo } from "react"
 
 export type DashboardHeaderProps = {
   connected: boolean
+  connection?: "live" | "polling"
   lastUpdatedMs: number | null
   columns?: number
   onSetColumns?: (n: number) => void
@@ -61,6 +62,7 @@ function LastUpdatedLabel({ lastUpdatedMs }: LastUpdatedLabelProps) {
 
 export const DashboardHeader = memo(function DashboardHeader({
   connected,
+  connection = "polling",
   lastUpdatedMs,
   columns,
   onSetColumns,
@@ -142,13 +144,22 @@ export const DashboardHeader = memo(function DashboardHeader({
 
         <LastUpdatedLabel lastUpdatedMs={lastUpdatedMs} />
 
-        <span
-          className="dashboard-header__connection"
+        <div
+          className="dashboard-header__connection-badge connection-badge"
+          data-connection={connection}
           data-connected={connected}
-          title={connected ? "Connected" : "Disconnected"}
           role="status"
-          aria-label={connected ? "Connected" : "Disconnected"}
-        />
+          aria-label={connected ? `Connection ${connection}` : "Disconnected"}
+          title={connected ? `Connected (${connection})` : "Disconnected"}
+        >
+          <span
+            className="dashboard-header__connection"
+            data-connected={connected}
+            data-connection={connection}
+            aria-hidden="true"
+          />
+          <span className="dashboard-header__connection-label">{connection}</span>
+        </div>
 
         {onSettingsOpen && (
           <button className="header-btn" onClick={onSettingsOpen} type="button" title="Settings" aria-label="Open settings">

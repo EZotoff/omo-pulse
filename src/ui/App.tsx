@@ -127,6 +127,7 @@ export function computeProjectSoundDecisions(args: {
 export type AppProps = {
   data: DashboardMultiProjectPayload | null
   connected: boolean
+  connection?: "live" | "polling"
   lastUpdatedMs: number | null
   previewMode: PreviewMode | null
   refresh: () => Promise<void>
@@ -146,7 +147,7 @@ function safeSetItem(key: string, value: string): void {
 
 /* ── Component ── */
 
-export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: AppProps) {
+export function App({ data, connected, connection = "polling", lastUpdatedMs, previewMode, refresh }: AppProps) {
   const { config: soundConfig, setConfig: setSoundConfig, playWaiting, playAllClear, playAttention, playQuestion } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
@@ -433,6 +434,7 @@ export function App({ data, connected, lastUpdatedMs, previewMode, refresh }: Ap
       ) : (
         <DashboardHeader
           connected={connected}
+          connection={connection}
           lastUpdatedMs={lastUpdatedMs}
           columns={columns}
           onSetColumns={setColumns}

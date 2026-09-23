@@ -10,7 +10,7 @@ function DashboardRoot() {
   const isRemote = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("view") === "remote"
   const searchString = typeof window !== "undefined" ? window.location.search : ""
   const previewMode = useMemo(() => parsePreviewMode(searchString), [searchString])
-  const { data, connected, lastUpdate, refresh } = useDashboardData(previewMode)
+  const { data, connected, connection, lastUpdate, refresh } = useDashboardData(previewMode)
 
   if (isRemote) {
     // Window title is how focus-remote-start.sh finds and raises this window.
@@ -18,7 +18,7 @@ function DashboardRoot() {
     return <FocusRemote />
   }
 
-  return <App data={data} connected={connected} lastUpdatedMs={lastUpdate} previewMode={previewMode} refresh={refresh} />
+  return <App data={data} connected={connected} connection={connection} lastUpdatedMs={lastUpdate} previewMode={previewMode} refresh={refresh} />
 }
 
 const rootElement = document.getElementById("root")

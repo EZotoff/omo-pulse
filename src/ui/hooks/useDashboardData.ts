@@ -9,6 +9,7 @@ import type {
 import { PREVIEW_STATUS_NAMES, type PreviewMode, type PreviewStatusName } from "../types"
 
 const POLL_CONNECTED_MS = 2200
+const POLL_LIVE_MS = 5000
 const POLL_DISCONNECTED_MS = 3600
 const PREVIEW_BUCKETS = 48
 const PREVIEW_WINDOW_MS = 12 * 60 * 1000
@@ -422,6 +423,7 @@ function createSingleStatusPreviewPayload(statusPublicName: PreviewStatusName, n
 export function useDashboardData(previewMode: PreviewMode | null = null): {
   data: DashboardMultiProjectPayload | null
   connected: boolean
+  connection: "live" | "polling"
   lastUpdate: number | null
   errorHint: string | null
   refresh: () => Promise<void>
@@ -446,6 +448,8 @@ export function useDashboardData(previewMode: PreviewMode | null = null): {
   })
   const [errorHint, setErrorHint] = useState<string | null>(null)
 
+  const [connection, setConnection] = useState<"live" | "polling">("polling")
+  const connectionRef = useRef<"live" | "polling">("polling")
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const connectedRef = useRef(false)
@@ -453,6 +457,10 @@ export function useDashboardData(previewMode: PreviewMode | null = null): {
   useEffect(() => {
     connectedRef.current = connected
   }, [connected])
+
+  useEffect(() => {
+    connectionRef.current = connection
+  }, [connection])
 
   useEffect(() => {
     if (!previewMode || (previewMode.kind !== "attention-colors" && previewMode.kind !== "status")) return
@@ -547,7 +555,8 @@ export function useDashboardData(previewMode: PreviewMode | null = null): {
     
     if (ac.signal.aborted) return
 
-    const delay = connectedRef.current ? POLL_CONNECTED_MS : POLL_DISCONNECTED_MS
+    const pollInterval = connectionRef.current === "live" ? POLL_LIVE_MS : POLL_CONNECTED_MS
+    const delay = connectedRef.current ? pollInterval : POLL_DISCONNECTED_MS
     timerRef.current = setTimeout(tick, delay)
   }, [fetchNow, previewMode])
 
@@ -584,7 +593,8 @@ export function useDashboardData(previewMode: PreviewMode | null = null): {
 
     if (ac.signal.aborted) return
 
-    const delay = connectedRef.current ? POLL_CONNECTED_MS : POLL_DISCONNECTED_MS
+    const pollInterval = connectionRef.current === "live" ? POLL_LIVE_MS : POLL_CONNECTED_MS
+    const delay = connectedRef.current ? pollInterval : POLL_DISCONNECTED_MS
     timerRef.current = setTimeout(tick, delay)
   }, [fetchNow, previewMode, tick])
 
@@ -597,5 +607,51 @@ export function useDashboardData(previewMode: PreviewMode | null = null): {
     }
   }, [tick])
 
-  return { data, connected, lastUpdate, errorHint, refresh }
+  const refreshRef = useRef(refresh)
+  useEffect(() => {
+    refreshRef.current = refresh
+  }, [refresh])
+
+  useEffect(() => {
+    if (previewMode) return
+    if (typeof window === "undefined" || typeof EventSource === "undefined") return
+
+    let es: EventSource | null = null
+    let unmounted = false
+    let hasOpenedOnce = false
+
+    try {
+      es = new EventSource("/api/events")
+
+      es.onopen = () => {
+        if (unmounted) return
+        setConnection("live")
+        if (hasOpenedOnce) {
+          void refreshRef.current()
+        }
+        hasOpenedOnce = true
+      }
+
+      es.onerror = () => {
+        if (unmounted) return
+        setConnection("polling")
+      }
+
+      es.addEventListener("refresh", () => {
+        if (unmounted) return
+        void refreshRef.current()
+      })
+    } catch {
+      setConnection("polling")
+    }
+
+    return () => {
+      unmounted = true
+      if (es) {
+        es.close()
+      }
+    }
+  }, [previewMode])
+
+  return { data, connected, connection, lastUpdate, errorHint, refresh }
 }

@@ -43,8 +43,14 @@ sseClient?.subscribe((event) => {
       ? multiProjectService.invalidateAndWait()
       : Promise.resolve(multiProjectService.invalidate());
     void cleared.then(() => {
-      if (published) realtimeBus.publish(published);
-    });
+        if (published) realtimeBus.publish(published);
+      },
+      () => {
+        // Invalidation could not be confirmed (worker timeout/error): skip the
+        // refresh signal rather than inviting a refetch of unconfirmed data.
+        console.warn("realtime: skipped refresh signal; worker invalidation unconfirmed");
+      },
+    );
   }, realtimeConfig.debounceMs);
 });
 

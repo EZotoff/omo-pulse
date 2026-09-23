@@ -33,7 +33,8 @@ Every persisted hook follows identical structure:
 - `AbortController` cancels in-flight requests on unmount
 - Keeps stale data on error (never sets `data` to `null`)
 - Subscribes to `GET /api/events` via `EventSource`; a `refresh` event triggers an immediate refetch through the normal fetch path
-- `onopen` → `connection: "live"`, `onerror` → `connection: "polling"` (badge in `DashboardHeader`); on reconnect it refetches once to close the gap (no server-side replay)
+- `connection` reflects the UPSTREAM opencode link via `event: status` frames (`connected` → "live", anything else → "polling"); `onopen` is only an optimistic default, corrected by the first status frame
+- `onerror` → "polling" (badge in `DashboardHeader`); on reconnect the hook refetches once to close the gap (no server-side replay)
 - `EventSource` is closed on unmount; the interval poll always remains as fallback
 
 ### Sound System (`useSoundNotifications`)

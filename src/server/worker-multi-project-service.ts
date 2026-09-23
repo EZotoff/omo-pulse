@@ -110,7 +110,10 @@ export function createWorkerMultiProjectService(opts: {
    */
   async function invalidateAndWait(): Promise<void> {
     await ensureInit()
-    await request({ id: nextId++, cmd: "invalidate" }, PAYLOAD_TIMEOUT_MS)
+    const reply = await request({ id: nextId++, cmd: "invalidate" }, PAYLOAD_TIMEOUT_MS)
+    // Reject on a worker timeout/error so callers (start.ts) do not publish a
+    // refresh signal for caches that were never actually cleared.
+    if (!reply.ok) throw new Error("worker failed to acknowledge invalidate")
   }
 
   return {

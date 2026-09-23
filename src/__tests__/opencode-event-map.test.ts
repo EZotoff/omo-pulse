@@ -6,7 +6,8 @@ import { affectedProjectRoot, isFreshnessRelevant } from "../ingest/opencode-eve
 import type { OpenCodeEvent } from "../ingest/realtime-types"
 
 const here = dirname(fileURLToPath(import.meta.url))
-const FIXTURE_PATH = resolve(here, "fixtures/opencode-events/real-sample.jsonl")
+const REAL_PATH = resolve(here, "fixtures/opencode-events/real-sample.jsonl")
+const SYNTHETIC_PATH = resolve(here, "fixtures/opencode-events/synthetic-sample.jsonl")
 
 type RawFrame = {
   directory?: string
@@ -19,9 +20,9 @@ type RawFrame = {
   }
 }
 
-/** Parse the recorded `data: {...}` SSE frames into raw frame objects. */
-function loadFrames(): RawFrame[] {
-  return readFileSync(FIXTURE_PATH, "utf8")
+/** Parse recorded `data: {...}` SSE frames into raw frame objects. */
+function loadFrames(path: string): RawFrame[] {
+  return readFileSync(path, "utf8")
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.startsWith("data:"))
@@ -46,17 +47,22 @@ function normalize(frame: RawFrame): OpenCodeEvent {
   }
 }
 
+const realFrames = loadFrames(REAL_PATH)
+const syntheticFrames = loadFrames(SYNTHETIC_PATH)
+const allFrames = [...syntheticFrames, ...realFrames]
+
+/** Synthetic-first so stable placeholder values win when a kind exists in both. */
 function eventByKind(kind: string): OpenCodeEvent {
-  const frame = loadFrames().find((f) => f.payload?.type === kind)
-  if (!frame) throw new Error(`fixture missing event kind: ${kind}`)
+  const frame = allFrames.find((f) => f.payload?.type === kind)
+  if (!frame) throw new Error(`fixtures missing event kind: ${kind}`)
   return normalize(frame)
 }
 
 describe("opencode-event-map", () => {
-  it("loads the recorded fixture as parseable SSE frames", () => {
-    const frames = loadFrames()
-    expect(frames.length).toBeGreaterThanOrEqual(15)
-    for (const frame of frames) {
+  it("loads both fixtures as parseable SSE frames", () => {
+    expect(realFrames.length).toBeGreaterThanOrEqual(100)
+    expect(syntheticFrames.length).toBe(15)
+    for (const frame of allFrames) {
       expect(typeof frame.payload?.type).toBe("string")
     }
   })
@@ -75,7 +81,25 @@ describe("opencode-event-map", () => {
     }
   })
 
-  it("resolves the affected project root for relevant events", () => {
+  it("classifies every lifecycle frame in the real capture as freshness-relevant", () => {
+    const relevantKinds = new Set([
+      "session.updated",
+      "session.status",
+      "session.diff",
+      "message.updated",
+      "message.part.updated",
+    ])
+    const relevant = realFrames.filter((f) => relevantKinds.has(f.payload?.type ?? ""))
+    expect(relevant.length).toBeGreaterThan(0)
+    for (const frame of relevant) {
+      const event = normalize(frame)
+      expect(isFreshnessRelevant(event), event.kind).toBe(true)
+      const root = affectedProjectRoot(event)
+      expect(root).toMatch(/^\/home\/user\/project-/)
+    }
+  })
+
+  it("resolves the affected project root for relevant synthetic events", () => {
     expect(affectedProjectRoot(eventByKind("session.updated"))).toBe("/home/user/project-alpha")
     expect(affectedProjectRoot(eventByKind("message.updated"))).toBe("/home/user/project-alpha")
     expect(affectedProjectRoot(eventByKind("message.part.updated"))).toBe("/home/user/project-alpha")
@@ -83,10 +107,10 @@ describe("opencode-event-map", () => {
   })
 
   it("ignores high-frequency streaming deltas (text and reasoning)", () => {
-    const deltas = loadFrames()
+    const deltas = allFrames
       .filter((f) => f.payload?.type === "message.part.delta")
       .map(normalize)
-    expect(deltas.length).toBeGreaterThanOrEqual(2)
+    expect(deltas.length).toBeGreaterThanOrEqual(250)
     for (const delta of deltas) {
       expect(isFreshnessRelevant(delta)).toBe(false)
     }
@@ -97,6 +121,7 @@ describe("opencode-event-map", () => {
       "server.connected",
       "server.heartbeat",
       "file.watcher.updated",
+      "file.edited",
       "sync",
       "tui.toast.show",
     ]

@@ -32,7 +32,7 @@ describe("OpenCode SSE client", () => {
   afterEach(() => { vi.restoreAllMocks() })
 
   it("normalizes recorded global-event envelopes without inventing a sequence", async () => {
-    const fixture = readFileSync(new URL("./fixtures/opencode-events/real-sample.jsonl", import.meta.url), "utf8")
+    const fixture = readFileSync(new URL("./fixtures/opencode-events/synthetic-sample.jsonl", import.meta.url), "utf8")
     const frames = fixture.trim().split("\n").map((line) => `${line}\n\n`)
     const received: OpenCodeEvent[] = []
     const fetcher = vi.fn((_input: string | URL | Request, init?: RequestInit) =>

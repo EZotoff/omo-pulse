@@ -317,6 +317,78 @@ body:has(.focus-remote) {
   }
 }
 
+/* ── Supervisor escalations (ambient, read-only) ── */
+
+.focus-esc-head {
+  margin-top: 8px;
+  color: var(--status-question);
+}
+
+.focus-esc {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-decoration: none;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-left: 3px solid var(--status-question);
+  border-radius: 6px;
+  padding: 8px var(--sp-3);
+  color: inherit;
+  font: inherit;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.focus-esc:hover,
+.focus-esc:focus-visible {
+  background: var(--focus-hover-bg);
+  border-color: var(--status-question);
+  box-shadow: 0 0 14px -4px var(--status-question);
+  outline: none;
+}
+
+.focus-esc-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.focus-esc-id {
+  font: 10px var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--status-question);
+  flex: none;
+}
+
+.focus-esc-target {
+  font: 11px var(--font-mono);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.focus-esc-age {
+  font: 10px var(--font-mono);
+  color: var(--text-muted);
+  flex: none;
+}
+
+.focus-esc-q {
+  font: 11.5px/1.4 var(--font-family);
+  color: var(--text-primary);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
 
 /* ── queue view + hide controls ── */
 

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "schemaVersion": 1,
+      "id": "att_fixture_open",
+      "version": 1,
+      "decisionKey": "decision-fixture-open",
+      "kind": "decision",
+      "actionClass": "ESCALATE",
+      "escalationKind": "DECISION",
+      "question": "FIXTURE-OPEN-QUESTION-MARKER-XYZ",
+      "origin": { "decision": { "action": "ESCALATE", "rationale": "Needs operator decision", "citations": [] } },
+      "target": { "root": "/tmp/opencode/proj_alpha", "sessionID": "ses_alpha_001", "sessionTitle": "Alpha main" },
+      "priority": { "stakes": 4, "urgency": 4, "confidence": 0.9, "freshness": 1, "createdAt": "2026-09-23T08:00:00.000Z" },
+      "lifecycle": [{ "state": "proposed" }, { "state": "revalidated" }]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "att_fixture_resolved",
+      "version": 1,
+      "decisionKey": "decision-fixture-resolved",
+      "kind": "decision",
+      "actionClass": "ESCALATE",
+      "escalationKind": "DECISION",
+      "question": "FIXTURE-RESOLVED-MARKER",
+      "origin": { "decision": { "action": "ESCALATE", "rationale": "Already handled", "citations": [] } },
+      "target": { "root": "/tmp/opencode/proj_beta" },
+      "priority": { "stakes": 5, "urgency": 5, "confidence": 0.95, "freshness": 1, "createdAt": "2026-09-23T07:00:00.000Z" },
+      "lifecycle": [{ "state": "proposed" }, { "state": "resolved", "disposition": "propagated" }]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "att_fixture_snoozed",
+      "version": 1,
+      "decisionKey": "decision-fixture-snoozed",
+      "kind": "decision",
+      "actionClass": "ESCALATE",
+      "escalationKind": "DECISION",
+      "question": "FIXTURE-SNOOZED-MARKER",
+      "origin": { "decision": { "action": "ESCALATE", "rationale": "Snoozed until later", "citations": [] } },
+      "target": { "root": "/tmp/opencode/proj_gamma" },
+      "priority": { "stakes": 3, "urgency": 3, "confidence": 0.8, "freshness": 1, "createdAt": "2026-09-23T06:00:00.000Z", "notBefore": "2099-01-01T00:00:00.000Z" },
+      "lifecycle": [{ "state": "proposed" }, { "state": "deferred" }]
+    }
+  ]
+}

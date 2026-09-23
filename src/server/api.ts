@@ -12,9 +12,14 @@ import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../inge
 import { deriveToolCallsSqlite } from "../ingest/sqlite-derive"
 import type { StorageBackend } from "../ingest/storage-backend"
 import { createQuotaService } from "./quotas"
+import { isFreshnessRelevant } from "../ingest/opencode-event-map"
+import type { RealtimeBus } from "../ingest/realtime-types"
 import type { AttentionProject, DashboardMultiProjectPayload, TelegramServiceStatus } from "../types"
 
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/
+
+/** Heartbeat comment interval for the server→browser SSE stream. */
+const SSE_HEARTBEAT_MS = 10_000
 
 export type MultiProjectService = {
   getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload>
@@ -48,6 +53,8 @@ export function createApi(opts: {
   multiProjectService: MultiProjectService
   telegramStatus?: () => TelegramServiceStatus
   version?: string
+  /** Optional realtime bus (T3): when set, GET /events streams refresh signals. */
+  realtimeBus?: RealtimeBus
 }): Hono {
   const api = new Hono()
   const version = opts.version ?? "0.0.0"
@@ -57,6 +64,58 @@ export function createApi(opts: {
     multiProjectService.invalidate()
   }
 
+  // ---------------------------------------------------------------------------
+  // GET /events — server→browser SSE refresh stream
+  // ---------------------------------------------------------------------------
+  // Registered BEFORE the no-cache/JSON middleware below so the stream keeps
+  // its text/event-stream content type (the middleware would overwrite it).
+  api.get("/events", (c) => {
+    const bus = opts.realtimeBus
+    if (!bus) {
+      return c.json({ ok: false, error: "Realtime bus not configured (SSE disabled)" }, 503)
+    }
+
+    const encoder = new TextEncoder()
+    let unsubscribe: () => void = () => {}
+    let heartbeat: ReturnType<typeof setInterval> | null = null
+    let closed = false
+    const cleanup = (): void => {
+      if (closed) return
+      closed = true
+      if (heartbeat !== null) clearInterval(heartbeat)
+      unsubscribe()
+    }
+
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const write = (chunk: string): void => {
+          try {
+            controller.enqueue(encoder.encode(chunk))
+          } catch {
+            // Client already gone — drop the subscription and stop the heartbeat.
+            cleanup()
+          }
+        }
+        unsubscribe = bus.subscribe((event) => {
+          // The browser only gets a refresh signal; it re-fetches /api/projects.
+          if (!isFreshnessRelevant(event)) return
+          write(`event: refresh\ndata: ${JSON.stringify({ ts: event.ts })}\n\n`)
+        })
+        heartbeat = setInterval(() => write(": heartbeat\n\n"), SSE_HEARTBEAT_MS)
+      },
+      cancel() {
+        cleanup()
+      },
+    })
+
+    return c.newResponse(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    })
+  })
   // ---------------------------------------------------------------------------
   // Middleware: no-cache + JSON content type on all API responses
   // ---------------------------------------------------------------------------

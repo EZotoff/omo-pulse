@@ -20,9 +20,8 @@ type WorkerInitRequest = {
   pollIntervalMs?: number
 }
 type WorkerPayloadRequest = { id: number; cmd: "payload" }
-type WorkerInvalidateRequest = { id: number; cmd: "invalidate" }
+type WorkerInvalidateRequest = { id: number; cmd: "invalidate"; directories?: string[] }
 type WorkerRequest = WorkerInitRequest | WorkerPayloadRequest | WorkerInvalidateRequest
-
 type PendingEntry = { resolve: (reply: WorkerReply | PromiseLike<WorkerReply>) => void; timer: ReturnType<typeof setTimeout> }
 
 type WorkerReply =
@@ -116,6 +115,20 @@ export function createWorkerMultiProjectService(opts: {
     if (!reply.ok) throw new Error("worker failed to acknowledge invalidate")
   }
 
+  /**
+   * Directory-scoped variant: the worker clears only the stores whose canonical
+   * project root matches one of the given directories. Absent `directories` on
+   * the wire message means a global invalidate (backward-compatible).
+   */
+  async function invalidateForDirectoriesAndWait(directories: readonly string[]): Promise<void> {
+    await ensureInit()
+    const reply = await request(
+      { id: nextId++, cmd: "invalidate", directories: [...directories] },
+      PAYLOAD_TIMEOUT_MS,
+    )
+    if (!reply.ok) throw new Error("worker failed to acknowledge invalidate")
+  }
+
   return {
     async getMultiProjectPayload(): Promise<DashboardMultiProjectPayload> {
       try {
@@ -130,5 +143,9 @@ export function createWorkerMultiProjectService(opts: {
       void invalidateAndWait()
     },
     invalidateAndWait,
+    invalidateForDirectories(directories: readonly string[]): void {
+      void invalidateForDirectoriesAndWait(directories)
+    },
+    invalidateForDirectoriesAndWait,
   }
 }

@@ -3,8 +3,36 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createRealtimeBus } from "../ingest/realtime-types"
 import type { OpenCodeEvent } from "../ingest/realtime-types"
 
-const { listSources } = vi.hoisted(() => ({ listSources: vi.fn(() => []) }))
-vi.mock("../ingest/sources-registry", () => ({ listSources, getSourceById: vi.fn(() => null) }))
+const { listSources, getSourceById, clearCacheCalls } = vi.hoisted(() => ({
+  listSources: vi.fn(() => [] as Array<{ id: string }>),
+  getSourceById: vi.fn((_storageRoot: unknown, id: unknown): { id: string; projectRoot: string } | null => null),
+  clearCacheCalls: new Map<string, number>(),
+}))
+vi.mock("../ingest/sources-registry", async () => {
+  const path = await import("node:path")
+  return {
+    listSources,
+    getSourceById,
+    canonicalizeProjectRoot: (root: string) => path.resolve(root),
+    hashProjectRoot: (root: string) => root,
+  }
+})
+vi.mock("../server/dashboard", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../server/dashboard")>()
+  return {
+    ...actual,
+    createDashboardStore: (opts: Parameters<typeof actual.createDashboardStore>[0]) => {
+      const store = actual.createDashboardStore(opts)
+      return {
+        ...store,
+        clearCache: () => {
+          clearCacheCalls.set(opts.projectRoot, (clearCacheCalls.get(opts.projectRoot) ?? 0) + 1)
+          store.clearCache()
+        },
+      }
+    },
+  }
+})
 
 import { createMultiProjectService } from "../server/multi-project"
 import { createDashboardStore } from "../server/dashboard"
@@ -60,6 +88,43 @@ describe("multi-project realtime invalidation", () => {
     await service.getMultiProjectPayload()
     expect(listSources).toHaveBeenCalledTimes(3)
     expect(published).toHaveLength(2)
+  })
+
+  it("clears only the affected project's store on a directory-scoped event", async () => {
+    listSources.mockReturnValue([{ id: "src-a" }, { id: "src-b" }])
+    getSourceById.mockImplementation((_storageRoot: unknown, id: unknown) =>
+      id === "src-a" ? { id: String(id), projectRoot: "/tmp/per-source-a" } : id === "src-b" ? { id: String(id), projectRoot: "/tmp/per-source-b" } : null,
+    )
+    const service = createMultiProjectService({ storageRoot: "/tmp/storage", storageBackend, realtimeDebounceMs: 300 })
+    const first = await service.getMultiProjectPayload()
+    expect(first.projects.find((p) => p.projectRoot === "/tmp/per-source-a")).toBeDefined()
+    expect(first.projects.find((p) => p.projectRoot === "/tmp/per-source-b")).toBeDefined()
+    clearCacheCalls.clear()
+
+    // Directory carries a trailing slash: canonicalization must still match A only.
+    service.onRealtimeEvent({ kind: "session.updated", ts: 2, directory: "/tmp/per-source-a/" })
+    await vi.advanceTimersByTimeAsync(300)
+    await service.getMultiProjectPayload()
+
+    expect(clearCacheCalls.get("/tmp/per-source-a")).toBe(1)
+    expect(clearCacheCalls.get("/tmp/per-source-b") ?? 0).toBe(0)
+  })
+
+  it("falls back to global invalidation when an event carries no directory", async () => {
+    listSources.mockReturnValue([{ id: "src-a" }, { id: "src-b" }])
+    getSourceById.mockImplementation((_storageRoot: unknown, id: unknown) =>
+      id === "src-a" ? { id: String(id), projectRoot: "/tmp/per-source-a" } : id === "src-b" ? { id: String(id), projectRoot: "/tmp/per-source-b" } : null,
+    )
+    const service = createMultiProjectService({ storageRoot: "/tmp/storage", storageBackend, realtimeDebounceMs: 300 })
+    await service.getMultiProjectPayload()
+    clearCacheCalls.clear()
+
+    service.onRealtimeEvent({ kind: "session.updated", ts: 2 })
+    await vi.advanceTimersByTimeAsync(300)
+    await service.getMultiProjectPayload()
+
+    expect(clearCacheCalls.get("/tmp/per-source-a")).toBe(1)
+    expect(clearCacheCalls.get("/tmp/per-source-b")).toBe(1)
   })
 
   it("ignores irrelevant deltas and keeps the TTL fallback active", async () => {

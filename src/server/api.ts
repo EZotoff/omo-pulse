@@ -26,8 +26,11 @@ const SSE_STATE_POLL_MS = 2_000
 export type MultiProjectService = {
   getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload>
   invalidate: () => void
+  /** Clears only the stores matching the given project directories. */
+  invalidateForDirectories?: (directories: readonly string[]) => void
   /** Worker-backed implementations resolve after the caches are actually cleared. */
   invalidateAndWait?: () => Promise<void>
+  invalidateForDirectoriesAndWait?: (directories: readonly string[]) => Promise<void>
 }
 
 type AttentionTarget = {

@@ -17,7 +17,7 @@ type InitMessage = {
   pollIntervalMs?: number
 }
 type PayloadMessage = { id: number; cmd: "payload" }
-type InvalidateMessage = { id: number; cmd: "invalidate" }
+type InvalidateMessage = { id: number; cmd: "invalidate"; directories?: string[] }
 type WorkerRequest = InitMessage | PayloadMessage | InvalidateMessage
 
 type WorkerReply =
@@ -78,7 +78,9 @@ ctx.onmessage = (event: MessageEvent<WorkerRequest>) => {
   }
 
   if (msg.cmd === "invalidate") {
-    service.invalidate()
+    // Absent `directories` → global invalidate; present → directory-scoped.
+    if (msg.directories) service.invalidateForDirectories(msg.directories)
+    else service.invalidate()
     ctx.postMessage({ id: msg.id, ok: true, cmd: "invalidate" })
   }
 }

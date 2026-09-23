@@ -5,7 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import { createApi } from "./api";
 import { createWorkerMultiProjectService } from "./worker-multi-project-service";
 import { createTelegramService } from "./telegram";
-import { isFreshnessRelevant } from "../ingest/opencode-event-map";
+import { affectedProjectRoot, isFreshnessRelevant } from "../ingest/opencode-event-map";
 import { createOpenCodeSseClient } from "../ingest/opencode-sse-client";
 import { readRealtimeConfig } from "../ingest/realtime-config";
 import { createRealtimeBus, type OpenCodeEvent } from "../ingest/realtime-types";
@@ -28,20 +28,35 @@ const multiProjectService = createWorkerMultiProjectService({ storageRoot, stora
 const sseClient = realtimeConfig.sseEnabled ? createOpenCodeSseClient({ endpoint: realtimeConfig.opencodeEndpoint }) : null;
 let realtimeTimer: ReturnType<typeof setTimeout> | null = null;
 let latestEvent: OpenCodeEvent | null = null;
+/** Directories seen during the current debounce window. */
+const pendingDirectories = new Set<string>();
+/** True when any event in the window carried no directory → global invalidation. */
+let pendingGlobalInvalidate = false;
 sseClient?.subscribe((event) => {
   if (!isFreshnessRelevant(event)) return;
   latestEvent = event;
+  const directory = affectedProjectRoot(event);
+  if (directory === null) pendingGlobalInvalidate = true;
+  else pendingDirectories.add(directory);
   if (realtimeTimer !== null) return;
   realtimeTimer = setTimeout(() => {
     realtimeTimer = null;
     const published = latestEvent;
     latestEvent = null;
+    const directories = [...pendingDirectories];
+    pendingDirectories.clear();
+    const globalInvalidate = pendingGlobalInvalidate || directories.length === 0;
+    pendingGlobalInvalidate = false;
     // Publish only AFTER the caches are actually cleared: the worker-backed
     // service invalidates off-thread, so a fire-and-forget call could let the
     // browser refetch stale data. Await the ack when the service supports it.
-    const cleared = multiProjectService.invalidateAndWait
-      ? multiProjectService.invalidateAndWait()
-      : Promise.resolve(multiProjectService.invalidate());
+    const cleared = globalInvalidate
+      ? multiProjectService.invalidateAndWait
+        ? multiProjectService.invalidateAndWait()
+        : Promise.resolve(multiProjectService.invalidate())
+      : multiProjectService.invalidateForDirectoriesAndWait
+        ? multiProjectService.invalidateForDirectoriesAndWait(directories)
+        : Promise.resolve(multiProjectService.invalidateForDirectories?.(directories));
     void cleared.then(() => {
         if (published) realtimeBus.publish(published);
       },

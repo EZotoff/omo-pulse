@@ -2,7 +2,7 @@ import * as path from "node:path"
 import { Database } from "bun:sqlite"
 import { getGitUncommittedCount } from "../ingest/git-status"
 import { getWorktreeInfo } from "../ingest/git-worktrees"
-import { isFreshnessRelevant } from "../ingest/opencode-event-map"
+import { affectedProjectRoot, isFreshnessRelevant } from "../ingest/opencode-event-map"
 import { derivePerSessionTimeSeries } from "../ingest/per-session-timeseries"
 import { readRealtimeConfig } from "../ingest/realtime-config"
 import type { OpenCodeEvent, RealtimeBus } from "../ingest/realtime-types"
@@ -271,7 +271,12 @@ export function createMultiProjectService(opts: {
   pollIntervalMs?: number
   realtimeBus?: RealtimeBus
   realtimeDebounceMs?: number
-}): { getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload>; invalidate: () => void; onRealtimeEvent: (event: OpenCodeEvent) => void } {
+}): {
+  getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload>
+  invalidate: () => void
+  invalidateForDirectories: (directories: readonly string[]) => void
+  onRealtimeEvent: (event: OpenCodeEvent) => void
+} {
   const pollIntervalMs = opts.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS
   const debounceMs = opts.realtimeDebounceMs ?? readRealtimeConfig().debounceMs
   const storeBySourceId = new Map<string, DashboardStore>()
@@ -289,6 +294,10 @@ export function createMultiProjectService(opts: {
   let pumpingDiscovered = false
   let realtimeTimer: ReturnType<typeof setTimeout> | null = null
   let latestRealtimeEvent: OpenCodeEvent | null = null
+  /** Directories seen during the current debounce window (canonicalized). */
+  const pendingDirectories = new Set<string>()
+  /** True when any event in the window carried no directory → global invalidation. */
+  let pendingGlobalInvalidate = false
 
   const legacyStorageRoot = getLegacyStorageRootForBackend(opts.storageBackend)
 
@@ -534,18 +543,42 @@ export function createMultiProjectService(opts: {
     sessionSummaryByProjectRoot.clear()
   }
 
+  /**
+   * Directory-scoped invalidation: drops the aggregate payload cache (cheap to
+   * rebuild when stores stay warm) and clears only the stores + per-root side
+   * caches whose canonical project root matches one of the given directories.
+   */
+  function invalidateForDirectories(directories: readonly string[]): void {
+    cachedPayload = null
+    cachedPayloadAt = 0
+    for (const directory of directories) {
+      const projectRoot = canonicalizeProjectRoot(directory)
+      storeByProjectRoot.get(projectRoot)?.clearCache()
+      sessionTimeSeriesByProjectRoot.delete(projectRoot)
+      sessionSummaryByProjectRoot.delete(projectRoot)
+    }
+  }
+
   function onRealtimeEvent(event: OpenCodeEvent): void {
     if (!isFreshnessRelevant(event)) return
     latestRealtimeEvent = event
+    const root = affectedProjectRoot(event)
+    if (root === null) pendingGlobalInvalidate = true
+    else pendingDirectories.add(canonicalizeProjectRoot(root))
     if (realtimeTimer !== null) return
     realtimeTimer = setTimeout(() => {
       realtimeTimer = null
-      invalidate()
+      const directories = [...pendingDirectories]
+      const globalInvalidate = pendingGlobalInvalidate || directories.length === 0
+      pendingDirectories.clear()
+      pendingGlobalInvalidate = false
+      if (globalInvalidate) invalidate()
+      else invalidateForDirectories(directories)
       const published = latestRealtimeEvent
       latestRealtimeEvent = null
       if (published) opts.realtimeBus?.publish(published)
     }, debounceMs)
   }
 
-  return { getMultiProjectPayload, invalidate, onRealtimeEvent }
+  return { getMultiProjectPayload, invalidate, invalidateForDirectories, onRealtimeEvent }
 }

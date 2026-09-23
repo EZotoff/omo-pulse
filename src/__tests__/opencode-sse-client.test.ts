@@ -157,4 +157,28 @@ describe("OpenCode SSE client", () => {
 
     expect(readRealtimeConfig().opencodeAuthHeader).toBe(`Basic ${Buffer.from("user:pass").toString("base64")}`)
   })
+
+  it("reconnects when an open stream goes silent (silence watchdog)", async () => {
+    vi.useFakeTimers()
+    let calls = 0
+    const fetcher = vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      calls++
+      // Every connection emits its frames immediately, then goes silent.
+      return Promise.resolve(streamResponse([frame(sample[0])], init?.signal ?? new AbortController().signal))
+    })
+    const client = createOpenCodeSseClient({ endpoint: "http://127.0.0.1:4096", fetcher, retryBaseMs: 1 })
+    client.start()
+
+    await vi.advanceTimersByTimeAsync(0)
+    expect(client.getState()).toBe("connected")
+    expect(calls).toBe(1)
+
+    // No bytes for longer than the silence window -> the watchdog cancels the
+    // reader and the client reconnects.
+    await vi.advanceTimersByTimeAsync(46_000)
+    expect(calls).toBeGreaterThanOrEqual(2)
+
+    client.stop()
+    vi.useRealTimers()
+  })
 })

@@ -1,6 +1,9 @@
 import { readRealtimeConfig } from "./realtime-config"
 import type { OpenCodeEvent, SseConnectionState } from "./realtime-types"
 
+/** Cancel an open-but-silent stream after this long without any bytes. */
+const STREAM_SILENCE_TIMEOUT_MS = 45_000
+
 type JsonObject = Record<string, unknown>
 
 type ClientOptions = {
@@ -115,10 +118,21 @@ export function createOpenCodeSseClient(options: ClientOptions = {}): OpenCodeSs
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     let pending = ""
+    // Silence watchdog: an open-but-silent stream is indistinguishable from a
+    // dead one (the upstream heartbeats, so prolonged silence means the link
+    // is wedged). Cancel the reader after STREAM_SILENCE_TIMEOUT_MS without
+    // bytes; the read loop then ends normally and run() schedules a reconnect.
+    let silenceTimer: ReturnType<typeof setTimeout> | null = null
+    const armSilenceWatchdog = (): void => {
+      if (silenceTimer !== null) clearTimeout(silenceTimer)
+      silenceTimer = setTimeout(() => { void reader.cancel() }, STREAM_SILENCE_TIMEOUT_MS)
+    }
+    armSilenceWatchdog()
     try {
       while (!signal.aborted) {
         const { value, done } = await reader.read()
         if (done) break
+        armSilenceWatchdog()
         pending += decoder.decode(value, { stream: true })
         pending = pending.replace(/\r\n/g, "\n")
         let boundary = pending.indexOf("\n\n")
@@ -129,6 +143,7 @@ export function createOpenCodeSseClient(options: ClientOptions = {}): OpenCodeSs
         }
       }
     } finally {
+      if (silenceTimer !== null) clearTimeout(silenceTimer)
       reader.releaseLock()
     }
   }

@@ -1,0 +1,6 @@
+{
+  "lastReconcile": "2026-09-23T19:42:30.894Z",
+  "queueDepths": { "/projects/two": 1 },
+  "modes": { "/projects/two": "observe" },
+  "rootHealth": { "/projects/two": { "state": "ok", "consecutiveFailures": 0 } }
+}

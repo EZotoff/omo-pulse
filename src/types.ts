@@ -339,3 +339,39 @@ export type AttentionPayload = {
   /** Sessions the operator hid; set by the /attention route, not the pure builder */
   hiddenCount?: number
 }
+
+export type SupervisorQueueItem = {
+  readonly id: string
+  readonly version?: number
+  readonly decisionKey: string
+  readonly kind: string
+  readonly actionClass?: string
+  readonly escalationKind?: string
+  readonly question?: string
+  readonly rationale?: string
+  readonly citations?: readonly { readonly session: string; readonly messageID: string; readonly quote: string }[]
+  readonly target?: { readonly root: string; readonly sessionID?: string; readonly sessionTitle?: string }
+  readonly priority?: {
+    readonly stakes?: number
+    readonly urgency?: number
+    readonly confidence?: number
+    readonly freshness?: number
+    readonly createdAt?: string
+    readonly notBefore?: string
+  }
+  readonly lifecycleState: string
+  readonly isResolved: boolean
+}
+
+export type SupervisorQueueStatus = {
+  readonly lastReconcile?: string
+  readonly queueDepths?: Readonly<Record<string, number>>
+  readonly modes?: Readonly<Record<string, string>>
+}
+
+export type SupervisorQueuePayload = {
+  readonly items: readonly SupervisorQueueItem[]
+  readonly status: SupervisorQueueStatus | null
+  readonly readAtMs: number
+  readonly source: "queue.json" | "unavailable"
+}

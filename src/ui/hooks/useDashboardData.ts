@@ -9,6 +9,7 @@ import type {
 import { PREVIEW_STATUS_NAMES, type PreviewMode, type PreviewStatusName } from "../types"
 
 const POLL_CONNECTED_MS = 2200
+const POLL_LIVE_MS = 5000
 const POLL_DISCONNECTED_MS = 3600
 const PREVIEW_BUCKETS = 48
 const PREVIEW_WINDOW_MS = 12 * 60 * 1000
@@ -236,6 +237,9 @@ function createPreviewProject(candidate: AttentionCandidate, index: number, nowM
       totalTokens: 20_200 + index * 1_220,
     },
     gitUncommittedCount: 0,
+    sessions: [],
+    aggregateStatus: session.status,
+    unintiatedPlans: [],
     lastUpdatedMs: session.lastUpdatedMs,
   }
 }
@@ -321,6 +325,9 @@ function createAllStatusesProject(publicName: PreviewStatusName, index: number, 
       totalTokens: 12_500 + index * 700,
     },
     gitUncommittedCount: 0,
+    sessions: [],
+    aggregateStatus: session.status,
+    unintiatedPlans: [],
     lastUpdatedMs: session.lastUpdatedMs,
   }
 }
@@ -401,6 +408,9 @@ function createStatusVariantProject(statusPublicName: PreviewStatusName, variant
       totalTokens: 10_000 + variantIndex * 450,
     },
     gitUncommittedCount: 0,
+    sessions: [],
+    aggregateStatus: session.status,
+    unintiatedPlans: [],
     lastUpdatedMs: session.lastUpdatedMs,
   }
 }
@@ -422,6 +432,7 @@ function createSingleStatusPreviewPayload(statusPublicName: PreviewStatusName, n
 export function useDashboardData(previewMode: PreviewMode | null = null): {
   data: DashboardMultiProjectPayload | null
   connected: boolean
+  connection: "live" | "polling"
   lastUpdate: number | null
   errorHint: string | null
   refresh: () => Promise<void>
@@ -446,6 +457,8 @@ export function useDashboardData(previewMode: PreviewMode | null = null): {
   })
   const [errorHint, setErrorHint] = useState<string | null>(null)
 
+  const [connection, setConnection] = useState<"live" | "polling">("polling")
+  const connectionRef = useRef<"live" | "polling">("polling")
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const connectedRef = useRef(false)
@@ -453,6 +466,10 @@ export function useDashboardData(previewMode: PreviewMode | null = null): {
   useEffect(() => {
     connectedRef.current = connected
   }, [connected])
+
+  useEffect(() => {
+    connectionRef.current = connection
+  }, [connection])
 
   useEffect(() => {
     if (!previewMode || (previewMode.kind !== "attention-colors" && previewMode.kind !== "status")) return
@@ -547,7 +564,8 @@ export function useDashboardData(previewMode: PreviewMode | null = null): {
     
     if (ac.signal.aborted) return
 
-    const delay = connectedRef.current ? POLL_CONNECTED_MS : POLL_DISCONNECTED_MS
+    const pollInterval = connectionRef.current === "live" ? POLL_LIVE_MS : POLL_CONNECTED_MS
+    const delay = connectedRef.current ? pollInterval : POLL_DISCONNECTED_MS
     timerRef.current = setTimeout(tick, delay)
   }, [fetchNow, previewMode])
 
@@ -584,7 +602,8 @@ export function useDashboardData(previewMode: PreviewMode | null = null): {
 
     if (ac.signal.aborted) return
 
-    const delay = connectedRef.current ? POLL_CONNECTED_MS : POLL_DISCONNECTED_MS
+    const pollInterval = connectionRef.current === "live" ? POLL_LIVE_MS : POLL_CONNECTED_MS
+    const delay = connectedRef.current ? pollInterval : POLL_DISCONNECTED_MS
     timerRef.current = setTimeout(tick, delay)
   }, [fetchNow, previewMode, tick])
 
@@ -597,5 +616,68 @@ export function useDashboardData(previewMode: PreviewMode | null = null): {
     }
   }, [tick])
 
-  return { data, connected, lastUpdate, errorHint, refresh }
+  const refreshRef = useRef(refresh)
+  useEffect(() => {
+    refreshRef.current = refresh
+  }, [refresh])
+
+  useEffect(() => {
+    if (previewMode) return
+    if (typeof window === "undefined" || typeof EventSource === "undefined") return
+
+    let es: EventSource | null = null
+    let unmounted = false
+    let hasOpenedOnce = false
+
+    try {
+      es = new EventSource("/api/events")
+
+      es.onopen = () => {
+        if (unmounted) return
+        setConnection("live")
+        if (hasOpenedOnce) {
+          void refreshRef.current()
+        }
+        hasOpenedOnce = true
+      }
+
+      es.onerror = () => {
+        if (unmounted) return
+        setConnection("polling")
+      }
+
+      es.addEventListener("refresh", () => {
+        if (unmounted) return
+        void refreshRef.current()
+      })
+
+      // Upstream state frames: "live" only when the opencode link itself is up.
+      // onopen alone only proves the browser↔dashboard stream opened.
+      es.addEventListener("status", (event) => {
+        if (unmounted) return
+        const data = (event as MessageEvent).data
+        let upstream = "polling"
+        try {
+          const parsed: unknown = JSON.parse(typeof data === "string" ? data : "")
+          if (parsed !== null && typeof parsed === "object" && (parsed as { state?: unknown }).state === "connected") {
+            upstream = "live"
+          }
+        } catch {
+          // Malformed status frame — stay on polling rather than claiming live.
+        }
+        setConnection(upstream === "live" ? "live" : "polling")
+      })
+    } catch {
+      setConnection("polling")
+    }
+
+    return () => {
+      unmounted = true
+      if (es) {
+        es.close()
+      }
+    }
+  }, [previewMode])
+
+  return { data, connected, connection, lastUpdate, errorHint, refresh }
 }

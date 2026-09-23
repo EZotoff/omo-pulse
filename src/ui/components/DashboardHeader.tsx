@@ -4,9 +4,8 @@ import { useEffect, useState, memo } from "react"
 
 export type DashboardHeaderProps = {
   connected: boolean
+  connection?: "live" | "polling"
   lastUpdatedMs: number | null
-  onExpandAll: () => void
-  onCollapseAll: () => void
   columns?: number
   onSetColumns?: (n: number) => void
   onSettingsOpen?: () => void
@@ -63,9 +62,8 @@ function LastUpdatedLabel({ lastUpdatedMs }: LastUpdatedLabelProps) {
 
 export const DashboardHeader = memo(function DashboardHeader({
   connected,
+  connection = "polling",
   lastUpdatedMs,
-  onExpandAll,
-  onCollapseAll,
   columns,
   onSetColumns,
   onSettingsOpen,
@@ -89,11 +87,14 @@ export const DashboardHeader = memo(function DashboardHeader({
 
       <div className="dashboard-header__right">
         <div className="dashboard-header__actions">
-          <button className="header-btn" onClick={onExpandAll} type="button" title="Expand all" aria-label="Expand all">
-            +
-          </button>
-          <button className="header-btn" onClick={onCollapseAll} type="button" title="Collapse all" aria-label="Collapse all">
-            −
+          <button
+            className="header-btn"
+            onClick={() => window.open(`${window.location.pathname}?view=remote`, "omoFocusRemote", "popup,width=420,height=680")}
+            type="button"
+            title="Open focus remote window"
+            aria-label="Open focus remote window"
+          >
+            ⌖ Focus Remote
           </button>
 
           {onSetColumns && (
@@ -143,13 +144,22 @@ export const DashboardHeader = memo(function DashboardHeader({
 
         <LastUpdatedLabel lastUpdatedMs={lastUpdatedMs} />
 
-        <span
-          className="dashboard-header__connection"
+        <div
+          className="dashboard-header__connection-badge connection-badge"
+          data-connection={connection}
           data-connected={connected}
-          title={connected ? "Connected" : "Disconnected"}
           role="status"
-          aria-label={connected ? "Connected" : "Disconnected"}
-        />
+          aria-label={connected ? `Connection ${connection}` : "Disconnected"}
+          title={connected ? `Connected (${connection})` : "Disconnected"}
+        >
+          <span
+            className="dashboard-header__connection"
+            data-connected={connected}
+            data-connection={connection}
+            aria-hidden="true"
+          />
+          <span className="dashboard-header__connection-label">{connection}</span>
+        </div>
 
         {onSettingsOpen && (
           <button className="header-btn" onClick={onSettingsOpen} type="button" title="Settings" aria-label="Open settings">

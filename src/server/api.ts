@@ -2,20 +2,56 @@ import { Hono } from "hono"
 import * as path from "node:path"
 import * as fs from "node:fs"
 import { homedir } from "node:os"
-import { listSources, getDefaultSourceId, addOrUpdateSource, updateSourceLabelById, deleteSourceById } from "../ingest/sources-registry"
+import { listSources, getDefaultSourceId, addOrUpdateSource, updateSourceLabelById, deleteSourceById, getSourceById } from "../ingest/sources-registry"
+import { buildAttentionPayload } from "./dashboard"
+import { focusSession } from "./focus"
+import { readHiddenSessionIds, writeHiddenSessionIds } from "./attention-hidden"
 import { getStorageRoots, getMessageDir } from "../ingest/session"
 import { assertAllowedPath, expandTilde } from "../ingest/paths"
 import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../ingest/tool-calls"
 import { deriveToolCallsSqlite } from "../ingest/sqlite-derive"
 import type { StorageBackend } from "../ingest/storage-backend"
 import { createQuotaService } from "./quotas"
-import type { DashboardMultiProjectPayload, TelegramServiceStatus } from "../types"
+import { isFreshnessRelevant } from "../ingest/opencode-event-map"
+import type { RealtimeBus, SseConnectionState } from "../ingest/realtime-types"
+import type { AttentionProject, DashboardMultiProjectPayload, TelegramServiceStatus } from "../types"
 
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/
+
+/** Heartbeat comment interval for the server→browser SSE stream. */
+const SSE_HEARTBEAT_MS = 10_000
+/** How often the upstream opencode SSE state is re-checked for the status frame. */
+const SSE_STATE_POLL_MS = 2_000
 
 export type MultiProjectService = {
   getMultiProjectPayload: () => Promise<DashboardMultiProjectPayload>
   invalidate: () => void
+  /** Clears only the stores matching the given project directories. */
+  invalidateForDirectories?: (directories: readonly string[]) => void
+  /** Worker-backed implementations resolve after the caches are actually cleared. */
+  invalidateAndWait?: () => Promise<void>
+  invalidateForDirectoriesAndWait?: (directories: readonly string[]) => Promise<void>
+}
+
+type AttentionTarget = {
+  readonly projectRoot: string
+  readonly sessionId: string
+}
+
+export function selectAttentionTarget(
+  projects: readonly AttentionProject[],
+  skip: number,
+): AttentionTarget | null {
+  let remaining = skip
+  for (const project of projects) {
+    for (const session of project.sessions) {
+      if (remaining === 0) {
+        return { projectRoot: project.projectRoot, sessionId: session.sessionId }
+      }
+      remaining -= 1
+    }
+  }
+  return null
 }
 
 export function createApi(opts: {
@@ -24,6 +60,14 @@ export function createApi(opts: {
   multiProjectService: MultiProjectService
   telegramStatus?: () => TelegramServiceStatus
   version?: string
+  /** Optional realtime bus (T3): when set, GET /events streams refresh signals. */
+  realtimeBus?: RealtimeBus
+  /**
+   * Current state of the upstream opencode SSE link. When provided, GET /events
+   * emits `status` frames so the browser badge reflects the real upstream link
+   * rather than merely the browser-to-dashboard stream being open.
+   */
+  getRealtimeState?: () => SseConnectionState
 }): Hono {
   const api = new Hono()
   const version = opts.version ?? "0.0.0"
@@ -33,6 +77,71 @@ export function createApi(opts: {
     multiProjectService.invalidate()
   }
 
+  // ---------------------------------------------------------------------------
+  // GET /events — server→browser SSE refresh stream
+  // ---------------------------------------------------------------------------
+  // Registered BEFORE the no-cache/JSON middleware below so the stream keeps
+  // its text/event-stream content type (the middleware would overwrite it).
+  api.get("/events", (c) => {
+    const bus = opts.realtimeBus
+    if (!bus) {
+      return c.json({ ok: false, error: "Realtime bus not configured (SSE disabled)" }, 503)
+    }
+
+    const encoder = new TextEncoder()
+    let unsubscribe: () => void = () => {}
+    let heartbeat: ReturnType<typeof setInterval> | null = null
+    let stateTimer: ReturnType<typeof setInterval> | null = null
+    let closed = false
+    const cleanup = (): void => {
+      if (closed) return
+      closed = true
+      if (heartbeat !== null) clearInterval(heartbeat)
+      if (stateTimer !== null) clearInterval(stateTimer)
+      unsubscribe()
+    }
+
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const write = (chunk: string): void => {
+          try {
+            controller.enqueue(encoder.encode(chunk))
+          } catch {
+            // Client already gone — drop the subscription and stop the heartbeat.
+            cleanup()
+          }
+        }
+        unsubscribe = bus.subscribe((event) => {
+          // The browser only gets a refresh signal; it re-fetches /api/projects.
+          if (!isFreshnessRelevant(event)) return
+          write(`event: refresh\ndata: ${JSON.stringify({ ts: event.ts })}\n\n`)
+        })
+        // Upstream-state frames: the badge must not claim "live" while the
+        // opencode link itself is down or disabled.
+        let lastState: SseConnectionState | null = null
+        const emitState = (): void => {
+          const state = opts.getRealtimeState ? opts.getRealtimeState() : "connected"
+          if (state === lastState) return
+          lastState = state
+          write(`event: status\ndata: ${JSON.stringify({ state })}\n\n`)
+        }
+        emitState()
+        stateTimer = setInterval(emitState, SSE_STATE_POLL_MS)
+        heartbeat = setInterval(() => write(": heartbeat\n\n"), SSE_HEARTBEAT_MS)
+      },
+      cancel() {
+        cleanup()
+      },
+    })
+
+    return c.newResponse(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    })
+  })
   // ---------------------------------------------------------------------------
   // Middleware: no-cache + JSON content type on all API responses
   // ---------------------------------------------------------------------------
@@ -135,6 +244,113 @@ export function createApi(opts: {
     }
     return c.json(project)
   })
+
+  // -------------------------------------------------------------------------
+  // GET /attention — per project, ranked "next session requiring my attention"
+  // -------------------------------------------------------------------------
+  api.get("/attention", async (c) => {
+    const payload = await multiProjectService.getMultiProjectPayload()
+    const attention = buildAttentionPayload(payload.projects, payload.serverNowMs)
+    // Apply the operator's hide list: drop hidden sessions, recompute next/queue.
+    const hidden = readHiddenSessionIds(opts.storageRoot)
+    let hiddenCount = 0
+    if (hidden.size > 0) {
+      const projects: typeof attention.projects = []
+      for (const project of attention.projects) {
+        const sessions = project.sessions.filter((session) => {
+          if (hidden.has(session.sessionId)) {
+            hiddenCount += 1
+            return false
+          }
+          return true
+        })
+        if (sessions.length === 0 && project.busySessions === 0 && project.totalSessions === 0) continue
+        projects.push({ ...project, sessions, next: sessions[0] ?? null, queue: Math.max(0, sessions.length - 1) })
+      }
+      attention.projects = projects
+    }
+    return c.json({ ...attention, hiddenCount })
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /attention/hide/:sessionId — never show this session in the attention list
+  // -------------------------------------------------------------------------
+  api.post("/attention/hide/:sessionId", async (c) => {
+    const sessionId = c.req.param("sessionId")
+    if (!SESSION_ID_PATTERN.test(sessionId)) {
+      return c.json({ ok: false, error: "Invalid session id" }, 400)
+    }
+    const hidden = readHiddenSessionIds(opts.storageRoot)
+    hidden.add(sessionId)
+    writeHiddenSessionIds(opts.storageRoot, hidden)
+    return c.json({ ok: true, hiddenCount: hidden.size })
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /attention/unhide-all — restore hidden sessions
+  // -------------------------------------------------------------------------
+  api.post("/attention/unhide-all", (c) => {
+    writeHiddenSessionIds(opts.storageRoot, new Set())
+    return c.json({ ok: true, hiddenCount: 0 })
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /focus/:sourceId/:sessionId — jump the focus viewer window to a session
+  // -------------------------------------------------------------------------
+  api.post("/focus/:sourceId/:sessionId", async (c) => {
+    const sourceId = c.req.param("sourceId")
+    const sessionId = c.req.param("sessionId")
+    if (!SESSION_ID_PATTERN.test(sessionId)) {
+      return c.json({ ok: false, error: "Invalid session id" }, 400)
+    }
+    const source = getSourceById(opts.storageRoot, sourceId)
+    if (!source) {
+      return c.json({ ok: false, error: "Source not found", sourceId }, 404)
+    }
+    const prewarm = c.req.query("mode") === "prewarm"
+    console.log(
+      `[focus-request] session=${sessionId} prewarm=${prewarm} referer=${c.req.header("referer") ?? "-"} ua=${(c.req.header("user-agent") ?? "-").slice(0, 60)}`,
+    )
+    if (prewarm) {
+      // Defense in depth: stale clients may still send hover-prewarms. In the
+      // single-attach viewer a prewarm is a real TUI swap — never honor it.
+      return c.json({ ok: true, action: "skipped" })
+    }
+    const result = await focusSession(source.projectRoot, sessionId)
+    if (!result.ok) {
+      return c.json({ ok: false, error: result.error }, 500)
+    }
+    return c.json({ ok: true, action: result.action })
+  })
+
+  // -------------------------------------------------------------------------
+  // POST /focus/next — focus the ranked attention target at ?skip=N
+  // -------------------------------------------------------------------------
+  api.post("/focus/next", async (c) => {
+    console.log(
+      `[focus-request] next referer=${c.req.header("referer") ?? "-"} ua=${(c.req.header("user-agent") ?? "-").slice(0, 60)}`,
+    )
+    const rawSkip = c.req.query("skip")
+    const parsedSkip = rawSkip && /^\d+$/.test(rawSkip) ? Number(rawSkip) : 0
+    const skip = Number.isSafeInteger(parsedSkip) ? parsedSkip : 0
+    const payload = await multiProjectService.getMultiProjectPayload()
+    const attention = buildAttentionPayload(payload.projects, payload.serverNowMs)
+    const hidden = readHiddenSessionIds(opts.storageRoot)
+    const visibleProjects = attention.projects.map((project) => ({
+      ...project,
+      sessions: project.sessions.filter((session) => !hidden.has(session.sessionId)),
+    }))
+    const target = selectAttentionTarget(visibleProjects, skip)
+    if (!target) {
+      return c.json({ ok: true, action: "nothing-pending" })
+    }
+    const result = await focusSession(target.projectRoot, target.sessionId)
+    if (!result.ok) {
+      return c.json({ ok: false, error: result.error }, 500)
+    }
+    return c.json({ ok: true, action: result.action })
+  })
+
 
   // -------------------------------------------------------------------------
   // GET /quotas — provider subscription quota usage (cached ~3 min server-side)

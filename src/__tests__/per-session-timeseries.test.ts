@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 // ---------------------------------------------------------------------------
 // vi.hoisted — declare mock state at the hoisted level so vi.mock can see it
@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 const { mockQueryAll, MockDatabase } = vi.hoisted(() => {
   const mockQueryAll = vi.fn((): unknown[] => [])
   const mockDbClose = vi.fn()
-  const MockDatabase = vi.fn(function () {
+  const MockDatabase = vi.fn(function MockDatabase() {
     return {
       query: vi.fn(() => ({ all: mockQueryAll })),
       close: mockDbClose,
@@ -116,5 +116,44 @@ describe("derivePerSessionTimeSeries", () => {
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(result.reason).toBe("db_unopenable")
+  })
+
+  it("excludes child sessions from swimlane timeseries", () => {
+    const nowMs = 1_000_000_000
+    const anchorMs = Math.floor(nowMs / 2_000) * 2_000
+    const startMs = anchorMs - 300_000 + 2_000
+    const msgCreatedAt = startMs + 10_000
+
+    mockQueryAll.mockReturnValueOnce([
+      { id: "ses-main", title: "Main Session", directory: "/home/user/project", parent_id: null },
+      { id: "ses-child", title: "<system-reminder>", directory: "/home/user/project", parent_id: "ses-main" },
+    ])
+
+    mockQueryAll.mockImplementationOnce((...params: unknown[]) => {
+      expect(params[0]).toBe("ses-main")
+      expect(params).not.toContain("ses-child")
+      return [{ id: "msg-main", session_id: "ses-main", time_created: msgCreatedAt }]
+    })
+
+    mockQueryAll.mockImplementationOnce((...params: unknown[]) => {
+      expect(params).toEqual(["msg-main"])
+      return [{ message_id: "msg-main", data: JSON.stringify({ type: "tool" }) }]
+    })
+
+    const result = derivePerSessionTimeSeries({
+      sqlitePath: "/tmp/test.db",
+      projectRoot: "/home/user/project",
+      nowMs,
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.value.sessions).toEqual([
+      expect.objectContaining({
+        sessionId: "ses-main",
+        sessionLabel: "Main Session",
+      }),
+    ])
   })
 })

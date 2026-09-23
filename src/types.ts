@@ -231,6 +231,8 @@ export type StripConfigState = {
   stripDisplayMode: "project" | "session"
   /** How many recently-active projects to show on the dashboard (auto mode) */
   recentProjectsLimit: number
+  /** How the dashboard project list is populated: top-X recent activity or manual pins */
+  projectListMode: "recent" | "manual"
 }
 
 /** Sound notification configuration */
@@ -304,4 +306,36 @@ export type ProviderQuota = {
 export type ProviderQuotasPayload = {
   providers: ProviderQuota[]
   serverNowMs: number
+}
+
+/** Attention state for a session */
+export type AttentionState = "question" | "error" | "awaiting_input" | "plan_complete" | "working"
+
+/** Attention session needing user action */
+export type AttentionSession = {
+  sessionId: string
+  sessionLabel: string
+  state: AttentionState
+  waitMs: number
+}
+
+/** Project attention summary */
+export type AttentionProject = {
+  sourceId: string
+  label: string
+  projectRoot: string
+  next: AttentionSession | null
+  queue: number
+  /** ALL attention sessions, ranked most-urgent first (drives the queue view) */
+  sessions: AttentionSession[]
+  busySessions: number
+  totalSessions: number
+}
+
+/** Payload for GET /api/attention */
+export type AttentionPayload = {
+  projects: AttentionProject[]
+  serverNowMs: number
+  /** Sessions the operator hid; set by the /attention route, not the pure builder */
+  hiddenCount?: number
 }

@@ -22,8 +22,8 @@ const TEST_DB_PATH = path.join(TEST_DB_DIR, "opencode.db")
 const TEST_STORAGE_DIR = path.join(TEST_DATA_DIR, "opencode", "storage")
 const TEST_PROJECTS_DIR = "/tmp/omo-test-projects"
 
-const API_PORT = parseInt(process.env.OMO_PULSE_API_PORT || "51244", 10)
-const VITE_PORT = parseInt(process.env.OMO_PULSE_PORT || "5173", 10)
+const API_PORT = parseInt(process.env.OMO_PULSE_API_PORT || "18031", 10)
+const VITE_PORT = parseInt(process.env.OMO_PULSE_PORT || "18030", 10)
 const API_BASE = `http://127.0.0.1:${API_PORT}`
 const VITE_BASE = `http://127.0.0.1:${VITE_PORT}`
 const HEALTH_URL = `${API_BASE}/api/health`

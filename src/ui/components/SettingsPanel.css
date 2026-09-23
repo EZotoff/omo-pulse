@@ -443,3 +443,9 @@
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
 }
+
+.settings-section__hint {
+  margin: 8px 0 0;
+  font-size: 0.85em;
+  opacity: 0.7;
+}

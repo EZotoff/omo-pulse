@@ -2,7 +2,7 @@ import type { Database } from "bun:sqlite"
 import {
   BACKGROUND_RUNNING_WINDOW_MS,
   hasFreshMainSessionActivity,
-  isStaleQuestionTool,
+  isStaleActiveTool,
   resolveLastUpdatedTime,
   shouldKeepQueuedBackgroundTaskActive,
 } from "./activity-status"
@@ -168,7 +168,7 @@ function findActiveQuestionTool(
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i]
       if (isActiveQuestionTool(part.tool, part.state.status)) {
-        if (isStaleQuestionTool(part.tool, part.state.status, readStartTimeFromToolPart(part) ?? meta.time?.created ?? null, nowMs)) {
+        if (isStaleActiveTool(part.tool, part.state.status, readStartTimeFromToolPart(part) ?? meta.time?.created ?? null, nowMs)) {
           continue
         }
         return part.tool
@@ -312,7 +312,7 @@ export function getMainSessionViewSqlite(opts: {
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i]
       if (part.state.status === "pending" || part.state.status === "running") {
-        if (isStaleQuestionTool(part.tool, part.state.status, readStartTimeFromToolPart(part) ?? meta.time?.created ?? null, nowMs)) {
+        if (isStaleActiveTool(part.tool, part.state.status, readStartTimeFromToolPart(part) ?? meta.time?.created ?? null, nowMs)) {
           continue
         }
         activeTool = { tool: part.tool, status: part.state.status }

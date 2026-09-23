@@ -4,6 +4,35 @@ import * as path from "node:path"
 
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+/**
+ * Swappable storage-backend mock. vi.doMock + dynamic import races under
+ * vitest 4 (the mock intermittently fails to apply, ~20% of runs), so the
+ * SQLite tests swap this implementation instead and the hoisted vi.mock
+ * factory below always applies deterministically.
+ */
+const storageBackendMock = vi.hoisted(() => ({
+  impl: null as Record<string, unknown> | null,
+}))
+vi.mock("../ingest/storage-backend", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>()
+  // Lazy dispatch: the impl may be swapped per test AFTER this module graph
+  // has been evaluated, so resolve every property at call time.
+  return new Proxy(actual, {
+    get(target, prop, receiver) {
+      const impl = storageBackendMock.impl
+      if (impl !== null && typeof prop !== "symbol" && prop in impl) return impl[prop]
+      return Reflect.get(target, prop, receiver)
+    },
+    has(target, prop) {
+      const impl = storageBackendMock.impl
+      if (impl !== null && prop in impl) return true
+      return Reflect.has(target, prop)
+    },
+  })
+})
+
+import { deriveBackgroundTasksSqlite, getMainSessionViewSqlite } from "../ingest/sqlite-derive"
+
 import { deriveBackgroundTasks } from "../ingest/background-tasks"
 import { getMainSessionView, type OpenCodeStorageRoots, type SessionMetadata, type StoredMessageMeta, type StoredToolPart } from "../ingest/session"
 
@@ -32,8 +61,7 @@ function makeTempStorage(): OpenCodeStorageRoots {
 }
 
 afterEach(() => {
-  vi.resetModules()
-  vi.doUnmock("../ingest/storage-backend")
+  storageBackendMock.impl = null
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop()
     if (dir) fs.rmSync(dir, { recursive: true, force: true })
@@ -215,7 +243,7 @@ describe("background question bridge", () => {
   })
 
   it("surfaces question for SQLite background tasks and main-session fallback", async () => {
-    vi.doMock("../ingest/storage-backend", () => {
+    storageBackendMock.impl = (() => {
       const mainSessionMeta: SessionMetadata = {
         id: "ses-main",
         projectID: "proj-1",
@@ -292,9 +320,8 @@ describe("background question bridge", () => {
           return { ok: true as const, rows }
         }),
       }
-    })
+    })()
 
-    const { deriveBackgroundTasksSqlite, getMainSessionViewSqlite } = await import("../ingest/sqlite-derive")
 
     const tasksResult = deriveBackgroundTasksSqlite({
       sqlitePath: "/tmp/opencode.db",
@@ -326,7 +353,7 @@ describe("background question bridge", () => {
   })
 
   it("demotes stale running question tools on SQLite main sessions to idle", async () => {
-    vi.doMock("../ingest/storage-backend", () => {
+    storageBackendMock.impl = (() => {
       const mainSessionMeta: SessionMetadata = {
         id: "ses-main",
         projectID: "proj-1",
@@ -368,9 +395,8 @@ describe("background question bridge", () => {
           return { ok: true as const, rows }
         }),
       }
-    })
+    })()
 
-    const { getMainSessionViewSqlite } = await import("../ingest/sqlite-derive")
 
     const viewResult = getMainSessionViewSqlite({
       sqlitePath: "/tmp/opencode.db",

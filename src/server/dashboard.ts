@@ -104,6 +104,8 @@ function readBoulderHistorySafe(projectRoot: string): PlanHistory | undefined {
 
 export type DashboardStore = {
   getSnapshot: () => DashboardPayload
+  /** Drops the cached snapshot so the next getSnapshot() rebuilds from source. */
+  clearCache: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -529,6 +531,15 @@ export function createDashboardStore(opts: {
         lastComputedAt = now + staggerMs
       }
       return cached
+    },
+    /**
+     * Drops this store's cached snapshot so the next getSnapshot() rebuilds from
+     * source. Store identity is preserved (unlike recreating the store), keeping
+     * the stagger stride and discovered-roots warm-up bookkeeping intact.
+     */
+    clearCache() {
+      cached = null
+      lastComputedAt = 0
     },
   }
 }

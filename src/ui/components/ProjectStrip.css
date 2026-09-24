@@ -15,6 +15,13 @@
   border-color: var(--border-primary);
 }
 
+/* Deep-link target from escalation card (?project=…) */
+.project-strip--deeplink {
+  border-color: var(--accent-warning);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-warning) 45%, transparent);
+}
+
+
 /* ── Gradient border via ::before ── */
 .project-strip::before {
   content: '';

@@ -46,6 +46,15 @@
   flex-shrink: 0;
 }
 
+.swimlane-legend-item--deeplink {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent-warning) 18%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 1px 4px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-warning) 45%, transparent);
+}
+
+
 /* ── Empty state ── */
 .swimlane-empty {
   font-family: var(--font-mono);

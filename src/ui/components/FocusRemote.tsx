@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, memo } from "react"
-import type { AttentionProject, AttentionSession } from "../../types"
+import type { AttentionProject, AttentionSession, SupervisorQueueItem } from "../../types"
 import { useAttention } from "../hooks/useAttention"
+import { useSupervisorQueue } from "../hooks/useSupervisorQueue"
 import { useFocusRemoteControls } from "../hooks/useFocusRemoteControls"
 import "./FocusRemote.css"
 
@@ -15,6 +16,94 @@ function formatWait(waitMs: number): string {
   if (minutes < 60) return `${minutes}m ago`
   const hours = Math.floor(minutes / 60)
   return `${hours}h ago`
+}
+
+/* ── Supervisor escalations (Seam 4, read-only ambient) ── */
+
+/** Clamp an excerpt to ~160 chars on a word boundary. */
+function clampExcerpt(text: string, max = 160): string {
+  if (text.length <= max) return text
+  const cut = text.slice(0, max)
+  const lastSpace = cut.lastIndexOf(" ")
+  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`
+}
+
+/**
+ * Display-only ordering (never written back — the supervisor owns lifecycle):
+ * urgency desc → stakes desc → confidence desc → createdAt asc (oldest first).
+ * Missing priority fields sort as lowest.
+ */
+function compareEscalations(a: SupervisorQueueItem, b: SupervisorQueueItem): number {
+  const num = (v: number | undefined) => (typeof v === "number" ? v : -Infinity)
+  const time = (v: string | undefined) => (typeof v === "string" ? Date.parse(v) : Infinity)
+  const pa = a.priority
+  const pb = b.priority
+  return (
+    num(pb?.urgency) - num(pa?.urgency) ||
+    num(pb?.stakes) - num(pa?.stakes) ||
+    num(pb?.confidence) - num(pa?.confidence) ||
+    time(pa?.createdAt) - time(pb?.createdAt)
+  )
+}
+
+/** Open, non-snoozed items only: terminal lifecycle or a future notBefore hides the item. */
+function isOpenEscalation(item: SupervisorQueueItem, nowMs: number): boolean {
+  if (item.isResolved) return false
+  const notBefore = item.priority?.notBefore
+  if (typeof notBefore === "string" && Date.parse(notBefore) > nowMs) return false
+  return true
+}
+
+type EscalationView = {
+  readonly item: SupervisorQueueItem
+  readonly shortId: string
+  readonly text: string
+  readonly targetLabel: string
+  readonly href: string
+}
+
+function buildEscalationViews(
+  items: readonly SupervisorQueueItem[],
+  projects: readonly AttentionProject[],
+  readAtMs: number,
+): EscalationView[] {
+  const nowMs = Date.now()
+  const open = items.filter((item) => isOpenEscalation(item, nowMs)).sort(compareEscalations)
+  return open.slice(0, 8).map((item, index) => {
+    const question = item.question ?? item.rationale ?? ""
+    const text = question.length > 0 ? clampExcerpt(question) : "(no question text)"
+    const root = item.target?.root ?? ""
+    const rootBase = root.split("/").filter(Boolean).pop() ?? ""
+    /* Map root → project label via the attention projects when possible. */
+    const project = projects.find((p) => p.projectRoot === root) ??
+      projects.find((p) => p.label.toLowerCase() === rootBase.toLowerCase())
+    const targetLabel = project?.label ?? (rootBase.length > 0 ? rootBase : "unknown project")
+    /* Deep-link: unused query params are ignored by the dashboard app; they
+       document the target for future deep-link routing. Session param only
+       when the target sessionID maps to a known attention session. */
+    const sessionMatched =
+      project !== undefined &&
+      item.target?.sessionID !== undefined &&
+      project.sessions.some((s) => s.sessionId === item.target?.sessionID)
+    const params = new URLSearchParams({ view: "dashboard" })
+    if (project !== undefined) params.set("project", project.sourceId)
+    if (sessionMatched) params.set("session", item.target?.sessionID ?? "")
+    const href = `/?${params.toString()}`
+    return {
+      item,
+      shortId: `Q${index + 1}·${item.id.replace(/^att_/, "")}`,
+      text,
+      targetLabel,
+      href,
+    }
+  })
+}
+
+function formatEscalationAge(item: SupervisorQueueItem, readAtMs: number): string {
+  const createdMs = item.priority?.createdAt !== undefined ? Date.parse(item.priority.createdAt) : NaN
+  const baseMs = Number.isFinite(createdMs) ? createdMs : readAtMs
+  if (!Number.isFinite(baseMs)) return ""
+  return formatWait(Math.max(0, Date.now() - baseMs))
 }
 
 /* ── One session card (top item or queue item) ── */
@@ -95,6 +184,8 @@ const MemoFocusTarget = memo(FocusTargetButton)
 
 export function FocusRemote() {
   const { projects, connected, hiddenCount, refresh } = useAttention()
+  const { queue, available } = useSupervisorQueue()
+  const escalations = available && queue !== null ? buildEscalationViews(queue.items, projects, queue.readAtMs) : []
   const attention = projects.filter((p) => p.next !== null)
   const busy = projects.filter((p) => p.next === null && p.busySessions > 0)
   const allClear = attention.length === 0
@@ -222,6 +313,32 @@ export function FocusRemote() {
                 <span>{project.label}</span>
                 <span className="focus-busy-n">{project.busySessions} working</span>
               </div>
+            ))}
+          </>
+        )}
+        {escalations.length > 0 && (
+          <>
+            <div className="focus-divider focus-esc-head" data-testid="escalations-heading">
+              Escalations
+            </div>
+            {escalations.map(({ item, shortId, text, targetLabel, href }) => (
+              <a
+                key={item.id}
+                className="focus-esc"
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="escalation-card"
+                data-item-id={item.id}
+                title={`Open ${targetLabel} in the dashboard`}
+              >
+                <span className="focus-esc-top">
+                  <span className="focus-esc-id">{shortId}</span>
+                  <span className="focus-esc-target">{targetLabel}</span>
+                  <span className="focus-esc-age">{formatEscalationAge(item, queue?.readAtMs ?? 0)}</span>
+                </span>
+                <span className="focus-esc-q">{text}</span>
+              </a>
             ))}
           </>
         )}

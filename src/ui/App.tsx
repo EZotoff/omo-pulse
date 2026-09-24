@@ -145,6 +145,24 @@ function safeSetItem(key: string, value: string): void {
   try { localStorage.setItem(key, value) } catch { /* localStorage may be unavailable */ }
 }
 
+/* ── Escalation deep-link params (?project=<sourceId>&session=<sessionId>) ── */
+
+type DeepLinkParams = {
+  project: string | null
+  session: string | null
+}
+
+/** Parsed ONCE on mount — no history integration, unknown values resolve to null */
+function readDeepLinkParams(search: string): DeepLinkParams {
+  const params = new URLSearchParams(search)
+  const project = params.get("project")
+  const session = params.get("session")
+  return {
+    project: project && project.trim() !== "" ? project : null,
+    session: session && session.trim() !== "" ? session : null,
+  }
+}
+
 /* ── Component ── */
 
 export function App({ data, connected, connection = "polling", lastUpdatedMs, previewMode, refresh }: AppProps) {
@@ -154,6 +172,30 @@ export function App({ data, connected, connection = "polling", lastUpdatedMs, pr
   const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode, setMiniSparklineMode, setQuotaIconMode, setRecentProjectsLimit, setProjectListMode } = useStripConfig()
   const { quotas } = useQuotas()
   const [activeOverlay, setActiveOverlay] = useState<ActiveOverlay>('none')
+
+  /* ── Deep-link selection from escalation cards (parsed once on mount) ── */
+  const deepLink = useMemo<DeepLinkParams>(() => readDeepLinkParams(typeof window !== "undefined" ? window.location.search : ""), [])
+  /* Only applies once data confirms the target project exists — unknown ids are ignored */
+  const deeplinkProjectId = useMemo(() => {
+    if (!data || !deepLink.project) return null
+    return data.projects.some((p) => p.sourceId === deepLink.project) ? deepLink.project : null
+  }, [data, deepLink.project])
+  /* Session deep-links are ignored unless the target project actually has that session */
+  const deeplinkSessionId = useMemo((): string | null => {
+    if (!deeplinkProjectId || !deepLink.session) return null
+    const project = data?.projects.find((p) => p.sourceId === deeplinkProjectId)
+    return project?.sessionTimeSeries?.sessions?.some((s) => s.sessionId === deepLink.session) ? deepLink.session : null
+  }, [data, deeplinkProjectId, deepLink.session])
+  /* Scroll the deep-linked strip (and session, when known) into view once it has rendered.
+     Highlight alone can land off-screen in multi-column layouts. */
+  useEffect(() => {
+    if (!deeplinkProjectId) return
+    const target = deeplinkSessionId
+      ? document.querySelector('[data-deeplink-session-target="true"]')
+      : null
+    ;(target ?? document.querySelector('[data-deeplink-selected="true"]'))?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [deeplinkProjectId, deeplinkSessionId])
+
 
   /* ── Collapsible header ── */
   const [headerCollapsed, setHeaderCollapsed] = useState<boolean>(() => safeGetItem('dashboard-header-collapsed') === 'true')
@@ -365,8 +407,15 @@ export function App({ data, connected, connection = "polling", lastUpdatedMs, pr
     const ordered = currentOrderIds
       .map((id) => map.get(id))
       .filter((p): p is ProjectSnapshot => p !== undefined)
-    return ordered.filter((p) => isVisible(p.sourceId))
-  }, [sortedProjects, currentOrderIds, isVisible])
+    const visible = ordered.filter((p) => isVisible(p.sourceId))
+    /* Deep-linked project is always rendered, even when ordering/visibility/
+       recent-limit would otherwise exclude it — otherwise nothing can be selected */
+    if (deeplinkProjectId && !visible.some((p) => p.sourceId === deeplinkProjectId)) {
+      const deeplinked = data?.projects.find((p) => p.sourceId === deeplinkProjectId)
+      if (deeplinked) return [deeplinked, ...visible]
+    }
+    return visible
+  }, [sortedProjects, currentOrderIds, isVisible, deeplinkProjectId, data])
 
   const resizeHandleIds = useMemo(
     () => Array.from({ length: Math.max(columns - 1, 0) }, (_, handleIndex) => `column-resize-handle-${handleIndex + 1}`),
@@ -492,6 +541,8 @@ export function App({ data, connected, connection = "polling", lastUpdatedMs, pr
                       project={project}
                       stripConfig={effectiveStripConfig}
                       idleTimeoutMs={idleTimeoutMs}
+                      deeplinkSelected={project.sourceId === deeplinkProjectId}
+                      deeplinkSessionId={project.sourceId === deeplinkProjectId ? deeplinkSessionId : null}
                     />
                   ))}
                   {columns > 1 && resizeHandleIds.map((handleId, i: number) => {
@@ -559,9 +610,11 @@ type SortableProjectStripProps = {
   project: ProjectSnapshot
   stripConfig?: StripConfigState
   idleTimeoutMs: number
+  deeplinkSelected?: boolean
+  deeplinkSessionId?: string | null
 }
 
-function SortableProjectStrip({ id, project, stripConfig, idleTimeoutMs }: SortableProjectStripProps) {
+function SortableProjectStrip({ id, project, stripConfig, idleTimeoutMs, deeplinkSelected, deeplinkSessionId }: SortableProjectStripProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
 
   const style: React.CSSProperties = {
@@ -575,6 +628,8 @@ function SortableProjectStrip({ id, project, stripConfig, idleTimeoutMs }: Sorta
         project={project}
         stripConfig={stripConfig}
         idleTimeoutMs={idleTimeoutMs}
+        deeplinkSelected={deeplinkSelected}
+        deeplinkSessionId={deeplinkSessionId}
       />
     </div>
   )
@@ -586,14 +641,18 @@ type ProjectStripWithChildrenProps = {
   project: ProjectSnapshot
   stripConfig?: StripConfigState
   idleTimeoutMs: number
+  deeplinkSelected?: boolean
+  deeplinkSessionId?: string | null
 }
 
-function ProjectStripWithChildren({ project, stripConfig, idleTimeoutMs }: ProjectStripWithChildrenProps) {
+function ProjectStripWithChildren({ project, stripConfig, idleTimeoutMs, deeplinkSelected, deeplinkSessionId }: ProjectStripWithChildrenProps) {
   return (
     <ProjectStrip
       project={project}
       stripConfig={stripConfig}
       idleTimeoutMs={idleTimeoutMs}
+      deeplinkSelected={deeplinkSelected}
+      deeplinkSessionId={deeplinkSessionId}
     >
       {{
         miniSparkline: (
@@ -615,7 +674,7 @@ function ProjectStripWithChildren({ project, stripConfig, idleTimeoutMs }: Proje
           />
         ),
         sessionSwimlane: (
-          <SessionSwimlane sessionTimeSeries={project.sessionTimeSeries} />
+          <SessionSwimlane sessionTimeSeries={project.sessionTimeSeries} deeplinkSessionId={deeplinkSessionId} />
         ),
 
       }}

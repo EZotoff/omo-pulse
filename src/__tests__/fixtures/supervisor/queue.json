@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "schemaVersion": 1,
+      "id": "att_resolved",
+      "version": 5,
+      "decisionKey": "decision-resolved",
+      "kind": "decision",
+      "origin": { "decision": { "action": "ESCALATE", "rationale": "Already handled", "citations": [{ "session": "ses_one", "messageID": "msg_one", "quote": "Please decide" }] } },
+      "target": { "root": "/projects/one", "sessionID": "ses_one", "sessionTitle": "First session" },
+      "actionClass": "ESCALATE",
+      "escalationKind": "DECISION",
+      "question": "Resolved question",
+      "priority": { "stakes": 4, "urgency": 4, "confidence": 0.93, "freshness": 1, "createdAt": "2026-09-20T21:39:13.172Z" },
+      "lifecycle": [{ "state": "proposed", "at": "2026-09-20T21:39:13.172Z" }, { "state": "answered", "at": "2026-09-20T21:42:52.996Z" }, { "state": "resolved", "at": "2026-09-20T21:49:10.745Z", "disposition": "superseded" }]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "att_open",
+      "version": 2,
+      "decisionKey": "decision-open",
+      "kind": "decision",
+      "origin": { "decision": { "action": "ESCALATE", "rationale": "Waiting for approval", "citations": [{ "session": "ses_two", "messageID": "msg_two", "quote": "Approve?" }] } },
+      "target": { "root": "/projects/two", "sessionID": "ses_two", "sessionTitle": "Second session" },
+      "actionClass": "ESCALATE",
+      "escalationKind": "DECISION",
+      "question": "Open question",
+      "priority": { "stakes": 3, "urgency": 2, "confidence": 0.8, "freshness": 1, "createdAt": "2026-09-21T10:16:39.158Z", "notBefore": "2026-09-21T10:17:39.158Z" },
+      "lifecycle": [{ "state": "proposed" }, { "state": "surfaced" }, { "state": "revalidated" }],
+      "futureField": { "ignored": true }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "att_answered",
+      "decisionKey": "decision-answered",
+      "kind": "decision",
+      "origin": { "decision": { "action": "ESCALATE", "rationale": "Reply received", "citations": [] } },
+      "target": { "root": "/projects/three" },
+      "lifecycle": [{ "state": "proposed" }, { "state": "answered", "replyEventID": "reply_one" }]
+    },
+    {
+      "schemaVersion": 2,
+      "id": "att_future",
+      "decisionKey": "decision-future",
+      "kind": "decision",
+      "lifecycle": [{ "state": "proposed" }]
+    }
+  ]
+}

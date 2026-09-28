@@ -49,10 +49,10 @@ Run it as a persistent service alongside your development workflow and always kn
 <p align="center"><em>Refined status language — distinct glass and lamp-style indicators for danger, questions, active work, completion, idle, and unknown states.</em></p>
 
 <p align="center">
-  <img src="docs/screenshots/provider-quotas.png" alt="Provider quota strip: thin usage lines with reset countdowns for Z.AI, ChatGPT, OpenCode Go, Ollama Cloud, and Kimi" width="820"/>
+  <img src="docs/screenshots/provider-quotas.png" alt="Provider quota strip: glossy status pills with reset countdowns for Z.AI, ChatGPT, OpenCode Go, Ollama Cloud, and Kimi" width="820"/>
 </p>
 
-<p align="center"><em>Provider quota strip — one thin line per subscription window with live reset countdowns. Shorter windows collapse when a longer quota is exhausted, and windows always sort shortest to longest.</em></p>
+<p align="center"><em>Provider quota strip — one recessed status pill per subscription window with live reset countdowns. Color ramps teal → orange → red as usage climbs (70% / 90%); at 100% the pill dims to a muted, unlit red — locked until reset, not an active alarm. Shorter windows collapse when a longer quota is exhausted, and windows always sort shortest to longest.</em></p>
 
 <table>
   <tr>

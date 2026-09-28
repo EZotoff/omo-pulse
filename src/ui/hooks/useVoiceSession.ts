@@ -10,6 +10,7 @@ import {
   buildSelectionFrame,
   buildViewContextFrame,
   parseServerFrame,
+  type ShowFrame,
   type ViewContextInput,
 } from "../voice/protocol"
 import {
@@ -92,15 +93,21 @@ export type UseVoiceSessionReturn = {
   disconnect: () => void
   startCapture: () => void
   stopCapture: () => void
+  resumePlayback: () => void
   sendText: (text: string) => void
   sendViewContext: (input: ViewContextInput) => void
   sendSelection: (contextTag: string, index: number) => void
   unlocked: boolean
+  /** Most recent `show` frame from the bridge, or null before one arrives. */
+  lastShow: ShowFrame | null
+  /** True when the playback AudioContext is suspended (autoplay policy). */
+  audioSuspended: boolean
 }
 
 export function useVoiceSession(): UseVoiceSessionReturn {
   const [state, dispatch] = useReducer(createVoiceReducer, initialVoiceState)
   const [unlocked, setUnlocked] = useState(false)
+  const [audioSuspended, setAudioSuspended] = useState(false)
 
   const stateRef = useRef<VoiceUiState>(state)
   const wsRef = useRef<WebSocket | null>(null)
@@ -128,6 +135,9 @@ export function useVoiceSession(): UseVoiceSessionReturn {
     await ctx.audioWorklet.addModule(url)
     const node = new AudioWorkletNode(ctx, PLAYBACK_PROCESSOR)
     node.connect(ctx.destination)
+    ctx.onstatechange = () => {
+      setAudioSuspended(ctx.state === "suspended")
+    }
     playbackRef.current = { ctx, node, workletUrl: url }
   }, [])
 
@@ -136,6 +146,11 @@ export function useVoiceSession(): UseVoiceSessionReturn {
     if (playback === null) return
     if (playback.ctx.state === "suspended") void playback.ctx.resume()
     playback.node.port.postMessage(pcm, [pcm.buffer as ArrayBuffer])
+  }, [])
+
+  const resumePlayback = useCallback((): void => {
+    const playback = playbackRef.current
+    if (playback !== null && playback.ctx.state === "suspended") void playback.ctx.resume()
   }, [])
 
   const stopCapture = useCallback((): void => {
@@ -343,5 +358,8 @@ export function useVoiceSession(): UseVoiceSessionReturn {
     sendViewContext,
     sendSelection,
     unlocked,
+    lastShow: state.lastShow,
+    audioSuspended,
+    resumePlayback,
   }
 }

@@ -5,7 +5,7 @@
 // (view-context dedup, selection staleness). Keeping both pure makes the
 // contract testable without a DOM or a live socket.
 
-import type { ConnectionState, ServerVoiceFrame, ViewContextFrame } from "./protocol"
+import type { ConnectionState, ServerVoiceFrame, ShowFrame, ViewContextFrame } from "./protocol"
 
 /** UI connection state. `offline` is the quiet terminal state (no error UI). */
 export type VoiceUiConnectionState =
@@ -31,6 +31,8 @@ export type VoiceUiState = {
   readonly error: string | null
   /** contextTag of the most recent `show` frame, for selection staleness. */
   readonly lastShowContextTag: string | null
+  /** Most recent `show` frame, rendered by the widget's ShowView. */
+  readonly lastShow: ShowFrame | null
 }
 
 /**
@@ -51,6 +53,7 @@ export const initialVoiceState: VoiceUiState = {
   lastInterrupt: null,
   error: null,
   lastShowContextTag: null,
+  lastShow: null,
 }
 
 const mapConnectionState = (state: ConnectionState): VoiceUiConnectionState =>
@@ -81,7 +84,7 @@ export function createVoiceReducer(state: VoiceUiState, frame: VoiceReducerFrame
     case "error":
       return appendTranscript({ ...state, state: "error", error: frame.message }, "system", `error: ${frame.message}`)
     case "show":
-      return { ...state, lastShowContextTag: frame.contextTag }
+      return { ...state, lastShowContextTag: frame.contextTag, lastShow: frame }
     case "handoff":
       return { ...state, state: "offline", error: null }
     case "close":

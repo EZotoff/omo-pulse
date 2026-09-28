@@ -120,9 +120,11 @@
 }
 
 .quota-strip__fill--danger {
-  --fill-color: var(--accent-danger);
-  /* Matches the error status dot's stronger emission */
-  box-shadow: 0 0 7px 1px var(--status-danger-glow);
+  /* Deep crimson: the salmon --accent-danger read as glare on the dark theme,
+     and its strong halo was the only outer glow in the strip (neon by contrast).
+     Subtle same-family glow reads as material sheen instead. */
+  --fill-color: #dc2626;
+  box-shadow: 0 0 5px 1px rgba(153, 27, 27, 0.4);
 }
 
 /* 100% — locked out until reset. Same hue family as danger but desaturated

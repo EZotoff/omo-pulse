@@ -1,0 +1,14 @@
+Frame:
+{
+  "type": "show",
+  "view": "hologram",
+  "title": "MYSTERY",
+  "contextTag": "ctx-8",
+  "payload": {
+    "magic": 42,
+    "note": "unknown fallback"
+  }
+}
+
+Rendered HTML:
+<section class="showview" data-context-tag="ctx-8" data-view="hologram"><h3 class="showview-title">MYSTERY</h3><pre class="showview-fallback">{&quot;magic&quot;:42,&quot;note&quot;:&quot;unknown fallback&quot;}</pre></section>

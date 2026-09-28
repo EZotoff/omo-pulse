@@ -10,6 +10,7 @@ import { createOpenCodeSseClient } from "../ingest/opencode-sse-client";
 import { readRealtimeConfig } from "../ingest/realtime-config";
 import { createRealtimeBus, type OpenCodeEvent } from "../ingest/realtime-types";
 import { selectStorageBackend, getLegacyStorageRootForBackend } from "../ingest/storage-backend";
+import { createVoiceProxyHandler, handleVoiceProxyUpgrade, resolveVoiceBridgeUrl } from "./voice-proxy";
 
 const here = dirname(new URL(import.meta.url).pathname);
 const pkg = JSON.parse(readFileSync(resolve(here, "../../package.json"), "utf8"));
@@ -141,8 +142,14 @@ function getContentType(ext: string): string {
   return types[ext] || "text/plain";
 }
 
+const voiceProxy = createVoiceProxyHandler(resolveVoiceBridgeUrl());
 const server = Bun.serve({
-  fetch: app.fetch,
+  fetch(request, srv) {
+    const voiceResponse = handleVoiceProxyUpgrade(request, srv);
+    if (voiceResponse !== undefined) return voiceResponse;
+    return app.fetch(request, srv);
+  },
+  websocket: voiceProxy,
   hostname: "127.0.0.1",
   port,
   idleTimeout: 60,

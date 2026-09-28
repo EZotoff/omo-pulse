@@ -1,8 +1,10 @@
-import { useState, useRef, useCallback, memo } from "react"
+import { useState, useRef, useCallback, useMemo, memo } from "react"
 import type { AttentionProject, AttentionSession, SupervisorQueueItem } from "../../types"
 import { useAttention } from "../hooks/useAttention"
 import { useSupervisorQueue } from "../hooks/useSupervisorQueue"
 import { useFocusRemoteControls } from "../hooks/useFocusRemoteControls"
+import type { ViewContextInput, VoiceSessionState } from "../voice/protocol"
+import { VoiceWidget } from "./VoiceWidget"
 import "./FocusRemote.css"
 
 /* ── Helpers ── */
@@ -196,6 +198,29 @@ export function FocusRemote() {
     multiSession.length > 0 && multiSession.every((p) => controls.expandedIds.has(p.sourceId))
   const noneExpanded = multiSession.every((p) => !controls.expandedIds.has(p.sourceId))
 
+  /* View context for the voice dock (Seam 1): derived from the selected
+     attention target; null when nothing is selected so nothing is sent. */
+  const viewContext = useMemo<ViewContextInput | null>(() => {
+    if (controls.selectedId === null) return null
+    const ranked = attention.flatMap((project) =>
+      project.sessions.map((session) => ({ project, session })),
+    )
+    const current = ranked.find(({ session }) => session.sessionId === controls.selectedId)
+    if (current === undefined) return null
+    const voiceState: VoiceSessionState =
+      current.session.state === "error" ? "error" : current.session.state === "working" ? "running" : "waiting"
+    return {
+      project: { id: current.project.sourceId, name: current.project.label },
+      session: { id: current.session.sessionId, title: current.session.sessionLabel, state: voiceState },
+      view: "attention",
+      selection: { kind: "card", id: current.session.sessionId, label: current.session.sessionLabel },
+      recent: ranked.slice(0, 5).map(({ project, session }) => ({
+        projectId: project.sourceId,
+        sessionId: session.sessionId,
+      })),
+    }
+  }, [attention, controls.selectedId])
+
   /* Bulk action only: sets every project at once. Individual chevrons keep
      full control afterwards — this is not a sticky mode. */
   const setAllQueues = useCallback(
@@ -351,6 +376,7 @@ export function FocusRemote() {
           </button>
         </footer>
       )}
+      <VoiceWidget viewContext={viewContext} />
     </div>
   )
 }

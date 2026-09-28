@@ -14,3 +14,4 @@
 ## 2026-09-28 T1 duplicate-dispatch reconciliation
 - Two T1 agents wrote this worktree concurrently (deepseek-v4.1-flash + ultrabrain/glm-5.3). Ultrabrain authored protocol.ts + 26 tests + evidence; this session added the missing bad-selection-kind malformed test (27 tests) and committed. No content conflict.
 - T2 (voice-proxy) was mid-flight during T1 verification: repo-wide `bunx tsc --noEmit` reported 1 error in src/__tests__/voice-proxy.test.ts(270,39) — NOT in T1 files (T1 files tsc-clean).
+- Task 1 (protocol codec): ported bridge wire contract verbatim into src/ui/voice/protocol.ts; parseServerFrame guards show.contextTag with /^ctx-\\d+$/ too (bridge ShowRegistry always emits ctx-N). tsc currently has 1 error in concurrent voice-proxy.test.ts (not ours). Work resumed from an interrupted run: files existed staged, added 1 malformed selection-kind test, 27/27 green.

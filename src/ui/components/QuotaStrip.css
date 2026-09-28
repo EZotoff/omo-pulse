@@ -91,7 +91,7 @@
   height: 100%;
   border-radius: inherit;
   background:
-    radial-gradient(circle at 35% 30%, var(--dot-highlight-faint) 0%, transparent 60%),
+    radial-gradient(circle at 35% 25%, var(--dot-highlight-mid) 0%, transparent 45%),
     var(--fill-color);
   box-shadow: 0 0 6px 1px color-mix(in srgb, var(--fill-color) 35%, transparent);
   transition: width var(--transition-normal);

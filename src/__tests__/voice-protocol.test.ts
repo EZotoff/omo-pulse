@@ -181,6 +181,18 @@ describe("parseClientFrame — malformed input returns null", () => {
     })
     expect(parseClientFrame(raw)).toBeNull()
   })
+
+  it("rejects a view-context with an unknown selection kind", () => {
+    const raw = JSON.stringify({
+      type: "view-context",
+      project: { id: "p1", name: "omo-pulse" },
+      session: { id: "s1", title: "t", state: "waiting" },
+      view: "home",
+      selection: { kind: "widget", id: "x", label: "y" },
+      recent: [],
+    })
+    expect(parseClientFrame(raw)).toBeNull()
+  })
 })
 
 describe("builders round-trip through parseClientFrame", () => {

@@ -10,3 +10,7 @@
 - getSelectableOptions mirrors ShowRegistry.select precedence: options ?? rows ?? items, [] fallback.
 - Evidence: .sisyphus/evidence/task-1-codec-roundtrip.json (all 6 assertions true), task-1-codec-malformed.json (allNull true).
 - tsc --noEmit exit 0. LSP daemon unreachable in this env; tsc is the typecheck gate.
+
+## 2026-09-28 T1 duplicate-dispatch reconciliation
+- Two T1 agents wrote this worktree concurrently (deepseek-v4.1-flash + ultrabrain/glm-5.3). Ultrabrain authored protocol.ts + 26 tests + evidence; this session added the missing bad-selection-kind malformed test (27 tests) and committed. No content conflict.
+- T2 (voice-proxy) was mid-flight during T1 verification: repo-wide `bunx tsc --noEmit` reported 1 error in src/__tests__/voice-proxy.test.ts(270,39) — NOT in T1 files (T1 files tsc-clean).

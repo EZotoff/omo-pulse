@@ -18,7 +18,8 @@ function formatRemaining(ms: number | null): string {
   return restHours > 0 ? `${days}d${restHours}h` : `${days}d`
 }
 
-function usageLevel(percent: number): "ok" | "warn" | "danger" {
+function usageLevel(percent: number): "ok" | "warn" | "danger" | "exhausted" {
+  if (percent >= 100) return "exhausted"
   if (percent >= 90) return "danger"
   if (percent >= 70) return "warn"
   return "ok"

@@ -5,8 +5,8 @@
      quota strip keeps a constant readable size so it never reflows after load */
   --quota-font: var(--font-sm);
   --quota-icon: 16px;
-  --quota-track-w: 72px;
-  --quota-track-h: 3px;
+  --quota-track-w: 48px;
+  --quota-track-h: 5px;
   /* Two provider columns; all groups left-anchored so icons stay aligned
      across rows even when window counts differ */
   display: grid;
@@ -78,13 +78,29 @@
   border-radius: calc(var(--quota-track-h) / 2);
   background: var(--border-secondary);
   overflow: hidden;
+  /* Recessed socket: the fill sits inside a well, echoing the status-dot
+     inset material language (same token the session dots use) */
+  box-shadow:
+    inset 0 1px 2px var(--status-active-inset),
+    inset 0 -1px 0 var(--dot-highlight-whisper);
 }
 
 .quota-strip__fill {
+  /* Level modifiers override only the color; highlight + glow derive from it */
+  --fill-color: var(--accent-primary);
   height: 100%;
-  border-radius: 1.5px;
-  background: var(--accent-primary);
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 35% 30%, var(--dot-highlight-faint) 0%, transparent 60%),
+    var(--fill-color);
+  box-shadow: 0 0 6px 1px color-mix(in srgb, var(--fill-color) 35%, transparent);
   transition: width var(--transition-normal);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quota-strip__fill {
+    transition: none;
+  }
 }
 
 .quota-strip__reset {
@@ -100,11 +116,22 @@
 }
 
 .quota-strip__fill--warn {
-  background: var(--accent-warning);
+  --fill-color: var(--accent-warning);
 }
 
 .quota-strip__fill--danger {
-  background: var(--accent-danger);
+  --fill-color: var(--accent-danger);
+  /* Matches the error status dot's stronger emission */
+  box-shadow: 0 0 7px 1px var(--status-danger-glow);
+}
+
+/* 100% — locked out until reset. Same hue family as danger but desaturated
+   and unlit: a stable fact, not an active alarm. Alarm fatigue is the enemy:
+   a monthly window can sit here for days. */
+.quota-strip__fill--exhausted {
+  --fill-color: color-mix(in srgb, var(--accent-danger) 45%, var(--border-secondary));
+  box-shadow: none;
+  filter: saturate(0.7);
 }
 
 

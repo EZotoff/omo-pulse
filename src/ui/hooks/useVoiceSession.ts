@@ -72,6 +72,16 @@ function createWorkletUrl(source: string): string {
   return URL.createObjectURL(new Blob([source], { type: "application/javascript" }))
 }
 
+/** True when a raw text frame is the bridge's handoff notice. */
+function isHandoffFrame(raw: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return parsed !== null && typeof parsed === "object" && (parsed as { type?: unknown }).type === "handoff"
+  } catch {
+    return false
+  }
+}
+
 export type UseVoiceSessionReturn = {
   state: VoiceUiConnectionState
   transcript: readonly TranscriptEntry[]
@@ -166,7 +176,18 @@ export function useVoiceSession(): UseVoiceSessionReturn {
       }
       if (typeof ev.data !== "string") return
       const frame = parseServerFrame(ev.data)
-      if (frame !== null) dispatch(frame)
+      if (frame !== null) {
+        dispatch(frame)
+        return
+      }
+      // The bridge announces a takeover with a handoff text frame, then closes.
+      // parseServerFrame does not model it, so detect it here and stop wanting
+      // the socket: a handoff is a quiet offline, never a reconnect.
+      if (isHandoffFrame(ev.data)) {
+        wantedRef.current = false
+        dispatch({ type: "handoff" })
+        ws.close()
+      }
     }
     ws.onclose = (ev: CloseEvent) => {
       if (wsRef.current === ws) wsRef.current = null
@@ -296,6 +317,17 @@ export function useVoiceSession(): UseVoiceSessionReturn {
       }
     }
   }, [])
+
+  // Foreground-only contract: a close while hidden schedules no reconnect, so
+  // re-arm when the tab becomes visible again.
+  useEffect(() => {
+    const onVisibility = (): void => {
+      if (document.hidden || !wantedRef.current) return
+      if (wsRef.current === null) openSocket()
+    }
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => document.removeEventListener("visibilitychange", onVisibility)
+  }, [openSocket])
 
   return {
     state: state.state,

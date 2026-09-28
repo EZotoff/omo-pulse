@@ -1,0 +1,8 @@
+ShowView unknown-view tolerance test
+====================================
+View "hologram" (not in SHOW_VIEWS) rendered via renderToStaticMarkup:
+  expect(html).toContain("showview-fallback")  -> PASS
+  expect(html).toContain("magic")              -> PASS (raw payload rendered)
+  expect(html).toContain("42")                 -> PASS
+No throw; neutral fallback card carries raw payload.
+Test: src/__tests__/show-view.test.tsx > renders an unknown view as a neutral fallback card without throwing

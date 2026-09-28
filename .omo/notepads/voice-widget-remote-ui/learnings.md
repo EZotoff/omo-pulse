@@ -15,3 +15,15 @@
 - Two T1 agents wrote this worktree concurrently (deepseek-v4.1-flash + ultrabrain/glm-5.3). Ultrabrain authored protocol.ts + 26 tests + evidence; this session added the missing bad-selection-kind malformed test (27 tests) and committed. No content conflict.
 - T2 (voice-proxy) was mid-flight during T1 verification: repo-wide `bunx tsc --noEmit` reported 1 error in src/__tests__/voice-proxy.test.ts(270,39) — NOT in T1 files (T1 files tsc-clean).
 - Task 1 (protocol codec): ported bridge wire contract verbatim into src/ui/voice/protocol.ts; parseServerFrame guards show.contextTag with /^ctx-\\d+$/ too (bridge ShowRegistry always emits ctx-N). tsc currently has 1 error in concurrent voice-proxy.test.ts (not ours). Work resumed from an interrupted run: files existed staged, added 1 malformed selection-kind test, 27/27 green.
+
+## 2026-09-28 T2 complete — /api/voice-ws proxy (deepseek-v4.1-flash session)
+- Duplicate T2 dispatch again (deepseek + ultrabrain/glm-5.3), same as T1. The ultrabrain agent had written a `Bun.serve`-based test file expecting `handleVoiceProxyUpgrade` + `VOICE_PROXY_PATH`; this session adopted that API surface (matches the plan's `createVoiceProxyHandler(bridgeUrl)` wording) and replaced the test file with a runtime-adaptive superset.
+- CRITICAL runtime fact: `bun run test` and `bunx vitest run` execute vitest under **Node** — `globalThis.Bun` is undefined, so `Bun.serve` is NOT available in the required test command. Any test that calls `Bun.serve` unconditionally fails. Tests must be runtime-adaptive: fake-transport for Node, `describe.skipIf(!hasBun)` for real-network.
+- `bun --bun run test` DOES expose Bun.serve (Bun runtime) — useful for running the real-network test, but it is NOT the acceptance command.
+- Race found: browser frames arriving before the bridge client socket is OPEN throw `InvalidStateError` from `WebSocket.send`. Fix = buffer in `ws.data.pending`, flush on bridge `onopen`.
+- Wiring: `handleVoiceProxyUpgrade` must run BEFORE `app.fetch` in Bun.serve's fetch; `websocket: createVoiceProxyHandler(...)` registered on both start.ts and dev.ts.
+- Evidence: .sisyphus/evidence/task-2-notes.md. tsc exit 0; full suite 404 passed / 1 skipped.
+## 2026-09-28 T2 voice-proxy done
+- Repo vitest executes under Node 22 (bunx vitest → node CLI; setup mocks bun:sqlite for that reason). Bun-only tests must `describe.skipIf(!hasBun)`; run `bun node_modules/.bin/vitest run <file>` to execute them for real.
+- `bunx vitest` resolves to node even though bunx exists — verify runtime with `process.execPath` before writing Bun-API tests.
+- T2 round-3 files were present uncommitted (contrary to hollow-completion notes) — always `git status` before rewriting; verifying existing work beats redoing it.

@@ -1,0 +1,158 @@
+/* Voice dock — sibling of the escalations section, pinned to the bottom of
+   the focus remote. Tokens only; dark-mode follows the app root. */
+
+.voice-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  margin-top: 12px;
+  padding: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  box-shadow: var(--dot-inset-shadow);
+}
+
+.voice-dock-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-toggle {
+  padding: 4px 10px;
+  font-size: var(--font-xs);
+  color: var(--accent-primary);
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.voice-toggle[data-active="true"] {
+  color: var(--accent-danger);
+}
+
+.voice-status {
+  padding: 2px 8px;
+  font-size: var(--font-xs);
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  color: var(--idle-border-color);
+}
+
+.voice-status[data-state="connected"] {
+  color: var(--accent-success);
+  border-color: var(--accent-success);
+}
+
+.voice-status[data-state="connecting"],
+.voice-status[data-state="reconnecting"] {
+  color: var(--accent-warning);
+  border-color: var(--accent-warning);
+}
+
+.voice-confirm {
+  padding: 2px 8px;
+  font-size: var(--font-xs);
+  color: var(--accent-warning);
+  border: 1px dashed var(--accent-warning);
+  border-radius: 999px;
+}
+
+.voice-transcript-toggle {
+  margin-left: auto;
+  padding: 4px 8px;
+  font-size: var(--font-xs);
+  color: var(--idle-border-color);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.voice-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 6px 8px;
+  font-size: var(--font-xs);
+  font-family: var(--font-mono);
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.voice-transcript-empty {
+  color: var(--idle-border-color);
+}
+
+.voice-line--user {
+  color: var(--accent-primary);
+}
+
+.voice-line--assistant {
+  color: var(--border-primary);
+}
+
+.voice-line--system {
+  color: var(--idle-border-color);
+  font-style: italic;
+}
+
+.voice-talk {
+  align-self: center;
+  width: 96px;
+  height: 40px;
+  font-size: var(--font-sm);
+  color: var(--bg-primary);
+  background: var(--accent-primary);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  /* PTT: suppress scroll/zoom gestures so pointerup always lands on the button. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.voice-talk:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.voice-show .showview {
+  margin: 0;
+}
+
+.voice-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  background: var(--overlay-backdrop);
+  border-radius: 10px;
+}
+
+.voice-overlay p {
+  margin: 0;
+  font-size: var(--font-sm);
+}
+
+.voice-overlay button {
+  padding: 6px 14px;
+  font-size: var(--font-sm);
+  color: var(--bg-primary);
+  background: var(--accent-primary);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}

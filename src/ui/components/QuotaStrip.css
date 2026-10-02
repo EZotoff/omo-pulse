@@ -8,8 +8,10 @@
   --quota-track-min: 28px;
   --quota-track-h: 5px;
   /* Fixed central clearing around the page-centered header-restore chevron
-     (10px wide): chevron width plus ~4px of breathing room on each side. */
-  --quota-center-gap: 18px;
+     (10px wide, centered on the full viewport). Sized so each side keeps
+     ~11px+ clearance even with the ~10px scrollbar shifting the layout
+     center slightly left of the chevron. */
+  --quota-center-gap: 32px;
   /* Two half-page columns separated only by the central chevron clearing.
      Groups stretch to fill their cell, so every provider occupies the same
      total length and the two halves meet symmetrically at the page center. */

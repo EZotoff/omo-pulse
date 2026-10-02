@@ -5,17 +5,18 @@
      quota strip keeps a constant readable size so it never reflows after load */
   --quota-font: var(--font-sm);
   --quota-icon: 16px;
-  --quota-track-w: 48px;
+  --quota-track-min: 28px;
   --quota-track-h: 5px;
-  /* Two provider columns; all groups left-anchored so icons stay aligned
-     across rows even when window counts differ */
+  /* Fixed central clearing around the page-centered header-restore chevron
+     (10px wide): chevron width plus ~4px of breathing room on each side. */
+  --quota-center-gap: 18px;
+  /* Two half-page columns separated only by the central chevron clearing.
+     Groups stretch to fill their cell, so every provider occupies the same
+     total length and the two halves meet symmetrically at the page center. */
   display: grid;
-  /* minmax(0,1fr): rows do NOT share width constraints — a wide provider row
-     (e.g. three quota windows) overflows its own cell instead of widening the
-     track and pushing the right-column providers toward the page edge. */
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  justify-items: start;
-  gap: var(--sp-2) var(--sp-4);
+  column-gap: var(--quota-center-gap);
+  row-gap: var(--sp-2);
   padding: 3px var(--sp-4) 0;
 }
 
@@ -24,6 +25,10 @@
   align-items: center;
   gap: var(--sp-2);
   cursor: default;
+  min-width: 0;
+  /* Providers stretch across their whole half-column; the usage tracks below
+     flex to absorb the difference in window count, so track width is a
+     deterministic function of window count — never arbitrary. */
 }
 
 .quota-strip__symbol {
@@ -55,6 +60,8 @@
   display: flex;
   align-items: center;
   gap: var(--sp-2);
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .quota-strip__line {
@@ -69,11 +76,16 @@
   line-height: 1;
   letter-spacing: 0.3px;
   color: var(--text-muted);
+  /* Fixed 2-char slot ("5H", "WK", "MO") so tracks start aligned */
+  min-width: 2ch;
 }
 
 .quota-strip__track {
   position: relative;
-  width: var(--quota-track-w);
+  /* Flexes within its line: width adapts to the provider's window count so
+     every provider group spans the same total length in its half-column */
+  flex: 1 1 0;
+  min-width: var(--quota-track-min);
   height: var(--quota-track-h);
   border-radius: calc(var(--quota-track-h) / 2);
   background: var(--border-secondary);

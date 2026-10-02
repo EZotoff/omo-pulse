@@ -70,6 +70,11 @@
   display: flex;
   align-items: center;
   gap: 5px;
+  /* Each window line stretches equally within the group, so the tracks
+     inside actually grow: track width adapts to the provider's window count
+     while the group keeps its full half-column length. */
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .quota-strip__window {

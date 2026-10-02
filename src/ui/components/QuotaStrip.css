@@ -134,6 +134,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Straight center seam: the left column's last countdown ends flush against
+   the central clearing instead of leaving ragged gaps inside its 6ch slot. */
+.quota-strip__provider:nth-child(odd) .quota-strip__line:last-child .quota-strip__reset {
+  text-align: right;
+}
+
+
 .quota-strip__fill--warn {
   --fill-color: var(--accent-warning);
 }

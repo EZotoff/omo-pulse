@@ -13,7 +13,7 @@
  * - Ollama Cloud: GET https://ollama.com/api/usage                     (undocumented)
  */
 
-import { readFile } from "node:fs/promises"
+import { readFile, rename, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { getDataDir } from "../ingest/paths"
 import type {
@@ -691,6 +691,39 @@ export type QuotaServiceOptions = {
 
 export function defaultAuthPath(): string {
   return join(getDataDir(), "opencode", "auth.json")
+}
+
+/**
+ * Merge MiMo SSO cookies into the mimo auth entry (used by POST /quotas/mimo-cookies,
+ * fed by the mimo-cookie-bridge browser extension). Values are validated: empty,
+ * oversized, or control-character payloads are rejected without touching the file.
+ */
+export async function applyMimoCookies(
+  authPath: string,
+  serviceToken: string,
+  userId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const valid = (v: string, max: number) =>
+    typeof v === "string" && v.length > 0 && v.length <= max && !/[\x00-\x1f\x7f]/.test(v)
+  if (!valid(serviceToken, 4096)) return { ok: false, error: "invalid serviceToken" }
+  if (!valid(userId, 256)) return { ok: false, error: "invalid userId" }
+  let auth: Record<string, unknown> = {}
+  try {
+    auth = JSON.parse(await readFile(authPath, "utf8")) as Record<string, unknown>
+  } catch {
+    auth = {}
+  }
+  const existing = auth.mimo
+  const mimo = (typeof existing === "object" && existing !== null ? existing : {}) as Record<string, unknown>
+  mimo.type = "api"
+  if (typeof mimo.key !== "string") mimo.key = ""
+  mimo.serviceToken = serviceToken
+  mimo.userId = userId
+  auth.mimo = mimo
+  const tmpPath = `${authPath}.tmp`
+  await writeFile(tmpPath, JSON.stringify(auth, null, 2))
+  await rename(tmpPath, authPath)
+  return { ok: true }
 }
 
 export function createQuotaService(opts: QuotaServiceOptions = {}): QuotaService {

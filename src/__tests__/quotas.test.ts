@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { mkdtemp, writeFile } from "node:fs/promises"
+import { mkdtemp, readFile, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
+  applyMimoCookies,
   createQuotaService,
   parseAuthFile,
   parseGoUsage,
@@ -23,6 +24,44 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
   })
 }
+
+describe("applyMimoCookies", () => {
+  const readAuth = async (p: string) => JSON.parse(await readFile(p, "utf8"))
+  const writeAuth = async (p: string, v: unknown) => writeFile(p, JSON.stringify(v))
+
+  it("merges serviceToken/userId into the mimo auth entry, preserving other entries", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "mimo-auth-"))
+    const authPath = join(dir, "auth.json")
+    await writeAuth(authPath, { "opencode-go": { type: "api", key: "sk-go" }, mimo: { type: "api", key: "tp-key" } })
+    const result = await applyMimoCookies(authPath, "st-token", "u-123")
+    expect(result).toEqual({ ok: true })
+    const saved = await readAuth(authPath)
+    expect(saved["opencode-go"]).toEqual({ type: "api", key: "sk-go" })
+    expect(saved.mimo).toEqual({ type: "api", key: "tp-key", serviceToken: "st-token", userId: "u-123" })
+  })
+
+  it("creates the mimo entry when absent", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "mimo-auth-"))
+    const authPath = join(dir, "auth.json")
+    await writeAuth(authPath, {})
+    const result = await applyMimoCookies(authPath, "st", "u")
+    expect(result).toEqual({ ok: true })
+    const saved = await readAuth(authPath)
+    expect(saved.mimo).toEqual({ type: "api", key: "", serviceToken: "st", userId: "u" })
+  })
+
+  it("rejects empty or unsafe values without touching the file", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "mimo-auth-"))
+    const authPath = join(dir, "auth.json")
+    await writeAuth(authPath, { mimo: { type: "api", key: "k" } })
+    const before = await readFile(authPath, "utf8")
+    expect((await applyMimoCookies(authPath, "", "u")).ok).toBe(false)
+    expect((await applyMimoCookies(authPath, "st", "bad\nvalue")).ok).toBe(false)
+    expect((await applyMimoCookies(authPath, "x".repeat(5000), "u")).ok).toBe(false)
+    expect(await readFile(authPath, "utf8")).toBe(before)
+  })
+})
+
 
 const NOW_MS = Date.UTC(2026, 8, 12, 12, 0, 0)
 

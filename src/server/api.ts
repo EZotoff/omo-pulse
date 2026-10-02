@@ -12,7 +12,7 @@ import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../inge
 import { readSupervisorQueueProjection } from "../ingest/supervisor-queue"
 import { deriveToolCallsSqlite } from "../ingest/sqlite-derive"
 import type { StorageBackend } from "../ingest/storage-backend"
-import { createQuotaService } from "./quotas"
+import { applyMimoCookies, createQuotaService, defaultAuthPath } from "./quotas"
 import { isFreshnessRelevant } from "../ingest/opencode-event-map"
 import type { RealtimeBus, SseConnectionState } from "../ingest/realtime-types"
 import type { AttentionProject, DashboardMultiProjectPayload, TelegramServiceStatus } from "../types"
@@ -372,6 +372,26 @@ export function createApi(opts: {
   api.get("/quotas", async (c) => {
     const payload = await quotaService.getQuotas()
     return c.json({ ok: true, ...payload })
+  })
+
+  // ---------------------------------------------------------------------
+  // POST /quotas/mimo-cookies — feed MiMo SSO cookies from the browser
+  // extension (tools/mimo-cookie-bridge). Localhost-only server; merges the
+  // cookies into auth.json and invalidates the quota cache immediately.
+  // ---------------------------------------------------------------------
+  api.post("/quotas/mimo-cookies", async (c) => {
+    const body = await c.req.json().catch(() => null)
+    const serviceToken = (body as Record<string, unknown> | null)?.serviceToken
+    const userId = (body as Record<string, unknown> | null)?.userId
+    if (typeof serviceToken !== "string" || typeof userId !== "string") {
+      return c.json({ ok: false, error: "serviceToken and userId are required strings" }, 400)
+    }
+    const result = await applyMimoCookies(defaultAuthPath(), serviceToken, userId)
+    if (!result.ok) {
+      return c.json({ ok: false, error: result.error }, 400)
+    }
+    quotaService.invalidate()
+    return c.json({ ok: true })
   })
 
   // -------------------------------------------------------------------------

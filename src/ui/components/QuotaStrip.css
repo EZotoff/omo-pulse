@@ -92,7 +92,9 @@
   /* Flexes within its line: width adapts to the provider's window count so
      every provider group spans the same total length in its half-column */
   flex: 1 1 0;
-  min-width: var(--quota-track-min);
+  /* 14px floor: at the operator's narrow dashboard window (~537 CSS px) three
+     windows per group cannot afford 28px tracks without overlapping text */
+  min-width: 14px;
   height: var(--quota-track-h);
   border-radius: calc(var(--quota-track-h) / 2);
   background: var(--border-secondary);
@@ -124,8 +126,13 @@
 
 .quota-strip__reset {
   font-family: var(--font-mono);
-  /* Reserve a fixed 6-character slot so tracks align across providers */
-  min-width: 6ch;
+  /* 6ch slot for aligned countdowns; shrinkable with ellipsis at narrow
+     viewports so fixed slots can never overflow onto labels or tracks
+     (full countdown text remains in the tooltip) */
+  max-width: 6ch;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: var(--quota-font);
   line-height: 1;
   letter-spacing: 0.2px;

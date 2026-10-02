@@ -13,8 +13,8 @@
  * - Ollama Cloud: GET https://ollama.com/api/usage                     (undocumented)
  */
 
-import { readFile, rename, writeFile } from "node:fs/promises"
-import { join } from "node:path"
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
+import { dirname, join } from "node:path"
 import { getDataDir } from "../ingest/paths"
 import type {
   ProviderQuota,
@@ -480,6 +480,8 @@ type ProviderFetchArgs = {
   auth: AuthFile
   fetchImpl: FetchLike
   nowMs: number
+  /** Cookie-file path override (MiMo bridge); default when omitted */
+  mimoCookiePath?: string
 }
 
 /* ── Provider icons (server-fetched favicons, cached in memory) ── */
@@ -655,16 +657,30 @@ const providerDefs: ProviderDef[] = [
     symbol: "MI",
     iconUrl: "https://platform.xiaomimimo.com/favicon.ico",
     authKeys: ["mimo"],
-    fetchWindows: async ({ entry, fetchImpl, nowMs }) => {
+    fetchWindows: async ({ entry, fetchImpl, nowMs, mimoCookiePath }) => {
       if (entry.type !== "api") throw new Error("mimo auth entry is not an API key")
       /* Xiaomi SSO browser cookies are required — the tp- inference API key
-         is rejected by the plan-usage endpoint (verified: 401 loginUrl). */
-      if (!entry.serviceToken || !entry.userId) {
-        throw new Error("MiMo usage needs Xiaomi session cookies: add serviceToken + userId to the mimo auth entry")
+         is rejected by the plan-usage endpoint (verified: 401 loginUrl).
+         Cookies live in a dedicated omo-pulse file written by the
+         mimo-cookie-bridge extension: OpenCode rewrites auth.json on token
+         refreshes and would clobber foreign fields stored there. */
+      let serviceToken = entry.serviceToken
+      let userId = entry.userId
+      try {
+        const cookieFile = JSON.parse(
+          await readFile(mimoCookiePath ?? defaultMimoCookiePath(), "utf8"),
+        ) as Record<string, unknown>
+        if (typeof cookieFile.serviceToken === "string" && cookieFile.serviceToken) serviceToken = cookieFile.serviceToken
+        if (typeof cookieFile.userId === "string" && cookieFile.userId) userId = cookieFile.userId
+      } catch {
+        /* no cookie file — fall back to auth entry fields */
+      }
+      if (!serviceToken || !userId) {
+        throw new Error("MiMo usage needs Xiaomi session cookies — install the mimo-cookie-bridge browser extension (tools/mimo-cookie-bridge)")
       }
       const body = await fetchJson(fetchImpl, MIMO_USAGE_URL, {
         Accept: "application/json, text/plain, */*",
-        Cookie: `userId=${entry.userId}; api-platform_serviceToken=${entry.serviceToken}`,
+        Cookie: `userId=${userId}; api-platform_serviceToken=${serviceToken}`,
         Origin: "https://platform.xiaomimimo.com",
         Referer: "https://platform.xiaomimimo.com/#/console/balance",
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
@@ -687,19 +703,26 @@ export type QuotaServiceOptions = {
   cacheTtlMs?: number
   fetchImpl?: FetchLike
   now?: () => number
+  mimoCookiePath?: string
 }
 
 export function defaultAuthPath(): string {
   return join(getDataDir(), "opencode", "auth.json")
 }
 
+export function defaultMimoCookiePath(): string {
+  return join(getDataDir(), "omo-pulse", "mimo-cookies.json")
+}
+
 /**
- * Merge MiMo SSO cookies into the mimo auth entry (used by POST /quotas/mimo-cookies,
- * fed by the mimo-cookie-bridge browser extension). Values are validated: empty,
- * oversized, or control-character payloads are rejected without touching the file.
+ * Persist MiMo SSO cookies (POST /quotas/mimo-cookies, fed by the
+ * mimo-cookie-bridge extension) to a dedicated omo-pulse file. Must NOT live in
+ * auth.json: OpenCode rewrites that file on token refreshes and clobbers
+ * foreign fields. Values are validated: empty, oversized, or control-character
+ * payloads are rejected without touching the file.
  */
 export async function applyMimoCookies(
-  authPath: string,
+  cookiePath: string,
   serviceToken: string,
   userId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -707,22 +730,10 @@ export async function applyMimoCookies(
     typeof v === "string" && v.length > 0 && v.length <= max && !/[\x00-\x1f\x7f]/.test(v)
   if (!valid(serviceToken, 4096)) return { ok: false, error: "invalid serviceToken" }
   if (!valid(userId, 256)) return { ok: false, error: "invalid userId" }
-  let auth: Record<string, unknown> = {}
-  try {
-    auth = JSON.parse(await readFile(authPath, "utf8")) as Record<string, unknown>
-  } catch {
-    auth = {}
-  }
-  const existing = auth.mimo
-  const mimo = (typeof existing === "object" && existing !== null ? existing : {}) as Record<string, unknown>
-  mimo.type = "api"
-  if (typeof mimo.key !== "string") mimo.key = ""
-  mimo.serviceToken = serviceToken
-  mimo.userId = userId
-  auth.mimo = mimo
-  const tmpPath = `${authPath}.tmp`
-  await writeFile(tmpPath, JSON.stringify(auth, null, 2))
-  await rename(tmpPath, authPath)
+  await mkdir(dirname(cookiePath), { recursive: true })
+  const tmpPath = `${cookiePath}.tmp`
+  await writeFile(tmpPath, JSON.stringify({ serviceToken, userId, updatedAtMs: Date.now() }, null, 2))
+  await rename(tmpPath, cookiePath)
   return { ok: true }
 }
 
@@ -765,7 +776,7 @@ export function createQuotaService(opts: QuotaServiceOptions = {}): QuotaService
       }
     }
     try {
-      const windows = await def.fetchWindows({ auth, entry, fetchImpl, nowMs: fetchedAtMs })
+      const windows = await def.fetchWindows({ auth, entry, fetchImpl, nowMs: fetchedAtMs, mimoCookiePath: opts.mimoCookiePath })
       lastGoodWindows.set(def.providerId, { windows, fetchedAtMs })
       return {
         providerId: def.providerId,

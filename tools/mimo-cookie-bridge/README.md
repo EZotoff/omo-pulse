@@ -22,6 +22,7 @@ console after a session rotation.
 
 ## How it works
 
-`chrome.cookies` → POST `/api/quotas/mimo-cookies` → dashboard merges the
-cookies into OpenCode's `auth.json` (`mimo` entry) and invalidates the quota
+`chrome.cookies` → POST `/api/quotas/mimo-cookies` → dashboard stores the
+cookies in its own file (`~/.local/share/omo-pulse/mimo-cookies.json` —
+deliberately not auth.json, which OpenCode rewrites) and invalidates the quota
 cache, so the MiMo bar appears on the quota strip immediately.

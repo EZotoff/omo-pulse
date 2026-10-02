@@ -12,7 +12,7 @@ import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../inge
 import { readSupervisorQueueProjection } from "../ingest/supervisor-queue"
 import { deriveToolCallsSqlite } from "../ingest/sqlite-derive"
 import type { StorageBackend } from "../ingest/storage-backend"
-import { applyMimoCookies, createQuotaService, defaultAuthPath } from "./quotas"
+import { applyMimoCookies, createQuotaService, defaultMimoCookiePath } from "./quotas"
 import { isFreshnessRelevant } from "../ingest/opencode-event-map"
 import type { RealtimeBus, SseConnectionState } from "../ingest/realtime-types"
 import type { AttentionProject, DashboardMultiProjectPayload, TelegramServiceStatus } from "../types"
@@ -386,7 +386,7 @@ export function createApi(opts: {
     if (typeof serviceToken !== "string" || typeof userId !== "string") {
       return c.json({ ok: false, error: "serviceToken and userId are required strings" }, 400)
     }
-    const result = await applyMimoCookies(defaultAuthPath(), serviceToken, userId)
+    const result = await applyMimoCookies(defaultMimoCookiePath(), serviceToken, userId)
     if (!result.ok) {
       return c.json({ ok: false, error: result.error }, 400)
     }

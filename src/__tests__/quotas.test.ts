@@ -26,39 +26,28 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 describe("applyMimoCookies", () => {
-  const readAuth = async (p: string) => JSON.parse(await readFile(p, "utf8"))
-  const writeAuth = async (p: string, v: unknown) => writeFile(p, JSON.stringify(v))
+  const readStore = async (p: string) => JSON.parse(await readFile(p, "utf8"))
 
-  it("merges serviceToken/userId into the mimo auth entry, preserving other entries", async () => {
+  it("writes the cookie store with serviceToken/userId, creating directories", async () => {
     const dir = await mkdtemp(join(tmpdir(), "mimo-auth-"))
-    const authPath = join(dir, "auth.json")
-    await writeAuth(authPath, { "opencode-go": { type: "api", key: "sk-go" }, mimo: { type: "api", key: "tp-key" } })
-    const result = await applyMimoCookies(authPath, "st-token", "u-123")
+    const cookiePath = join(dir, "sub", "mimo-cookies.json")
+    const result = await applyMimoCookies(cookiePath, "st-token", "u-123")
     expect(result).toEqual({ ok: true })
-    const saved = await readAuth(authPath)
-    expect(saved["opencode-go"]).toEqual({ type: "api", key: "sk-go" })
-    expect(saved.mimo).toEqual({ type: "api", key: "tp-key", serviceToken: "st-token", userId: "u-123" })
-  })
-
-  it("creates the mimo entry when absent", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "mimo-auth-"))
-    const authPath = join(dir, "auth.json")
-    await writeAuth(authPath, {})
-    const result = await applyMimoCookies(authPath, "st", "u")
-    expect(result).toEqual({ ok: true })
-    const saved = await readAuth(authPath)
-    expect(saved.mimo).toEqual({ type: "api", key: "", serviceToken: "st", userId: "u" })
+    const saved = await readStore(cookiePath)
+    expect(saved.serviceToken).toBe("st-token")
+    expect(saved.userId).toBe("u-123")
+    expect(typeof saved.updatedAtMs).toBe("number")
   })
 
   it("rejects empty or unsafe values without touching the file", async () => {
     const dir = await mkdtemp(join(tmpdir(), "mimo-auth-"))
-    const authPath = join(dir, "auth.json")
-    await writeAuth(authPath, { mimo: { type: "api", key: "k" } })
-    const before = await readFile(authPath, "utf8")
-    expect((await applyMimoCookies(authPath, "", "u")).ok).toBe(false)
-    expect((await applyMimoCookies(authPath, "st", "bad\nvalue")).ok).toBe(false)
-    expect((await applyMimoCookies(authPath, "x".repeat(5000), "u")).ok).toBe(false)
-    expect(await readFile(authPath, "utf8")).toBe(before)
+    const cookiePath = join(dir, "mimo-cookies.json")
+    await writeFile(cookiePath, JSON.stringify({ serviceToken: "old", userId: "u" }))
+    const before = await readFile(cookiePath, "utf8")
+    expect((await applyMimoCookies(cookiePath, "", "u")).ok).toBe(false)
+    expect((await applyMimoCookies(cookiePath, "st", "bad\nvalue")).ok).toBe(false)
+    expect((await applyMimoCookies(cookiePath, "x".repeat(5000), "u")).ok).toBe(false)
+    expect(await readFile(cookiePath, "utf8")).toBe(before)
   })
 })
 

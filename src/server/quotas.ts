@@ -37,6 +37,7 @@ const ZAI_USAGE_URL = "https://api.z.ai/api/monitor/usage/quota/limit"
 const KIMI_USAGE_URL = "https://api.kimi.com/coding/v1/usages"
 const OPENAI_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage"
 const OLLAMA_USAGE_URL = "https://ollama.com/api/usage"
+const MIMO_USAGE_URL = "https://platform.xiaomimimo.com/api/v1/tokenPlan/usage"
 
 const HOUR_SECONDS = 3_600
 const FIVE_HOURS_SECONDS = 5 * HOUR_SECONDS
@@ -49,7 +50,14 @@ const GO_MONTH_SECONDS = 30 * 24 * HOUR_SECONDS
 
 /* ── auth.json shape (read-only) ── */
 
-type AuthEntryApi = { type: "api"; key: string }
+type AuthEntryApi = {
+  type: "api"
+  key: string
+  /** Xiaomi SSO session cookie (MiMo plan usage API rejects the tp- API key) */
+  serviceToken?: string
+  /** Xiaomi SSO user id cookie, paired with serviceToken */
+  userId?: string
+}
 type AuthEntryOauth = {
   type: "oauth"
   access: string
@@ -79,7 +87,12 @@ export function parseAuthFile(raw: string): AuthFile {
     if (typeof value !== "object" || value === null) continue
     const entry = value as Record<string, unknown>
     if (entry.type === "api" && typeof entry.key === "string" && entry.key.length > 0) {
-      out[key] = { type: "api", key: entry.key }
+      out[key] = {
+        type: "api",
+        key: entry.key,
+        serviceToken: typeof entry.serviceToken === "string" && entry.serviceToken.length > 0 ? entry.serviceToken : undefined,
+        userId: typeof entry.userId === "string" && entry.userId.length > 0 ? entry.userId : undefined,
+      }
     } else if (
       entry.type === "oauth" &&
       typeof entry.access === "string" && entry.access.length > 0 &&
@@ -188,6 +201,33 @@ export function parseGoUsage(body: unknown): QuotaWindow[] {
     })
   }
   return windows
+}
+
+/**
+ * Xiaomi MiMo: { code: 0, data: { monthUsage: { items: [{ name: "month_total_token", used, limit }] } } }
+ * Single monthly token-plan window; no reset field → next UTC month boundary.
+ */
+export function parseMimoUsage(body: unknown, nowMs: number): QuotaWindow[] {
+  const root = asRecord(body)
+  const data = root ? asRecord(root.data) : null
+  const monthUsage = data ? asRecord(data.monthUsage) : null
+  const items = monthUsage && Array.isArray(monthUsage.items) ? monthUsage.items : null
+  if (!items) return []
+  for (const raw of items) {
+    const item = asRecord(raw)
+    if (!item || item.name !== "month_total_token") continue
+    const used = toNumber(item.used)
+    const limit = toNumber(item.limit)
+    if (used === null || limit === null || limit <= 0) continue
+    return [{
+      id: "monthly",
+      shortLabel: "MO",
+      label: "Monthly token plan",
+      usedPercent: clampPercent((used / limit) * 100),
+      resetsAtMs: nextMonthBoundaryMs(nowMs),
+    }]
+  }
+  return []
 }
 
 /**
@@ -607,6 +647,30 @@ const providerDefs: ProviderDef[] = [
         Authorization: `Bearer ${entry.key}`,
       })
       return parseGoUsage(body)
+    },
+  },
+  {
+    providerId: "mimo",
+    name: "MiMo",
+    symbol: "MI",
+    iconUrl: "https://platform.xiaomimimo.com/favicon.ico",
+    authKeys: ["mimo"],
+    fetchWindows: async ({ entry, fetchImpl, nowMs }) => {
+      if (entry.type !== "api") throw new Error("mimo auth entry is not an API key")
+      /* Xiaomi SSO browser cookies are required — the tp- inference API key
+         is rejected by the plan-usage endpoint (verified: 401 loginUrl). */
+      if (!entry.serviceToken || !entry.userId) {
+        throw new Error("MiMo usage needs Xiaomi session cookies: add serviceToken + userId to the mimo auth entry")
+      }
+      const body = await fetchJson(fetchImpl, MIMO_USAGE_URL, {
+        Accept: "application/json, text/plain, */*",
+        Cookie: `userId=${entry.userId}; api-platform_serviceToken=${entry.serviceToken}`,
+        Origin: "https://platform.xiaomimimo.com",
+        Referer: "https://platform.xiaomimimo.com/#/console/balance",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "x-timeZone": "UTC+00:00",
+      })
+      return parseMimoUsage(body, nowMs)
     },
   },
 ]

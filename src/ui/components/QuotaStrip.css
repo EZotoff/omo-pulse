@@ -212,6 +212,9 @@
 
 /* ── Style: leds ── 10-dot meter per window, countdown inline ── */
 
+.quota-strip[data-style="leds"] .quota-strip__provider {
+  align-items: flex-start;
+}
 .quota-strip[data-style="leds"] .quota-strip__lines {
   flex-direction: column;
   align-items: stretch;

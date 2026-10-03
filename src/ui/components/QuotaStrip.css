@@ -181,11 +181,12 @@
 .quota-strip[data-style="type"] .quota-strip__provider {
   flex: 1 1 0;
   min-width: 0;
-  justify-content: center;
+  /* Block content hugs its leading edge: icon + rings sit snugly together
+     while the blocks themselves stretch across the full row */
+  justify-content: flex-start;
 }
 .quota-strip[data-style="rings"] .quota-strip__lines {
   gap: 5px;
-  justify-content: center;
 }
 .quota-ring {
   position: relative;
@@ -214,12 +215,15 @@
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.5px;
   font-family: var(--font-mono);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.2px;
+  line-height: 1.05;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -228,6 +232,13 @@
 .quota-ring[data-level="warn"] .quota-ring__text { color: var(--accent-warning); }
 .quota-ring[data-level="danger"] .quota-ring__text { color: var(--accent-danger); }
 .quota-ring[data-level="exhausted"] .quota-ring__text { color: #7a3b3b; }
+
+/* Suppressed windows (a longer quota is exhausted → provider locked out):
+   keep the layout static — dim to near-invisible and strip all color */
+.quota-strip [data-suppressed="true"] {
+  opacity: 0.22;
+  filter: grayscale(1);
+}
 
 /* ── Style: leds ── 10-dot meter per window, countdown inline ── */
 

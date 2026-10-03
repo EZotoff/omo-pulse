@@ -63,9 +63,10 @@ export type QuotaStripProps = {
   quotas: ProviderQuotasPayload | null
   iconMode: "icons" | "codes"
   style: StripConfigState["quotaStyle"]
+  ringSize: number
 }
 
-export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style }: QuotaStripProps) {
+export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style, ringSize }: QuotaStripProps) {
   if (quotas === null || quotas.providers.length === 0) return null
 
   const useIcons = iconMode === "icons"
@@ -78,27 +79,42 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style }: 
       case "rings":
         return windows.map((w) => {
           const pct = Math.min(Math.round(w.usedPercent), 100)
-          const r = 8.5
-          const c = 2 * Math.PI * r
+          const inset = 2
+          const side = ringSize - 2 * inset
+          const label = w.resetsAtMs !== null ? formatRemaining(w.resetsAtMs) : `${pct}%`
           return (
-            <div key={w.id} className="quota-ring" title={`${w.shortLabel}: ${Math.round(w.usedPercent)}%`}>
-              <svg width="22" height="22">
-                <circle className="quota-ring__bg" cx="11" cy="11" r={r} />
-                <circle
-                  className="quota-ring__val"
-                  cx="11"
-                  cy="11"
-                  r={r}
-                  stroke="none"
-                  style={{
-                    strokeDasharray: c,
-                    strokeDashoffset: c * (1 - pct / 100),
-                  }}
-                  data-level={usageLevel(w.usedPercent)}
-                />
+            <div
+              key={w.id}
+              className="quota-ring"
+              data-level={usageLevel(w.usedPercent)}
+              style={{ width: ringSize, height: ringSize }}
+              title={`${w.shortLabel}: ${Math.round(w.usedPercent)}% used${w.resetsAtMs !== null ? `, resets ${label}` : ""}`}
+            >
+              <svg width={ringSize} height={ringSize}>
+                <g transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`}>
+                  <rect
+                    className="quota-ring__bg"
+                    x={inset}
+                    y={inset}
+                    width={side}
+                    height={side}
+                    rx={side * 0.3}
+                    pathLength={100}
+                  />
+                  <rect
+                    className="quota-ring__val"
+                    x={inset}
+                    y={inset}
+                    width={side}
+                    height={side}
+                    rx={side * 0.3}
+                    pathLength={100}
+                    style={{ strokeDasharray: 100, strokeDashoffset: 100 - pct }}
+                  />
+                </g>
               </svg>
-              <span className="quota-ring__pct" aria-hidden="true">
-                {pct}
+              <span className="quota-ring__text" style={{ fontSize: Math.max(6, Math.round(ringSize * 0.24)) }} aria-hidden="true">
+                {label}
               </span>
             </div>
           )

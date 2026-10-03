@@ -169,7 +169,7 @@ export function App({ data, connected, connection = "polling", lastUpdatedMs, pr
   const { config: soundConfig, setConfig: setSoundConfig, playWaiting, playAllClear, playAttention, playQuestion } = useSoundNotifications()
   const { orderedIds, columns, reorder, setColumns, syncIds } = useProjectOrder()
   const { visibility, isVisible, toggleVisibility } = useProjectVisibility()
-  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode, setMiniSparklineMode, setQuotaIconMode, setQuotaStyle, setRecentProjectsLimit, setProjectListMode } = useStripConfig()
+  const { config: stripConfig, toggle: toggleStripConfig, setMode: setStripMode, setMiniSparklineMode, setQuotaIconMode, setQuotaStyle, setQuotaRingSize, setRecentProjectsLimit, setProjectListMode } = useStripConfig()
   const { quotas } = useQuotas()
   const [activeOverlay, setActiveOverlay] = useState<ActiveOverlay>('none')
 
@@ -496,7 +496,7 @@ export function App({ data, connected, connection = "polling", lastUpdatedMs, pr
           onCollapse={handleToggleHeader}
         />
       )}
-      {stripConfig.showQuotas && <QuotaStrip quotas={quotas} iconMode={stripConfig.quotaIconMode} style={stripConfig.quotaStyle} />}
+      {stripConfig.showQuotas && <QuotaStrip quotas={quotas} iconMode={stripConfig.quotaIconMode} style={stripConfig.quotaStyle} ringSize={stripConfig.quotaRingSize} />}
       <div className="container">
         {data === null ? (
           <div className="dashboard-loading">Loading…</div>
@@ -572,6 +572,7 @@ export function App({ data, connected, connection = "polling", lastUpdatedMs, pr
         onSetMiniSparklineMode={setMiniSparklineMode}
         onSetQuotaIconMode={setQuotaIconMode}
         onSetQuotaStyle={setQuotaStyle}
+        onSetQuotaRingSize={setQuotaRingSize}
         onSetRecentProjectsLimit={setRecentProjectsLimit}
         onSetProjectListMode={setProjectListMode}
         soundConfig={soundConfig}

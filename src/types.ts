@@ -230,6 +230,8 @@ export type StripConfigState = {
   quotaIconMode: "icons" | "codes"
   /** Provider quota indicator style: thin bars (classic), rings, LED meter, heat chips, or type-only */
   quotaStyle: "bars" | "rings" | "leds" | "chips" | "type"
+  /** Quota ring size in px (rings style only); default 27 = original 22 + 5 */
+  quotaRingSize: number
   stripDisplayMode: "project" | "session"
   /** How many recently-active projects to show on the dashboard (auto mode) */
   recentProjectsLimit: number

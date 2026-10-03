@@ -42,6 +42,7 @@ export type SettingsPanelProps = {
   onSetMiniSparklineMode: (mode: MiniSparklineMode) => void
   onSetQuotaIconMode: (mode: "icons" | "codes") => void
   onSetQuotaStyle: (mode: StripConfigState["quotaStyle"]) => void
+  onSetQuotaRingSize: (n: number) => void
   onSetRecentProjectsLimit: (n: number) => void
   onSetProjectListMode: (mode: "recent" | "manual") => void
   soundConfig: SoundConfig
@@ -97,6 +98,7 @@ export function SettingsPanel({
   onSetMiniSparklineMode,
   onSetQuotaIconMode,
   onSetQuotaStyle,
+  onSetQuotaRingSize,
   onSetRecentProjectsLimit,
   onSetProjectListMode,
   soundConfig,
@@ -181,6 +183,7 @@ export function SettingsPanel({
   const handleSetQuotaIconModeIcons = () => onSetQuotaIconMode("icons")
   const handleSetQuotaIconModeCodes = () => onSetQuotaIconMode("codes")
   const handleSetQuotaStyle = (mode: StripConfigState["quotaStyle"]) => onSetQuotaStyle(mode)
+  const handleSetQuotaRingSize = (e: React.ChangeEvent<HTMLInputElement>) => onSetQuotaRingSize(Number(e.target.value))
   const handleCollapsedHeightChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => onCollapsedHeightChange(Number(e.target.value)),
     [onCollapsedHeightChange],
@@ -321,6 +324,21 @@ export function SettingsPanel({
 
             <fieldset className="settings-fieldset">
               <legend className="settings-section__subtitle">Quota Style</legend>
+              <div className="settings-slider-row">
+                <span className="settings-slider-label">Ring Size</span>
+                <input
+                  className="settings-slider"
+                  type="range"
+                  min={16}
+                  max={48}
+                  step={1}
+                  value={stripConfig.quotaRingSize}
+                  onChange={handleSetQuotaRingSize}
+                  aria-label="Quota ring size"
+                />
+                <span className="settings-slider-value">{stripConfig.quotaRingSize}px</span>
+              </div>
+
               <div className="settings-segmented-control">
                 {(["bars", "rings", "leds", "chips", "type"] as const).map((mode) => (
                   <label className="settings-segmented-option" key={mode}>

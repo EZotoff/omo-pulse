@@ -50,6 +50,7 @@ describe("ProjectStrip plan history rendering", () => {
     showQuotas: false,
     quotaIconMode: "icons",
     quotaStyle: "bars",
+    quotaRingSize: 27,
     stripDisplayMode: "project",
     recentProjectsLimit: 6,
     projectListMode: "recent"

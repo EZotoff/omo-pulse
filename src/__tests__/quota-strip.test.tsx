@@ -65,7 +65,7 @@ describe("QuotaStrip styles", () => {
     ["type", "quota-type", 2],
   ] as const)("renders style %s with one indicator per window", (style, cls, expected) => {
     const markup = renderToStaticMarkup(
-      <QuotaStrip quotas={payload} iconMode="codes" style={style} />,
+      <QuotaStrip quotas={payload} iconMode="codes" style={style} ringSize={27} />,
     )
     const matches = markup.match(new RegExp(`class="[^"]*${cls}`, "g")) ?? []
     expect(matches.length).toBeGreaterThanOrEqual(expected)
@@ -74,7 +74,7 @@ describe("QuotaStrip styles", () => {
 
   it("keeps the exhausted provider visible with the empty placeholder for non-ok status", () => {
     const errored = { ...payload, providers: [{ ...payload.providers[0], status: "error" as const, windows: [] }] }
-    const markup = renderToStaticMarkup(<QuotaStrip quotas={errored} iconMode="codes" style="rings" />)
+    const markup = renderToStaticMarkup(<QuotaStrip quotas={errored} iconMode="codes" style="rings" ringSize={27} />)
     expect(markup).toContain("data-status=\"error\"")
     expect(markup).toContain("quota-strip__track")
   })

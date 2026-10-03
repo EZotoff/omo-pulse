@@ -169,46 +169,65 @@
   filter: saturate(0.7);
 }
 
-/* ── Style: rings ── donut arc per window, live % centered ── */
+/* ── Style: rings ── squircle progress arc per window, countdown inside ── */
 
+/* Rings + type flow as a single tidy row: every provider takes an equal 1/N share */
+.quota-strip[data-style="rings"],
+.quota-strip[data-style="type"] {
+  display: flex;
+  column-gap: var(--sp-2);
+}
+.quota-strip[data-style="rings"] .quota-strip__provider,
+.quota-strip[data-style="type"] .quota-strip__provider {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+}
 .quota-strip[data-style="rings"] .quota-strip__lines {
-  gap: 7px;
+  gap: 5px;
+  justify-content: center;
 }
 .quota-ring {
   position: relative;
-  width: 22px;
-  height: 22px;
   flex: none;
 }
 .quota-ring svg {
-  transform: rotate(-90deg);
   display: block;
 }
 .quota-ring__bg {
   fill: none;
   stroke: var(--border-primary);
-  stroke-width: 3;
+  stroke-width: 2.5;
 }
 .quota-ring__val {
   fill: none;
-  stroke-width: 3;
+  stroke-width: 2.5;
   stroke-linecap: round;
   transition: stroke-dashoffset var(--transition-normal);
 }
-.quota-ring__val[data-level="ok"] { stroke: var(--accent-primary); }
-.quota-ring__val[data-level="warn"] { stroke: var(--accent-warning); }
-.quota-ring__val[data-level="danger"] { stroke: var(--accent-danger); }
-.quota-ring__val[data-level="exhausted"] { stroke: #5a3232; }
-.quota-ring__pct {
+.quota-ring[data-level="ok"] .quota-ring__val { stroke: var(--accent-primary); }
+.quota-ring[data-level="warn"] .quota-ring__val { stroke: var(--accent-warning); }
+.quota-ring[data-level="danger"] .quota-ring__val { stroke: var(--accent-danger); }
+.quota-ring[data-level="exhausted"] .quota-ring__val { stroke: #5a3232; }
+/* Countdown inside the ring — Type-style typography: mono, semibold, level-colored */
+.quota-ring__text {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
-  font-size: 8px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
 }
+.quota-ring[data-level="ok"] .quota-ring__text { color: var(--accent-primary); }
+.quota-ring[data-level="warn"] .quota-ring__text { color: var(--accent-warning); }
+.quota-ring[data-level="danger"] .quota-ring__text { color: var(--accent-danger); }
+.quota-ring[data-level="exhausted"] .quota-ring__text { color: #7a3b3b; }
 
 /* ── Style: leds ── 10-dot meter per window, countdown inline ── */
 

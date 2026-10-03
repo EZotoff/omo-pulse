@@ -52,6 +52,7 @@ const baseConfig: StripConfigState = {
   showQuotas: true,
   quotaIconMode: "icons",
   quotaStyle: "bars",
+  quotaRingSize: 27,
 }
 
 const children = {

@@ -17,6 +17,7 @@ const DEFAULT_CONFIG: StripConfigState = {
   showProjectName: true,
   showQuotas: true,
   quotaIconMode: "icons",
+  quotaStyle: "bars",
   stripDisplayMode: "project",
   recentProjectsLimit: 6,
   projectListMode: "recent",
@@ -45,6 +46,10 @@ function readPersistedConfig(): StripConfigState {
     if (merged.projectListMode !== "recent" && merged.projectListMode !== "manual") {
       merged.projectListMode = "recent"
     }
+    const style = (merged as { quotaStyle?: unknown }).quotaStyle
+    if (style !== "bars" && style !== "rings" && style !== "leds" && style !== "chips" && style !== "type") {
+      merged.quotaStyle = "bars"
+    }
     return merged
   } catch {
     return DEFAULT_CONFIG
@@ -70,6 +75,7 @@ export function useStripConfig(): {
   setMode: (mode: "project" | "session") => void
   setMiniSparklineMode: (mode: MiniSparklineMode) => void
   setQuotaIconMode: (mode: "icons" | "codes") => void
+  setQuotaStyle: (mode: StripConfigState["quotaStyle"]) => void
   setRecentProjectsLimit: (n: number) => void
   setProjectListMode: (mode: "recent" | "manual") => void
   reset: () => void
@@ -109,6 +115,13 @@ export function useStripConfig(): {
     }))
   }, [])
 
+  const setQuotaStyle = useCallback((mode: StripConfigState["quotaStyle"]) => {
+    setConfig((prev) => ({
+      ...prev,
+      quotaStyle: mode,
+    }))
+  }, [])
+
   const setRecentProjectsLimit = useCallback((n: number) => {
     setConfig((prev) => ({
       ...prev,
@@ -127,5 +140,5 @@ export function useStripConfig(): {
     setConfig(DEFAULT_CONFIG)
   }, [])
 
-  return { config, toggle, setMode, setMiniSparklineMode, setQuotaIconMode, setRecentProjectsLimit, setProjectListMode, reset }
+  return { config, toggle, setMode, setMiniSparklineMode, setQuotaIconMode, setQuotaStyle, setRecentProjectsLimit, setProjectListMode, reset }
 }

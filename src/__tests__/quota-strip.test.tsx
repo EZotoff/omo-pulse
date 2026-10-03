@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { visibleWindows } from "../ui/components/QuotaStrip"
+import { renderToStaticMarkup } from "react-dom/server"
+import { QuotaStrip, visibleWindows } from "../ui/components/QuotaStrip"
 import type { QuotaWindow } from "../types"
 
 function win(id: string, usedPercent: number): QuotaWindow {
@@ -37,5 +38,44 @@ describe("visibleWindows", () => {
   it("handles single and empty lists", () => {
     expect(visibleWindows([])).toEqual([])
     expect(visibleWindows([win("monthly", 100)])).toEqual([win("monthly", 100)])
+  })
+})
+
+describe("QuotaStrip styles", () => {
+  const payload = {
+    providers: [
+      {
+        providerId: "test",
+        name: "Test",
+        symbol: "T",
+        icon: null,
+        windows: [win("5h", 45), win("weekly", 95)],
+        status: "ok" as const,
+        fetchedAtMs: 0,
+      },
+    ],
+    serverNowMs: 0,
+  }
+
+  it.each([
+    ["bars", "quota-strip__line", 2],
+    ["rings", "quota-ring", 2],
+    ["leds", "quota-leds", 2],
+    ["chips", "quota-chip", 2],
+    ["type", "quota-type", 2],
+  ] as const)("renders style %s with one indicator per window", (style, cls, expected) => {
+    const markup = renderToStaticMarkup(
+      <QuotaStrip quotas={payload} iconMode="codes" style={style} />,
+    )
+    const matches = markup.match(new RegExp(`class="[^"]*${cls}`, "g")) ?? []
+    expect(matches.length).toBeGreaterThanOrEqual(expected)
+    expect(markup).toContain(`data-style="${style}"`)
+  })
+
+  it("keeps the exhausted provider visible with the empty placeholder for non-ok status", () => {
+    const errored = { ...payload, providers: [{ ...payload.providers[0], status: "error" as const, windows: [] }] }
+    const markup = renderToStaticMarkup(<QuotaStrip quotas={errored} iconMode="codes" style="rings" />)
+    expect(markup).toContain("data-status=\"error\"")
+    expect(markup).toContain("quota-strip__track")
   })
 })

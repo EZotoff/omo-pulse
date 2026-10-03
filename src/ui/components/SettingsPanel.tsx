@@ -41,6 +41,7 @@ export type SettingsPanelProps = {
   onSetStripMode: (mode: "project" | "session") => void
   onSetMiniSparklineMode: (mode: MiniSparklineMode) => void
   onSetQuotaIconMode: (mode: "icons" | "codes") => void
+  onSetQuotaStyle: (mode: StripConfigState["quotaStyle"]) => void
   onSetRecentProjectsLimit: (n: number) => void
   onSetProjectListMode: (mode: "recent" | "manual") => void
   soundConfig: SoundConfig
@@ -95,6 +96,7 @@ export function SettingsPanel({
   onSetStripMode,
   onSetMiniSparklineMode,
   onSetQuotaIconMode,
+  onSetQuotaStyle,
   onSetRecentProjectsLimit,
   onSetProjectListMode,
   soundConfig,
@@ -178,6 +180,7 @@ export function SettingsPanel({
   const handleSetMiniSparklineModeOff = () => onSetMiniSparklineMode("off")
   const handleSetQuotaIconModeIcons = () => onSetQuotaIconMode("icons")
   const handleSetQuotaIconModeCodes = () => onSetQuotaIconMode("codes")
+  const handleSetQuotaStyle = (mode: StripConfigState["quotaStyle"]) => onSetQuotaStyle(mode)
   const handleCollapsedHeightChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => onCollapsedHeightChange(Number(e.target.value)),
     [onCollapsedHeightChange],
@@ -315,6 +318,29 @@ export function SettingsPanel({
                 aria-label="Provider Quotas"
               />
             </div>
+
+            <fieldset className="settings-fieldset">
+              <legend className="settings-section__subtitle">Quota Style</legend>
+              <div className="settings-segmented-control">
+                {(["bars", "rings", "leds", "chips", "type"] as const).map((mode) => (
+                  <label className="settings-segmented-option" key={mode}>
+                    <input
+                      type="radio"
+                      name="quotaStyle"
+                      value={mode}
+                      checked={stripConfig.quotaStyle === mode}
+                      onChange={() => handleSetQuotaStyle(mode)}
+                    />
+                    <span className="settings-segmented-text">{
+                      mode === "bars" ? "Bars" :
+                      mode === "rings" ? "Rings" :
+                      mode === "leds" ? "LEDs" :
+                      mode === "chips" ? "Chips" : "Type"
+                    }</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
 
             <fieldset className="settings-fieldset">
               <legend className="settings-section__subtitle">Quota Identifiers</legend>

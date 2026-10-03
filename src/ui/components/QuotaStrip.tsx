@@ -1,5 +1,5 @@
 import { memo } from "react"
-import type { ProviderQuota, ProviderQuotasPayload, QuotaWindow } from "../../types"
+import type { ProviderQuota, ProviderQuotasPayload, QuotaWindow, StripConfigState } from "../../types"
 import "./QuotaStrip.css"
 
 /* ── Helpers ── */
@@ -62,15 +62,110 @@ function tooltipFor(provider: ProviderQuota, windows: QuotaWindow[]): string {
 export type QuotaStripProps = {
   quotas: ProviderQuotasPayload | null
   iconMode: "icons" | "codes"
+  style: StripConfigState["quotaStyle"]
 }
 
-export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode }: QuotaStripProps) {
+export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style }: QuotaStripProps) {
   if (quotas === null || quotas.providers.length === 0) return null
 
   const useIcons = iconMode === "icons"
 
+  const renderWindows = (provider: ProviderQuota, windows: QuotaWindow[]) => {
+    if (provider.status !== "ok" || windows.length === 0) {
+      return <div className="quota-strip__track" aria-hidden="true" />
+    }
+    switch (style) {
+      case "rings":
+        return windows.map((w) => {
+          const pct = Math.min(Math.round(w.usedPercent), 100)
+          const r = 8.5
+          const c = 2 * Math.PI * r
+          return (
+            <div key={w.id} className="quota-ring" title={`${w.shortLabel}: ${Math.round(w.usedPercent)}%`}>
+              <svg width="22" height="22">
+                <circle className="quota-ring__bg" cx="11" cy="11" r={r} />
+                <circle
+                  className="quota-ring__val"
+                  cx="11"
+                  cy="11"
+                  r={r}
+                  stroke="none"
+                  style={{
+                    strokeDasharray: c,
+                    strokeDashoffset: c * (1 - pct / 100),
+                  }}
+                  data-level={usageLevel(w.usedPercent)}
+                />
+              </svg>
+              <span className="quota-ring__pct" aria-hidden="true">
+                {pct}
+              </span>
+            </div>
+          )
+        })
+      case "leds":
+        return windows.map((w) => {
+          const level = usageLevel(w.usedPercent)
+          const on = Math.round((Math.min(w.usedPercent, 100) / 100) * 10)
+          return (
+            <div key={w.id} className="quota-leds" data-level={level}>
+              <span className="quota-leds__label" aria-hidden="true">
+                {w.shortLabel}
+              </span>
+              <span className="quota-leds__dots" aria-hidden="true">
+                {Array.from({ length: 10 }, (_, i) => (
+                  <i key={i} className="quota-leds__dot" data-on={i < on} data-level={level} />
+                ))}
+              </span>
+              {w.resetsAtMs !== null && (
+                <span className="quota-leds__reset" aria-hidden="true">
+                  {formatRemaining(w.resetsAtMs)}
+                </span>
+              )}
+            </div>
+          )
+        })
+      case "chips":
+        return windows.map((w) => (
+          <span key={w.id} className="quota-chip" data-level={usageLevel(w.usedPercent)}>
+            {w.shortLabel} {Math.round(w.usedPercent)}%
+          </span>
+        ))
+      case "type":
+        return windows.map((w) => (
+          <span key={w.id} className="quota-type">
+            <span className="quota-type__label" aria-hidden="true">
+              {w.shortLabel}
+            </span>
+            <span className="quota-type__pct" data-level={usageLevel(w.usedPercent)}>
+              {Math.round(w.usedPercent)}%
+            </span>
+          </span>
+        ))
+      default:
+        return windows.map((w) => (
+          <div key={w.id} className="quota-strip__line">
+            <span className="quota-strip__window" aria-hidden="true">
+              {w.shortLabel}
+            </span>
+            <div className="quota-strip__track">
+              <div
+                className={`quota-strip__fill quota-strip__fill--${usageLevel(w.usedPercent)}`}
+                style={{ width: `${Math.max(2, Math.round(w.usedPercent))}%` }}
+              />
+            </div>
+            {w.resetsAtMs !== null && (
+              <span className="quota-strip__reset" aria-hidden="true">
+                {formatRemaining(w.resetsAtMs)}
+              </span>
+            )}
+          </div>
+        ))
+    }
+  }
+
   return (
-    <div className="quota-strip" role="status" aria-label="Provider quota usage">
+    <div className="quota-strip" role="status" aria-label="Provider quota usage" data-style={style}>
       {quotas.providers.map((provider: ProviderQuota) => {
         const windows = visibleWindows(provider.windows)
         return (
@@ -94,28 +189,7 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode }: QuotaSt
             </span>
           )}
             <div className="quota-strip__lines">
-              {provider.status !== "ok" || windows.length === 0 ? (
-                <div className="quota-strip__track" aria-hidden="true" />
-              ) : (
-                windows.map((w: QuotaWindow) => (
-                  <div key={w.id} className="quota-strip__line">
-                    <span className="quota-strip__window" aria-hidden="true">
-                      {w.shortLabel}
-                    </span>
-                    <div className="quota-strip__track">
-                      <div
-                        className={`quota-strip__fill quota-strip__fill--${usageLevel(w.usedPercent)}`}
-                        style={{ width: `${Math.max(2, Math.round(w.usedPercent))}%` }}
-                      />
-                    </div>
-                    {w.resetsAtMs !== null && (
-                      <span className="quota-strip__reset" aria-hidden="true">
-                        {formatRemaining(w.resetsAtMs)}
-                      </span>
-                    )}
-                  </div>
-                ))
-              )}
+              {renderWindows(provider, windows)}
             </div>
           </div>
         )

@@ -226,8 +226,10 @@ export type StripConfigState = {
   showProjectName: boolean
   /** Provider quota strip visibility (dashboard header area) */
   showQuotas: boolean
-  /** Provider quota strip identifier style: fetched favicons or letter codes */
+/** Provider quota strip identifier style: fetched favicons or letter codes */
   quotaIconMode: "icons" | "codes"
+  /** Provider quota indicator style: thin bars (classic), rings, LED meter, heat chips, or type-only */
+  quotaStyle: "bars" | "rings" | "leds" | "chips" | "type"
   stripDisplayMode: "project" | "session"
   /** How many recently-active projects to show on the dashboard (auto mode) */
   recentProjectsLimit: number

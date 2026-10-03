@@ -72,26 +72,26 @@ export function windowStates(windows: QuotaWindow[]): WindowState[] {
 
 /* ── Cut-corner ring geometry ──
  *
- * Counter-clockwise path starting at the chamfer's upper corner A=(S-c, 0):
- * 0% begins there; the arc grows along the top edge, down the left side,
- * across the bottom, up the right edge, and fills the chamfer last — so the
- * amber zone (≥75%) starts exactly at the bottom-right corner and the red
- * zone (≥90%) starts exactly at the chamfer's lower corner B=(S, c).
- * Solved numerically: c=0.253284, r=0.209419 (side-relative, scale-free). */
+ * Clockwise path starting at the chamfer's upper corner A=(c, 0):
+ * 0% begins there; the arc grows rightward along the top edge, down the
+ * right side, across the bottom, up the left edge, and fills the chamfer
+ * last — so the amber zone (≥75%) starts exactly at the bottom-left corner
+ * and the red zone (≥90%) starts exactly at the chamfer's lower corner
+ * B=(0, c). Solved numerically: c=0.253284, r=0.209419 (side-relative). */
 export const CUT_CORNER = { c: 0.253284, r: 0.209419 } as const
 
 export function cutCornerPath(side: number): string {
   const c = CUT_CORNER.c * side
   const r = CUT_CORNER.r * side
   return [
-    `M ${(side - c).toFixed(2)} 0`,
-    `L ${r.toFixed(2)} 0`,
-    `A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 0 0 ${r.toFixed(2)}`,
-    `L 0 ${(side - r).toFixed(2)}`,
-    `A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 0 ${r.toFixed(2)} ${side.toFixed(2)}`,
-    `L ${(side - r).toFixed(2)} ${side.toFixed(2)}`,
-    `A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 0 ${side.toFixed(2)} ${(side - r).toFixed(2)}`,
-    `L ${side.toFixed(2)} ${c.toFixed(2)}`,
+    `M ${c.toFixed(2)} 0`,
+    `L ${(side - r).toFixed(2)} 0`,
+    `A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${side.toFixed(2)} ${r.toFixed(2)}`,
+    `L ${side.toFixed(2)} ${(side - r).toFixed(2)}`,
+    `A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${(side - r).toFixed(2)} ${side.toFixed(2)}`,
+    `L ${r.toFixed(2)} ${side.toFixed(2)}`,
+    `A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 0 ${(side - r).toFixed(2)}`,
+    `L 0 ${c.toFixed(2)}`,
     "Z",
   ].join(" ")
 }

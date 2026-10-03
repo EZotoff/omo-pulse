@@ -64,7 +64,7 @@ describe("cutCornerPath", () => {
   it("starts at the chamfer's upper corner and closes over the chamfer", () => {
     const side = 30
     const c = 0.253284 * side
-    expect(cutCornerPath(side)).toMatch(new RegExp(`^M ${(side - c).toFixed(2)} 0`))
+    expect(cutCornerPath(side)).toMatch(new RegExp(`^M ${c.toFixed(2)} 0`))
     expect(cutCornerPath(side)).toMatch(/Z$/)
   })
 })

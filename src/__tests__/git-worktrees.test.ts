@@ -41,7 +41,7 @@ if (typeof vi.advanceTimersByTimeAsync !== "function") {
 
 vi.stubGlobal("Bun", { spawn: spawnMock })
 
-import { getWorktreeInfo } from "../ingest/git-worktrees"
+import { getWorktreeInfo, WORKTREE_SKIP_MS, GIT_WORKTREE_CACHE_TTL_MS } from "../ingest/git-worktrees"
 
 type MockSpawnResultOptions = {
   stdout?: string
@@ -109,6 +109,7 @@ describe("getWorktreeInfo", () => {
         ].join("\n"),
       }),
       mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "aaaaaaaa\n" }),
       mockSpawnResult({ stdout: "" }),
       mockSpawnResult({ stdout: "" }),
       mockSpawnResult({ stdout: "" }),
@@ -176,6 +177,7 @@ describe("getWorktreeInfo", () => {
         ].join("\n"),
       }),
       mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "11111111\n" }),
       mockSpawnResult({ stdout: "ahead-one\n" }),
       mockSpawnResult({ stdout: " 2 files changed, 4 deletions(-)\n" }),
     )
@@ -211,6 +213,7 @@ describe("getWorktreeInfo", () => {
         ].join("\n"),
       }),
       mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "11111111\n" }),
       mockSpawnResult({ stdout: "" }),
       mockSpawnResult({ stdout: "" }),
     )
@@ -246,6 +249,7 @@ describe("getWorktreeInfo", () => {
         ].join("\n"),
       }),
       mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "11111111\n" }),
     )
 
     const result = await getWorktreeInfo("/repo/prunable")
@@ -278,7 +282,7 @@ describe("getWorktreeInfo", () => {
         },
       ],
     })
-    expect(spawnMock).toHaveBeenCalledTimes(2)
+    expect(spawnMock).toHaveBeenCalledTimes(3)
     expect(commands.some((command) => command.includes(" log "))).toBe(false)
     expect(commands.some((command) => command.includes(" diff "))).toBe(false)
   })
@@ -292,9 +296,30 @@ describe("getWorktreeInfo", () => {
     expect(spawnMock).toHaveBeenCalledTimes(1)
   })
 
-  it("returns undefined and kills the process after 5 seconds on timeout", async () => {
+  it("degrades one worktree on diff timeout and keeps other worktrees intact", async () => {
     const killFn = vi.fn()
-    spawnMock.mockReturnValue(
+    queueSpawnResults(
+      mockSpawnResult({
+        stdout: [
+          "worktree /repo/timeout",
+          "HEAD aaaaaaaa",
+          "branch refs/heads/main",
+          "",
+          "worktree /repo/timeout-good",
+          "HEAD bbbbbbbb",
+          "branch refs/heads/feature-good",
+          "",
+          "worktree /repo/timeout-slow",
+          "HEAD cccccccc",
+          "branch refs/heads/feature-slow",
+          "",
+        ].join("\n"),
+      }),
+      mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "aaaaaaaa\n" }),
+      mockSpawnResult({ stdout: "ahead-one\n" }),
+      mockSpawnResult({ stdout: " 1 file changed, 2 insertions(+)\n" }),
+      mockSpawnResult({ stdout: "ahead-one\nahead-two\n" }),
       mockSpawnResult({
         exitCode: new Promise<number>(() => {}),
         kill: killFn,
@@ -306,8 +331,16 @@ describe("getWorktreeInfo", () => {
     await vi.advanceTimersByTimeAsync(5_000)
     const result = await promise
 
-    expect(result).toBeUndefined()
+    expect(result).toBeDefined()
     expect(killFn).toHaveBeenCalled()
+    expect(result?.worktrees.find((worktree) => worktree.path === "/repo/timeout-good")).toMatchObject({
+      commitsAhead: 1,
+      diffStat: { filesChanged: 1, insertions: 2, deletions: 0 },
+    })
+    expect(result?.worktrees.find((worktree) => worktree.path === "/repo/timeout-slow")).toMatchObject({
+      commitsAhead: 2,
+      diffStat: null,
+    })
   })
 
   it("returns cached worktree info on repeated calls within TTL", async () => {
@@ -316,13 +349,14 @@ describe("getWorktreeInfo", () => {
         stdout: ["worktree /repo/cache-hit", "HEAD aaaaaaaa", "branch refs/heads/main", ""].join("\n"),
       }),
       mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "aaaaaaaa\n" }),
     )
 
     const first = await getWorktreeInfo("/repo/cache-hit")
     const second = await getWorktreeInfo("/repo/cache-hit")
 
     expect(first).toEqual(second)
-    expect(spawnMock).toHaveBeenCalledTimes(2)
+    expect(spawnMock).toHaveBeenCalledTimes(3)
   })
 
   it("refreshes worktree info after cache expiry", async () => {
@@ -331,11 +365,12 @@ describe("getWorktreeInfo", () => {
         stdout: ["worktree /repo/cache-expire", "HEAD firsthash", "branch refs/heads/main", ""].join("\n"),
       }),
       mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "firsthash\n" }),
     )
 
     const first = await getWorktreeInfo("/repo/cache-expire")
     expect(first?.worktrees[0]?.commitHash).toBe("firsthash")
-    expect(spawnMock).toHaveBeenCalledTimes(2)
+    expect(spawnMock).toHaveBeenCalledTimes(3)
 
     vi.advanceTimersByTime(30_000 + 1)
 
@@ -344,12 +379,13 @@ describe("getWorktreeInfo", () => {
         stdout: ["worktree /repo/cache-expire", "HEAD secondhash", "branch refs/heads/main", ""].join("\n"),
       }),
       mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "secondhash\n" }),
     )
 
     const second = await getWorktreeInfo("/repo/cache-expire")
 
     expect(second?.worktrees[0]?.commitHash).toBe("secondhash")
-    expect(spawnMock).toHaveBeenCalledTimes(4)
+    expect(spawnMock).toHaveBeenCalledTimes(6)
   })
 
   it("parses shortstat output", async () => {
@@ -367,6 +403,7 @@ describe("getWorktreeInfo", () => {
         ].join("\n"),
       }),
       mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "11111111\n" }),
       mockSpawnResult({ stdout: "ahead-one\nahead-two\n" }),
       mockSpawnResult({ stdout: " 3 files changed, 7 insertions(+)\n" }),
     )
@@ -453,6 +490,7 @@ describe("getWorktreeInfo", () => {
         ].join("\n"),
       }),
       mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "11111111\n" }),
       mockSpawnResult({ stdout: "ahead-one\n" }),
       mockSpawnResult({ stdout: " 1 file changed, 1 insertion(+)\n" }),
       mockSpawnResult({ stdout: "ahead-one\nahead-two\n" }),
@@ -481,6 +519,173 @@ describe("getWorktreeInfo", () => {
       diffStat: { filesChanged: 0, insertions: 0, deletions: 0 },
       isLocked: false,
       isPrunable: false,
+    })
+  })
+
+  it("sticky-skips a timed-out worktree for 10 minutes, then resumes probes", async () => {
+    const porcelainOutput = [
+      "worktree /repo/skip",
+      "HEAD aaaaaaaa",
+      "branch refs/heads/main",
+      "",
+      "worktree /repo/skip-good",
+      "HEAD bbbbbbbb",
+      "branch refs/heads/feature-good",
+      "",
+      "worktree /repo/skip-slow",
+      "HEAD cccccccc",
+      "branch refs/heads/feature-slow",
+      "",
+    ].join("\n")
+    const hang = () =>
+      mockSpawnResult({
+        exitCode: new Promise<number>(() => {}),
+        kill: vi.fn(),
+        hangStdout: true,
+      })
+
+    queueSpawnResults(
+      mockSpawnResult({ stdout: porcelainOutput }),
+      mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "aaaaaaaa\n" }),
+      mockSpawnResult({ stdout: "ahead-one\n" }),
+      mockSpawnResult({ stdout: " 1 file changed, 2 insertions(+)\n" }),
+      mockSpawnResult({ stdout: "ahead-one\n" }),
+      hang(),
+    )
+
+    const firstPromise = getWorktreeInfo("/repo/skip")
+    await vi.advanceTimersByTimeAsync(5_000)
+    const first = await firstPromise
+    expect(first).toBeDefined()
+    const callsAfterFirst = spawnMock.mock.calls.length
+
+    vi.advanceTimersByTime(GIT_WORKTREE_CACHE_TTL_MS + 1)
+
+    queueSpawnResults(
+      mockSpawnResult({ stdout: porcelainOutput }),
+      mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "aaaaaaaa\n" }),
+      mockSpawnResult({ stdout: "ahead-one\n" }),
+      mockSpawnResult({ stdout: " 1 file changed, 2 insertions(+)\n" }),
+    )
+
+    const second = await getWorktreeInfo("/repo/skip")
+    const secondBatch = spawnMock.mock.calls.slice(callsAfterFirst)
+    const secondCommands = secondBatch.map(([args, options]) => ({
+      command: (args as string[]).join(" "),
+      cwd: (options as { cwd: string }).cwd,
+    }))
+
+    expect(second).toBeDefined()
+    expect(secondCommands.some((entry) => entry.cwd === "/repo/skip-slow")).toBe(false)
+    expect(secondCommands.filter((entry) => entry.command.includes(" log "))).toHaveLength(1)
+    expect(second?.worktrees.find((worktree) => worktree.path === "/repo/skip-slow")).toMatchObject({
+      commitsAhead: 0,
+      diffStat: null,
+    })
+
+    const callsAfterSecond = spawnMock.mock.calls.length
+    vi.advanceTimersByTime(WORKTREE_SKIP_MS + 1)
+
+    queueSpawnResults(
+      mockSpawnResult({ stdout: porcelainOutput }),
+      mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "aaaaaaaa\n" }),
+      mockSpawnResult({ stdout: "ahead-one\n" }),
+      mockSpawnResult({ stdout: " 1 file changed, 2 insertions(+)\n" }),
+      mockSpawnResult({ stdout: "ahead-one\nahead-two\nahead-three\nahead-four\nahead-five\nahead-six\nahead-seven\nahead-eight\nahead-nine\n" }),
+      mockSpawnResult({ stdout: " 1 file changed, 1 insertion(+)\n" }),
+    )
+
+    const third = await getWorktreeInfo("/repo/skip")
+    const thirdBatch = spawnMock.mock.calls.slice(callsAfterSecond)
+    const thirdSlowLog = thirdBatch.some(
+      ([args, options]) =>
+        (args as string[]).includes("log") && (options as { cwd: string }).cwd === "/repo/skip-slow",
+    )
+
+    expect(thirdSlowLog).toBe(true)
+    expect(third?.worktrees.find((worktree) => worktree.path === "/repo/skip-slow")).toMatchObject({
+      commitsAhead: 9,
+      diffStat: { filesChanged: 1, insertions: 1, deletions: 0 },
+    })
+  })
+
+  it("returns cached data via fingerprint without spawning per-worktree commands", async () => {
+    const porcelainOutput = [
+      "worktree /repo/fingerprint",
+      "HEAD aaaaaaaa",
+      "branch refs/heads/main",
+      "",
+      "worktree /repo/fingerprint-feature",
+      "HEAD bbbbbbbb",
+      "branch refs/heads/feature",
+      "",
+    ].join("\n")
+
+    queueSpawnResults(
+      mockSpawnResult({ stdout: porcelainOutput }),
+      mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "aaaaaaaa\n" }),
+      mockSpawnResult({ stdout: "ahead-one\n" }),
+      mockSpawnResult({ stdout: " 2 files changed, 3 insertions(+)\n" }),
+    )
+
+    const first = await getWorktreeInfo("/repo/fingerprint")
+    const callsAfterFirst = spawnMock.mock.calls.length
+
+    vi.advanceTimersByTime(GIT_WORKTREE_CACHE_TTL_MS + 1)
+
+    queueSpawnResults(
+      mockSpawnResult({ stdout: porcelainOutput }),
+      mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "aaaaaaaa\n" }),
+    )
+
+    const second = await getWorktreeInfo("/repo/fingerprint")
+    const secondBatch = spawnMock.mock.calls.slice(callsAfterFirst)
+
+    expect(second).toEqual(first)
+    expect(secondBatch).toHaveLength(3)
+    expect(secondBatch.some(([args]) => (args as string[]).includes("log"))).toBe(false)
+    expect(secondBatch.some(([args]) => (args as string[]).includes("diff"))).toBe(false)
+  })
+
+  it("keeps real commitsAhead when only the diff times out", async () => {
+    const killFn = vi.fn()
+    queueSpawnResults(
+      mockSpawnResult({
+        stdout: [
+          "worktree /repo/mixed",
+          "HEAD aaaaaaaa",
+          "branch refs/heads/main",
+          "",
+          "worktree /repo/mixed-feature",
+          "HEAD bbbbbbbb",
+          "branch refs/heads/feature-mixed",
+          "",
+        ].join("\n"),
+      }),
+      mockSpawnResult({ stdout: "refs/remotes/origin/main\n" }),
+      mockSpawnResult({ stdout: "aaaaaaaa\n" }),
+      mockSpawnResult({ stdout: "ahead-one\nahead-two\nahead-three\n" }),
+      mockSpawnResult({
+        exitCode: new Promise<number>(() => {}),
+        kill: killFn,
+        hangStdout: true,
+      }),
+    )
+
+    const promise = getWorktreeInfo("/repo/mixed")
+    await vi.advanceTimersByTimeAsync(5_000)
+    const result = await promise
+
+    expect(result).toBeDefined()
+    expect(killFn).toHaveBeenCalled()
+    expect(result?.worktrees.find((worktree) => worktree.path === "/repo/mixed-feature")).toMatchObject({
+      commitsAhead: 3,
+      diffStat: null,
     })
   })
 })

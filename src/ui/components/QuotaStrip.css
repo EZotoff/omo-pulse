@@ -177,7 +177,7 @@
 .quota-strip[data-style="rings"],
 .quota-strip[data-style="type"] {
   display: flex;
-  column-gap: 6px;
+  column-gap: 5px;
 }
 .quota-strip[data-style="rings"] .quota-strip__provider + .quota-strip__provider,
 .quota-strip[data-style="type"] .quota-strip__provider + .quota-strip__provider {

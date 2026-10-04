@@ -177,12 +177,23 @@
 .quota-strip[data-style="rings"],
 .quota-strip[data-style="type"] {
   display: flex;
-  column-gap: 7px;
+  column-gap: 6px;
 }
 .quota-strip[data-style="rings"] .quota-strip__provider + .quota-strip__provider,
 .quota-strip[data-style="type"] .quota-strip__provider + .quota-strip__provider {
   border-left: 1px solid var(--border-primary);
-  padding-left: 6px;
+  padding-left: 4px;
+}
+
+/* Compact identity anchor in the dense single-row styles */
+.quota-strip[data-style="rings"] .quota-strip__icon,
+.quota-strip[data-style="rings"] .quota-strip__symbol {
+  width: 14px;
+  height: 14px;
+  font-size: 7px;
+}
+.quota-strip[data-style="rings"] .quota-strip__provider {
+  gap: 6px;
 }
 .quota-strip[data-style="rings"] .quota-strip__provider,
 .quota-strip[data-style="type"] .quota-strip__provider {

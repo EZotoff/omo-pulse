@@ -96,6 +96,10 @@ export function cutCornerPath(side: number): string {
   ].join(" ")
 }
 
+function providerRingCount(p: ProviderQuota): number {
+  return p.windows.length || 1
+}
+
 function tooltipFor(provider: ProviderQuota, states: WindowState[]): string {
   if (provider.status === "unconfigured") return `${provider.name} — not configured`
   if (provider.status === "error") return `${provider.name} — ${provider.error ?? "unavailable"}`
@@ -244,44 +248,48 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style, ri
     }
   }
 
-  /* Single-row styles chunk into two rows; ceil keeps the first row longer (7 → 4+3) */
-  const perRow = singleRow ? Math.ceil(quotas.providers.length / 2) : quotas.providers.length
+  /* Single-row styles use an aligned grid: ceil(n/2) columns (two rows for 6
+     providers), each column as wide as its tallest ring count — so both rows
+     share exact column boundaries (OL sits directly above MI). */
+  const columns = singleRow ? Math.ceil(quotas.providers.length / 2) : 1
+  const gridTemplate = singleRow
+    ? Array.from({ length: columns }, (_, col) => {
+        let maxRings = 1
+        for (let i = col; i < quotas.providers.length; i += columns) {
+          maxRings = Math.max(maxRings, providerRingCount(quotas.providers[i]))
+        }
+        return `${maxRings}fr`
+      }).join(" ")
+    : undefined
 
   return (
-    <div className="quota-strip" role="status" aria-label="Provider quota usage" data-style={style}>
-      {Array.from({ length: Math.ceil(quotas.providers.length / perRow) }, (_, rowIndex) =>
-        quotas.providers.slice(rowIndex * perRow, (rowIndex + 1) * perRow),
-      ).map((rowProviders: ProviderQuota[], rowIndex: number) => (
-        <div className="quota-strip__row" key={rowIndex}>
-          {rowProviders.map((provider: ProviderQuota) => {
-            const states = windowStates(provider.windows)
-            return (
-              <div
-                key={provider.providerId}
-                className="quota-strip__provider"
-                data-status={provider.status}
-                title={tooltipFor(provider, states)}
-                style={singleRow ? { flexGrow: provider.windows.length || 1 } : undefined}
-              >
-                {useIcons && provider.icon ? (
-                  <img
-                    className="quota-strip__icon"
-                    src={provider.icon}
-                    alt=""
-                    loading="lazy"
-                    draggable={false}
-                  />
-                ) : (
-                  <span className="quota-strip__symbol" aria-hidden="true">
-                    {provider.symbol}
-                  </span>
-                )}
-                <div className="quota-strip__lines">{renderWindows(provider, states)}</div>
-              </div>
-            )
-          })}
-        </div>
-      ))}
+    <div className="quota-strip" role="status" aria-label="Provider quota usage" data-style={style} style={gridTemplate ? { gridTemplateColumns: gridTemplate } : undefined}>
+      {quotas.providers.map((provider: ProviderQuota) => {
+        const states = windowStates(provider.windows)
+        return (
+          <div
+            key={provider.providerId}
+            className="quota-strip__provider"
+            data-status={provider.status}
+            title={tooltipFor(provider, states)}
+          >
+            {useIcons && provider.icon ? (
+              <img
+                className="quota-strip__icon"
+                src={provider.icon}
+                alt=""
+                loading="lazy"
+                draggable={false}
+              />
+            ) : (
+              <span className="quota-strip__symbol" aria-hidden="true">
+                {provider.symbol}
+              </span>
+            )}
+            <div className="quota-strip__lines">{renderWindows(provider, states)}</div>
+          </div>
+        )
+      })}
     </div>
   )
 })

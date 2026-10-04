@@ -244,35 +244,44 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style, ri
     }
   }
 
+  /* Single-row styles chunk into two rows; ceil keeps the first row longer (7 → 4+3) */
+  const perRow = singleRow ? Math.ceil(quotas.providers.length / 2) : quotas.providers.length
+
   return (
     <div className="quota-strip" role="status" aria-label="Provider quota usage" data-style={style}>
-      {quotas.providers.map((provider: ProviderQuota) => {
-        const states = windowStates(provider.windows)
-        return (
-          <div
-            key={provider.providerId}
-            className="quota-strip__provider"
-            data-status={provider.status}
-            title={tooltipFor(provider, states)}
-            style={singleRow ? { flexGrow: provider.windows.length || 1 } : undefined}
-          >
-          {useIcons && provider.icon ? (
-            <img
-              className="quota-strip__icon"
-              src={provider.icon}
-              alt=""
-              loading="lazy"
-              draggable={false}
-            />
-          ) : (
-            <span className="quota-strip__symbol" aria-hidden="true">
-              {provider.symbol}
-            </span>
-          )}
-            <div className="quota-strip__lines">{renderWindows(provider, states)}</div>
-          </div>
-        )
-      })}
+      {Array.from({ length: Math.ceil(quotas.providers.length / perRow) }, (_, rowIndex) =>
+        quotas.providers.slice(rowIndex * perRow, (rowIndex + 1) * perRow),
+      ).map((rowProviders: ProviderQuota[], rowIndex: number) => (
+        <div className="quota-strip__row" key={rowIndex}>
+          {rowProviders.map((provider: ProviderQuota) => {
+            const states = windowStates(provider.windows)
+            return (
+              <div
+                key={provider.providerId}
+                className="quota-strip__provider"
+                data-status={provider.status}
+                title={tooltipFor(provider, states)}
+                style={singleRow ? { flexGrow: provider.windows.length || 1 } : undefined}
+              >
+                {useIcons && provider.icon ? (
+                  <img
+                    className="quota-strip__icon"
+                    src={provider.icon}
+                    alt=""
+                    loading="lazy"
+                    draggable={false}
+                  />
+                ) : (
+                  <span className="quota-strip__symbol" aria-hidden="true">
+                    {provider.symbol}
+                  </span>
+                )}
+                <div className="quota-strip__lines">{renderWindows(provider, states)}</div>
+              </div>
+            )
+          })}
+        </div>
+      ))}
     </div>
   )
 })

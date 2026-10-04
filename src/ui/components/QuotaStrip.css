@@ -177,10 +177,14 @@
 .quota-strip[data-style="rings"],
 .quota-strip[data-style="type"] {
   display: flex;
+  flex-direction: column;
+  row-gap: 6px;
+}
+.quota-strip__row {
+  display: flex;
   column-gap: 5px;
 }
-.quota-strip[data-style="rings"] .quota-strip__provider + .quota-strip__provider,
-.quota-strip[data-style="type"] .quota-strip__provider + .quota-strip__provider {
+.quota-strip__row > .quota-strip__provider + .quota-strip__provider {
   border-left: 1px solid var(--border-primary);
   padding-left: 4px;
 }

@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "MiMo Cookie Bridge (omo-pulse)",
+  "version": "1.0.0",
+  "description": "Feeds Xiaomi MiMo SSO cookies to the local omo-pulse dashboard so it can show MiMo plan usage. Cookies never leave the machine.",
+  "permissions": ["cookies", "alarms", "storage"],
+  "host_permissions": [
+    "*://*.xiaomimimo.com/*",
+    "http://127.0.0.1:4300/*",
+    "http://localhost:4300/*"
+  ],
+  "background": { "service_worker": "bg.js" },
+  "action": { "default_title": "MiMo Cookie Bridge" }
+}

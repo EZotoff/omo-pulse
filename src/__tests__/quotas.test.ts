@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest"
-import { mkdtemp, writeFile } from "node:fs/promises"
+import { mkdtemp, readFile, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
+  applyMimoCookies,
   createQuotaService,
   parseAuthFile,
   parseGoUsage,
   parseKimiUsage,
+  parseMimoUsage,
   parseOllamaUsage,
   parseOpenAiUsage,
   parseZaiUsage,
@@ -22,6 +24,33 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
   })
 }
+
+describe("applyMimoCookies", () => {
+  const readStore = async (p: string) => JSON.parse(await readFile(p, "utf8"))
+
+  it("writes the cookie store with serviceToken/userId, creating directories", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "mimo-auth-"))
+    const cookiePath = join(dir, "sub", "mimo-cookies.json")
+    const result = await applyMimoCookies(cookiePath, "st-token", "u-123")
+    expect(result).toEqual({ ok: true })
+    const saved = await readStore(cookiePath)
+    expect(saved.serviceToken).toBe("st-token")
+    expect(saved.userId).toBe("u-123")
+    expect(typeof saved.updatedAtMs).toBe("number")
+  })
+
+  it("rejects empty or unsafe values without touching the file", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "mimo-auth-"))
+    const cookiePath = join(dir, "mimo-cookies.json")
+    await writeFile(cookiePath, JSON.stringify({ serviceToken: "old", userId: "u" }))
+    const before = await readFile(cookiePath, "utf8")
+    expect((await applyMimoCookies(cookiePath, "", "u")).ok).toBe(false)
+    expect((await applyMimoCookies(cookiePath, "st", "bad\nvalue")).ok).toBe(false)
+    expect((await applyMimoCookies(cookiePath, "x".repeat(5000), "u")).ok).toBe(false)
+    expect(await readFile(cookiePath, "utf8")).toBe(before)
+  })
+})
+
 
 const NOW_MS = Date.UTC(2026, 8, 12, 12, 0, 0)
 
@@ -173,6 +202,34 @@ describe("parseOllamaUsage", () => {
   })
 })
 
+describe("parseMimoUsage", () => {
+  const nowMs = Date.UTC(2026, 8, 12, 12, 0, 0)
+
+  it("maps the monthly token-plan window with next-month reset", () => {
+    const windows = parseMimoUsage(
+      {
+        code: 0,
+        data: { monthUsage: { items: [{ name: "month_total_token", used: 2_500_000, limit: 10_000_000 }] } },
+      },
+      nowMs,
+    )
+    expect(windows).toHaveLength(1)
+    expect(windows[0]).toMatchObject({ id: "monthly", shortLabel: "MO", usedPercent: 25 })
+    expect(windows[0].resetsAtMs).toBe(Date.UTC(2026, 9, 1))
+  })
+
+  it("returns empty for malformed bodies or non-matching items", () => {
+    expect(parseMimoUsage({ code: 1 }, nowMs)).toEqual([])
+    expect(parseMimoUsage(null, nowMs)).toEqual([])
+    expect(
+      parseMimoUsage({ code: 0, data: { monthUsage: { items: [{ name: "other", used: 1, limit: 2 }] } } }, nowMs),
+    ).toEqual([])
+    expect(
+      parseMimoUsage({ code: 0, data: { monthUsage: { items: [{ name: "month_total_token", used: 1, limit: 0 }] } } }, nowMs),
+    ).toEqual([])
+  })
+})
+
 describe("parseAuthFile", () => {
   it("parses api and oauth entries", () => {
     const auth = parseAuthFile(
@@ -220,7 +277,7 @@ describe("createQuotaService", () => {
     const authPath = await withTempAuth(JSON.stringify({}))
     const service = createQuotaService({ authPath, fetchImpl: async () => jsonResponse({}) })
     const payload = await service.getQuotas()
-    expect(payload.providers).toHaveLength(5)
+    expect(payload.providers).toHaveLength(6)
     expect(payload.providers.every((p) => p.status === "unconfigured")).toBe(true)
   })
 

@@ -17,6 +17,8 @@ const DEFAULT_CONFIG: StripConfigState = {
   showProjectName: true,
   showQuotas: true,
   quotaIconMode: "icons",
+  quotaStyle: "bars",
+  quotaRingSize: 27,
   stripDisplayMode: "project",
   recentProjectsLimit: 6,
   projectListMode: "recent",
@@ -26,6 +28,12 @@ const DEFAULT_CONFIG: StripConfigState = {
 export function clampRecentProjectsLimit(n: number): number {
   if (!Number.isFinite(n)) return DEFAULT_CONFIG.recentProjectsLimit
   return Math.min(24, Math.max(1, Math.round(n)))
+}
+
+/** Clamp quotaRingSize to a sane range (16..48 px) */
+export function clampQuotaRingSize(n: number): number {
+  if (!Number.isFinite(n)) return DEFAULT_CONFIG.quotaRingSize
+  return Math.min(48, Math.max(16, Math.round(n)))
 }
 
 /** Read persisted strip config from localStorage, returning defaults on failure */
@@ -45,6 +53,12 @@ function readPersistedConfig(): StripConfigState {
     if (merged.projectListMode !== "recent" && merged.projectListMode !== "manual") {
       merged.projectListMode = "recent"
     }
+    const style = (merged as { quotaStyle?: unknown }).quotaStyle
+    if (style !== "bars" && style !== "rings" && style !== "leds" && style !== "chips" && style !== "type") {
+      merged.quotaStyle = "bars"
+    }
+    const ringSize = (merged as { quotaRingSize?: unknown }).quotaRingSize
+    merged.quotaRingSize = clampQuotaRingSize(typeof ringSize === "number" ? ringSize : DEFAULT_CONFIG.quotaRingSize)
     return merged
   } catch {
     return DEFAULT_CONFIG
@@ -70,6 +84,8 @@ export function useStripConfig(): {
   setMode: (mode: "project" | "session") => void
   setMiniSparklineMode: (mode: MiniSparklineMode) => void
   setQuotaIconMode: (mode: "icons" | "codes") => void
+  setQuotaStyle: (mode: StripConfigState["quotaStyle"]) => void
+  setQuotaRingSize: (n: number) => void
   setRecentProjectsLimit: (n: number) => void
   setProjectListMode: (mode: "recent" | "manual") => void
   reset: () => void
@@ -109,6 +125,20 @@ export function useStripConfig(): {
     }))
   }, [])
 
+  const setQuotaStyle = useCallback((mode: StripConfigState["quotaStyle"]) => {
+    setConfig((prev) => ({
+      ...prev,
+      quotaStyle: mode,
+    }))
+  }, [])
+
+  const setQuotaRingSize = useCallback((n: number) => {
+    setConfig((prev) => ({
+      ...prev,
+      quotaRingSize: clampQuotaRingSize(n),
+    }))
+  }, [])
+
   const setRecentProjectsLimit = useCallback((n: number) => {
     setConfig((prev) => ({
       ...prev,
@@ -127,5 +157,5 @@ export function useStripConfig(): {
     setConfig(DEFAULT_CONFIG)
   }, [])
 
-  return { config, toggle, setMode, setMiniSparklineMode, setQuotaIconMode, setRecentProjectsLimit, setProjectListMode, reset }
+  return { config, toggle, setMode, setMiniSparklineMode, setQuotaIconMode, setQuotaStyle, setQuotaRingSize, setRecentProjectsLimit, setProjectListMode, reset }
 }

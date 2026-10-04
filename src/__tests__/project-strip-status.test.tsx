@@ -51,6 +51,8 @@ const baseConfig: StripConfigState = {
   projectListMode: "recent",
   showQuotas: true,
   quotaIconMode: "icons",
+  quotaStyle: "bars",
+  quotaRingSize: 27,
 }
 
 const children = {

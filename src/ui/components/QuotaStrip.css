@@ -5,17 +5,20 @@
      quota strip keeps a constant readable size so it never reflows after load */
   --quota-font: var(--font-sm);
   --quota-icon: 16px;
-  --quota-track-w: 48px;
+  --quota-track-min: 28px;
   --quota-track-h: 5px;
-  /* Two provider columns; all groups left-anchored so icons stay aligned
-     across rows even when window counts differ */
+  /* Fixed central clearing around the page-centered header-restore chevron
+     (10px wide, centered on the full viewport). Sized so each side keeps
+     ~11px+ clearance even with the ~10px scrollbar shifting the layout
+     center slightly left of the chevron. */
+  --quota-center-gap: 32px;
+  /* Two half-page columns separated only by the central chevron clearing.
+     Groups stretch to fill their cell, so every provider occupies the same
+     total length and the two halves meet symmetrically at the page center. */
   display: grid;
-  /* minmax(0,1fr): rows do NOT share width constraints — a wide provider row
-     (e.g. three quota windows) overflows its own cell instead of widening the
-     track and pushing the right-column providers toward the page edge. */
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  justify-items: start;
-  gap: var(--sp-2) var(--sp-4);
+  column-gap: var(--quota-center-gap);
+  row-gap: var(--sp-2);
   padding: 3px var(--sp-4) 0;
 }
 
@@ -24,6 +27,10 @@
   align-items: center;
   gap: var(--sp-2);
   cursor: default;
+  min-width: 0;
+  /* Providers stretch across their whole half-column; the usage tracks below
+     flex to absorb the difference in window count, so track width is a
+     deterministic function of window count — never arbitrary. */
 }
 
 .quota-strip__symbol {
@@ -55,12 +62,19 @@
   display: flex;
   align-items: center;
   gap: var(--sp-2);
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .quota-strip__line {
   display: flex;
   align-items: center;
   gap: 5px;
+  /* Each window line stretches equally within the group, so the tracks
+     inside actually grow: track width adapts to the provider's window count
+     while the group keeps its full half-column length. */
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .quota-strip__window {
@@ -69,11 +83,18 @@
   line-height: 1;
   letter-spacing: 0.3px;
   color: var(--text-muted);
+  /* Fixed 2-char slot ("5H", "WK", "MO") so tracks start aligned */
+  min-width: 2ch;
 }
 
 .quota-strip__track {
   position: relative;
-  width: var(--quota-track-w);
+  /* Flexes within its line: width adapts to the provider's window count so
+     every provider group spans the same total length in its half-column */
+  flex: 1 1 0;
+  /* 14px floor: at the operator's narrow dashboard window (~537 CSS px) three
+     windows per group cannot afford 28px tracks without overlapping text */
+  min-width: 14px;
   height: var(--quota-track-h);
   border-radius: calc(var(--quota-track-h) / 2);
   background: var(--border-secondary);
@@ -105,8 +126,13 @@
 
 .quota-strip__reset {
   font-family: var(--font-mono);
-  /* Reserve a fixed 6-character slot so tracks align across providers */
-  min-width: 6ch;
+  /* 6ch slot for aligned countdowns; shrinkable with ellipsis at narrow
+     viewports so fixed slots can never overflow onto labels or tracks
+     (full countdown text remains in the tooltip) */
+  max-width: 6ch;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: var(--quota-font);
   line-height: 1;
   letter-spacing: 0.2px;
@@ -114,6 +140,13 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+
+/* Straight center seam: the left column's last countdown ends flush against
+   the central clearing instead of leaving ragged gaps inside its 6ch slot. */
+.quota-strip__provider:nth-child(odd) .quota-strip__line:last-child .quota-strip__reset {
+  text-align: right;
+}
+
 
 .quota-strip__fill--warn {
   --fill-color: var(--accent-warning);
@@ -136,6 +169,205 @@
   filter: saturate(0.7);
 }
 
+/* ── Style: rings ── squircle progress arc per window, countdown inside ── */
+
+/* Rings + type flow as a single tidy row: every provider takes an equal 1/N share */
+.quota-strip[data-style="rings"],
+.quota-strip[data-style="type"] {
+  display: flex;
+  column-gap: var(--sp-2);
+}
+.quota-strip[data-style="rings"] .quota-strip__provider,
+.quota-strip[data-style="type"] .quota-strip__provider {
+  flex: 1 1 0;
+  min-width: 0;
+  /* Block content hugs its leading edge: icon + rings sit snugly together
+     while the blocks themselves stretch across the full row */
+  justify-content: flex-start;
+}
+.quota-strip[data-style="rings"] .quota-strip__lines {
+  gap: 5px;
+}
+.quota-ring {
+  position: relative;
+  flex: none;
+}
+.quota-ring svg {
+  display: block;
+}
+.quota-ring__bg {
+  fill: none;
+  stroke: var(--border-primary);
+  stroke-width: 2.5;
+}
+.quota-ring__val {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--transition-normal);
+}
+.quota-ring[data-level="ok"] .quota-ring__val { stroke: var(--accent-primary); }
+.quota-ring[data-level="warn"] .quota-ring__val { stroke: var(--accent-warning); }
+.quota-ring[data-level="danger"] .quota-ring__val { stroke: var(--accent-danger); }
+.quota-ring[data-level="exhausted"] .quota-ring__val { stroke: #5a3232; }
+/* Countdown inside the ring — Type-style typography: mono, semibold, level-colored */
+.quota-ring__text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
+  line-height: 1.05;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.quota-ring[data-level="ok"] .quota-ring__text { color: var(--accent-primary); }
+.quota-ring[data-level="warn"] .quota-ring__text { color: var(--accent-warning); }
+.quota-ring[data-level="danger"] .quota-ring__text { color: var(--accent-danger); }
+.quota-ring[data-level="exhausted"] .quota-ring__text { color: #7a3b3b; }
+
+/* Suppressed windows (a longer quota is exhausted → provider locked out):
+   keep the layout static — dim to near-invisible and strip all color */
+.quota-strip [data-suppressed="true"] {
+  opacity: 0.22;
+  filter: grayscale(1);
+}
+
+/* ── Style: leds ── 10-dot meter per window, countdown inline ── */
+
+.quota-strip[data-style="leds"] .quota-strip__provider {
+  align-items: flex-start;
+}
+.quota-strip[data-style="leds"] .quota-strip__lines {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+.quota-leds {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.quota-leds__label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--text-muted);
+  width: 14px;
+  flex: none;
+  letter-spacing: 0.3px;
+}
+.quota-leds__dots {
+  display: flex;
+  gap: 2.5px;
+  flex: 1;
+  min-width: 0;
+}
+.quota-leds__dot {
+  width: 4.5px;
+  height: 4.5px;
+  border-radius: 50%;
+  background: var(--border-primary);
+  flex: none;
+}
+.quota-leds__dot[data-on="true"][data-level="ok"] {
+  background: var(--accent-primary);
+  box-shadow: 0 0 3px rgba(0, 212, 170, 0.5);
+}
+.quota-leds__dot[data-on="true"][data-level="warn"] {
+  background: var(--accent-warning);
+  box-shadow: 0 0 3px rgba(255, 165, 2, 0.5);
+}
+.quota-leds__dot[data-on="true"][data-level="danger"] {
+  background: var(--accent-danger);
+  box-shadow: 0 0 3px rgba(255, 107, 107, 0.5);
+}
+.quota-leds__dot[data-on="true"][data-level="exhausted"] {
+  background: #5a3232;
+}
+.quota-leds__reset {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Style: chips ── colored glass chips, hue carries the level ── */
+
+.quota-strip[data-style="chips"] .quota-strip__lines {
+  gap: 6px;
+}
+.quota-chip {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex: none;
+}
+.quota-chip[data-level="ok"] {
+  color: var(--accent-primary);
+  background: rgba(0, 212, 170, 0.10);
+  border-color: rgba(0, 212, 170, 0.25);
+}
+.quota-chip[data-level="warn"] {
+  color: var(--accent-warning);
+  background: rgba(255, 165, 2, 0.12);
+  border-color: rgba(255, 165, 2, 0.3);
+}
+.quota-chip[data-level="danger"] {
+  color: var(--accent-danger);
+  background: rgba(255, 107, 107, 0.12);
+  border-color: rgba(255, 107, 107, 0.3);
+}
+.quota-chip[data-level="exhausted"] {
+  color: #7a3b3b;
+  background: rgba(90, 50, 50, 0.25);
+  border-color: rgba(90, 50, 50, 0.4);
+}
+
+/* ── Style: type ── pure typography, color-coded percentages ── */
+
+.quota-strip[data-style="type"] .quota-strip__lines {
+  gap: 7px;
+}
+.quota-type {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+.quota-type__label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+}
+.quota-type__pct {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.quota-type__pct[data-level="ok"] { color: var(--accent-primary); }
+.quota-type__pct[data-level="warn"] { color: var(--accent-warning); }
+.quota-type__pct[data-level="danger"] { color: var(--accent-danger); }
+.quota-type__pct[data-level="exhausted"] { color: #7a3b3b; }
+
+@media (prefers-reduced-motion: reduce) {
+  .quota-ring__val {
+    transition: none;
+  }
+}
 
 /* Non-ok providers */
 

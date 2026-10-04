@@ -2,7 +2,7 @@ import type { WorktreeInfo, WorktreeSummary } from "../types"
 
 export const GIT_WORKTREE_CACHE_TTL_MS = 30_000
 
-const cache = new Map<string, { data: WorktreeInfo; fetchedAt: number }>()
+const cache = new Map<string, { data: WorktreeInfo; fingerprint: string | null; fetchedAt: number }>()
 
 const negativeCache = new Map<string, { nextRetryAt: number; failureCount: number }>()
 
@@ -10,6 +10,9 @@ const GIT_COMMAND_TIMEOUT_MS = 5_000
 const GIT_SIGKILL_GRACE_MS = 500
 const NEGATIVE_CACHE_BASE_MS = 2_000
 const NEGATIVE_CACHE_MAX_MS = GIT_WORKTREE_CACHE_TTL_MS
+export const WORKTREE_SKIP_MS = 10 * 60_000
+
+const worktreeSkipUntil = new Map<string, number>()
 
 type ParsedWorktree = {
   path: string
@@ -31,16 +34,20 @@ export async function getWorktreeInfo(projectRoot: string): Promise<WorktreeInfo
     return undefined
   }
 
-  const data = await computeWorktreeInfo(projectRoot)
+  const previous = cached !== undefined && cached.fingerprint !== null
+    ? { fingerprint: cached.fingerprint, data: cached.data }
+    : undefined
 
-  if (data === undefined) {
+  const computed = await computeWorktreeInfo(projectRoot, previous)
+
+  if (computed === undefined) {
     recordFailure(projectRoot)
     return undefined
   }
 
-  cache.set(projectRoot, { data, fetchedAt: Date.now() })
+  cache.set(projectRoot, { data: computed.data, fingerprint: computed.fingerprint, fetchedAt: Date.now() })
   negativeCache.delete(projectRoot)
-  return data
+  return computed.data
 }
 
 function recordFailure(projectRoot: string): void {
@@ -56,7 +63,10 @@ function backoffDelayMs(failureCount: number): number {
   return Math.min(NEGATIVE_CACHE_BASE_MS * 2 ** (failureCount - 1), NEGATIVE_CACHE_MAX_MS)
 }
 
-async function computeWorktreeInfo(projectRoot: string): Promise<WorktreeInfo | undefined> {
+async function computeWorktreeInfo(
+  projectRoot: string,
+  previous?: { fingerprint: string; data: WorktreeInfo },
+): Promise<{ data: WorktreeInfo; fingerprint: string | null } | undefined> {
   try {
     const porcelain = await runGitCommand(projectRoot, ["worktree", "list", "--porcelain"])
     if (porcelain === undefined) return undefined
@@ -67,24 +77,49 @@ async function computeWorktreeInfo(projectRoot: string): Promise<WorktreeInfo | 
     const parsedWorktrees = parseWorktreeListPorcelain(porcelain)
     if (parsedWorktrees === undefined) return undefined
 
+    const fingerprint = JSON.stringify([
+      mainBranch.sha,
+      parsedWorktrees
+        .map((worktree) => [worktree.path, worktree.commitHash] as const)
+        .sort((left, right) => left[0].localeCompare(right[0])),
+    ])
+    if (previous !== undefined && previous.fingerprint === fingerprint) {
+      return { data: previous.data, fingerprint }
+    }
+
     const worktrees: WorktreeSummary[] = []
+    let degraded = false
     for (const worktree of parsedWorktrees) {
       let commitsAhead = 0
       let diffStat: WorktreeSummary["diffStat"] = null
 
       if (!worktree.isMainWorktree && !worktree.isPrunable) {
-        const aheadOutput = await runGitCommand(worktree.path, ["log", `${mainBranch}..HEAD`, "--oneline"])
-        if (aheadOutput === undefined) return undefined
+        const skipUntil = worktreeSkipUntil.get(worktree.path) ?? 0
+        if (Date.now() < skipUntil) {
+          degraded = true
+          worktrees.push({ ...worktree, commitsAhead: 0, diffStat: null })
+          continue
+        }
+
+        const aheadOutput = await runGitCommand(worktree.path, ["log", `${mainBranch.branch}..HEAD`, "--oneline"])
+        if (aheadOutput === undefined) {
+          degraded = true
+          worktreeSkipUntil.set(worktree.path, Date.now() + WORKTREE_SKIP_MS)
+          worktrees.push({ ...worktree, commitsAhead: 0, diffStat: null })
+          continue
+        }
 
         commitsAhead = countNonEmptyLines(aheadOutput)
 
-        const diffStatOutput = await runGitCommand(worktree.path, ["diff", `${mainBranch}...HEAD`, "--shortstat"])
-        if (diffStatOutput === undefined) return undefined
+        const diffStatOutput = await runGitCommand(worktree.path, ["diff", `${mainBranch.branch}...HEAD`, "--shortstat"])
+        if (diffStatOutput === undefined) {
+          degraded = true
+          worktreeSkipUntil.set(worktree.path, Date.now() + WORKTREE_SKIP_MS)
+          worktrees.push({ ...worktree, commitsAhead, diffStat: null })
+          continue
+        }
 
-        const parsedDiffStat = parseShortStat(diffStatOutput)
-        if (parsedDiffStat === undefined) return undefined
-
-        diffStat = parsedDiffStat
+        diffStat = parseShortStat(diffStatOutput) ?? null
       }
 
       worktrees.push({
@@ -97,27 +132,34 @@ async function computeWorktreeInfo(projectRoot: string): Promise<WorktreeInfo | 
     worktrees.sort(compareWorktrees)
 
     return {
-      totalCount: worktrees.length,
-      activeCount: worktrees.filter((worktree) => !worktree.isMainWorktree && !worktree.isPrunable).length,
-      hotCount: worktrees.filter(isHotWorktree).length,
-      worktrees,
+      data: {
+        totalCount: worktrees.length,
+        activeCount: worktrees.filter((worktree) => !worktree.isMainWorktree && !worktree.isPrunable).length,
+        hotCount: worktrees.filter(isHotWorktree).length,
+        worktrees,
+      },
+      fingerprint: degraded ? null : fingerprint,
     }
   } catch {
     return undefined
   }
 }
 
-async function detectMainBranch(projectRoot: string): Promise<string | undefined> {
+async function detectMainBranch(projectRoot: string): Promise<{ branch: string; sha: string } | undefined> {
   const originHeadRef = await runGitCommand(projectRoot, ["symbolic-ref", "refs/remotes/origin/HEAD"])
   const trimmedOriginHeadRef = originHeadRef?.trim()
   if (trimmedOriginHeadRef) {
-    return parseMainBranchRef(trimmedOriginHeadRef)
+    const branch = parseMainBranchRef(trimmedOriginHeadRef)
+    const sha = await runGitCommand(projectRoot, ["rev-parse", "--verify", branch])
+    if (sha !== undefined) {
+      return { branch, sha: sha.trim() }
+    }
   }
 
   for (const branch of ["main", "master"]) {
     const localRef = await runGitCommand(projectRoot, ["rev-parse", "--verify", branch])
     if (localRef !== undefined) {
-      return branch
+      return { branch, sha: localRef.trim() }
     }
   }
 

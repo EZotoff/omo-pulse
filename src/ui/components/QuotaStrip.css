@@ -171,11 +171,18 @@
 
 /* ── Style: rings ── squircle progress arc per window, countdown inside ── */
 
-/* Rings + type flow as a single tidy row: every provider takes an equal 1/N share */
+/* Rings + type flow as a single tidy row: every provider takes an equal 1/N share.
+   Hairline dividers delimit neighboring blocks — snug icon+rings clusters
+   otherwise read as one continuous stream. */
 .quota-strip[data-style="rings"],
 .quota-strip[data-style="type"] {
   display: flex;
   column-gap: var(--sp-2);
+}
+.quota-strip[data-style="rings"] .quota-strip__provider + .quota-strip__provider,
+.quota-strip[data-style="type"] .quota-strip__provider + .quota-strip__provider {
+  border-left: 1px solid var(--border-primary);
+  padding-left: 6px;
 }
 .quota-strip[data-style="rings"] .quota-strip__provider,
 .quota-strip[data-style="type"] .quota-strip__provider {

@@ -35,9 +35,19 @@ chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === ALARM) collectAndSend();
 });
 /* Also refresh whenever the user visits the MiMo console — the moment the
- * session rotates, the dashboard gets the new cookies within seconds. */
+ * session rotates, the dashboard gets the new cookies within seconds.
+ * Hostname must match the registrable domain exactly (or a subdomain):
+ * substring matching would also fire on xiaomimimo.com.evil.example/. */
+function isMimoUrl(raw) {
+  try {
+    const host = new URL(raw).hostname;
+    return host === COOKIE_DOMAIN || host.endsWith("." + COOKIE_DOMAIN);
+  } catch {
+    return false;
+  }
+}
 chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
-  if (changeInfo.status === "complete" && changeInfo.url?.includes(COOKIE_DOMAIN)) {
+  if (changeInfo.status === "complete" && typeof changeInfo.url === "string" && isMimoUrl(changeInfo.url)) {
     collectAndSend();
   }
 });

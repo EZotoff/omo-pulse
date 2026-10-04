@@ -171,22 +171,42 @@
 
 /* ── Style: rings ── squircle progress arc per window, countdown inside ── */
 
-/* Rings + type flow as a single tidy row: every provider takes an equal 1/N share */
+/* Rings + type flow as a single tidy row: every provider takes an equal 1/N share.
+   Hairline dividers delimit neighboring blocks — snug icon+rings clusters
+   otherwise read as one continuous stream. */
 .quota-strip[data-style="rings"],
 .quota-strip[data-style="type"] {
   display: flex;
-  column-gap: var(--sp-2);
+  column-gap: 5px;
+}
+.quota-strip[data-style="rings"] .quota-strip__provider + .quota-strip__provider,
+.quota-strip[data-style="type"] .quota-strip__provider + .quota-strip__provider {
+  border-left: 1px solid var(--border-primary);
+  padding-left: 4px;
+}
+
+/* Compact identity anchor in the dense single-row styles */
+.quota-strip[data-style="rings"] .quota-strip__icon,
+.quota-strip[data-style="rings"] .quota-strip__symbol {
+  width: 14px;
+  height: 14px;
+  font-size: 7px;
+}
+.quota-strip[data-style="rings"] .quota-strip__provider {
+  gap: 6px;
 }
 .quota-strip[data-style="rings"] .quota-strip__provider,
 .quota-strip[data-style="type"] .quota-strip__provider {
   flex: 1 1 0;
-  min-width: 0;
+  /* Blocks never compress below their snug content: shares divide the slack
+     proportionally to window count, and dividers are never crossed */
+  min-width: max-content;
   /* Block content hugs its leading edge: icon + rings sit snugly together
      while the blocks themselves stretch across the full row */
   justify-content: flex-start;
 }
 .quota-strip[data-style="rings"] .quota-strip__lines {
-  gap: 5px;
+  gap: 4px;
 }
 .quota-ring {
   position: relative;

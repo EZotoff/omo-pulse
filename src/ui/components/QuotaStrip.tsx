@@ -19,20 +19,56 @@ function formatRemaining(ms: number | null): string {
   return restHours > 0 ? `${days}d${restHours}h` : `${days}d`
 }
 
+/* Reset-window durations by window id — drives the satellite dot's elapsed
+ * fraction along the ring perimeter. Unknown ids get no dot. */
+const WINDOW_DURATION_MS: Record<string, number> = {
+  "5h": 5 * 3_600_000,
+  weekly: 7 * 86_400_000,
+  monthly: 30 * 86_400_000,
+}
+
 /**
- * Two-row countdown for ring text: days over hours (≥24h) or hours over
- * minutes (<24h). Returns null when no reset is known.
+ * Perimeter point at `frac` (0..1) along the mirrored cut-corner path,
+ * starting at the chamfer's upper corner and running clockwise. Piecewise
+ * analytic — same segment math as cutCornerPath, so the satellite dot lands
+ * exactly on the rendered stroke without DOM measurement.
  */
-export function countdownRows(ms: number | null, nowMs: number = Date.now()): { top: string; bottom: string } | null {
-  if (ms === null) return null
-  const deltaMs = ms - nowMs
-  if (deltaMs <= 60_000) return { top: "now", bottom: "" }
-  const minutes = Math.floor(deltaMs / 60_000)
-  const hours = Math.floor(minutes / 60)
-  if (hours >= 24) {
-    return { top: `${Math.floor(hours / 24)}d`, bottom: `${hours % 24}h` }
+export function pointAtFraction(side: number, frac: number): { x: number; y: number } {
+  const c = CUT_CORNER.c * side
+  const r = CUT_CORNER.r * side
+  const f = Math.min(Math.max(frac, 0), 1)
+  const arc = (Math.PI * r) / 2
+  const top = side - r - c
+  const right = side - 2 * r
+  const bottom = side - 2 * r
+  const left = side - r - c
+  const chamfer = c * Math.SQRT2
+  let d = f * (top + arc + right + arc + bottom + arc + left + chamfer)
+  if (d <= top) return { x: c + d, y: 0 }
+  d -= top
+  if (d <= arc) {
+    const a = -Math.PI / 2 + (d / arc) * (Math.PI / 2)
+    return { x: side - r + r * Math.cos(a), y: r + r * Math.sin(a) }
   }
-  return { top: `${hours}h`, bottom: `${minutes % 60}m` }
+  d -= arc
+  if (d <= right) return { x: side, y: r + d }
+  d -= right
+  if (d <= arc) {
+    const a = (d / arc) * (Math.PI / 2)
+    return { x: side - r + r * Math.cos(a), y: side - r + r * Math.sin(a) }
+  }
+  d -= arc
+  if (d <= bottom) return { x: side - r - d, y: side }
+  d -= bottom
+  if (d <= arc) {
+    const a = Math.PI / 2 + (d / arc) * (Math.PI / 2)
+    return { x: r + r * Math.cos(a), y: side - r + r * Math.sin(a) }
+  }
+  d -= arc
+  if (d <= left) return { x: 0, y: side - r - d }
+  d -= left
+  const t = d / chamfer
+  return { x: t * c, y: c - t * c }
 }
 
 /**
@@ -138,10 +174,31 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style, ri
       case "rings":
         return states.map((w) => {
           const pct = Math.min(Math.round(w.usedPercent), 100)
-          const rows = countdownRows(w.resetsAtMs)
           const inset = 2
           const side = ringSize - 2 * inset
           const path = cutCornerPath(side)
+          const duration = WINDOW_DURATION_MS[w.id]
+          const now = Date.now()
+          const elapsed =
+            w.resetsAtMs !== null && duration
+              ? Math.min(Math.max(1 - (w.resetsAtMs - now) / duration, 0), 1)
+              : null
+          const dot =
+            elapsed !== null
+              ? (() => {
+                  const pt = pointAtFraction(side, elapsed)
+                  const glow = Math.max(1.5, ringSize * 0.07)
+                  return (
+                    <circle
+                      cx={(pt.x + inset).toFixed(2)}
+                      cy={(pt.y + inset).toFixed(2)}
+                      r={Math.max(1, ringSize * 0.06)}
+                      fill="#f0f2f8"
+                      style={{ filter: `drop-shadow(0 0 ${glow.toFixed(2)}px #f0f2f8)` }}
+                    />
+                  )
+                })()
+              : null
           return (
             <div
               key={w.id}
@@ -149,7 +206,7 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style, ri
               data-level={usageLevel(w.usedPercent)}
               data-suppressed={w.suppressed}
               style={{ width: ringSize, height: ringSize }}
-              title={`${w.shortLabel}: ${Math.round(w.usedPercent)}% used${w.suppressed ? " (locked out)" : ""}`}
+              title={`${w.shortLabel}: ${Math.round(w.usedPercent)}% used${w.suppressed ? " (locked out)" : ""}${w.resetsAtMs !== null ? `, resets in ${formatRemaining(w.resetsAtMs)}` : ""}`}
             >
               <svg width={ringSize} height={ringSize}>
                 <path className="quota-ring__bg" d={path} transform={`translate(${inset} ${inset})`} pathLength={100} />
@@ -160,25 +217,8 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style, ri
                   pathLength={100}
                   style={{ strokeDasharray: 100, strokeDashoffset: 100 - pct }}
                 />
+                {dot}
               </svg>
-              {rows !== null ? (
-                <span
-                  className="quota-ring__text"
-                  style={{ fontSize: Math.max(6, Math.round(ringSize * 0.27)) }}
-                  aria-hidden="true"
-                >
-                  <span className="quota-ring__row">{rows.top}</span>
-                  <span className="quota-ring__row">{rows.bottom}</span>
-                </span>
-              ) : (
-                <span
-                  className="quota-ring__text"
-                  style={{ fontSize: Math.max(6, Math.round(ringSize * 0.27)) }}
-                  aria-hidden="true"
-                >
-                  <span className="quota-ring__row">{pct}%</span>
-                </span>
-              )}
             </div>
           )
         })

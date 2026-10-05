@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
-import { QuotaStrip, countdownRows, cutCornerPath, windowStates } from "../ui/components/QuotaStrip"
+import { QuotaStrip, cutCornerPath, pointAtFraction, windowStates } from "../ui/components/QuotaStrip"
 import type { QuotaWindow } from "../types"
 
 function win(id: string, usedPercent: number): QuotaWindow {
@@ -43,20 +43,44 @@ describe("windowStates", () => {
   })
 })
 
-describe("countdownRows", () => {
-  const now = Date.UTC(2026, 9, 3, 12, 0, 0)
+describe("pointAtFraction", () => {
+  const side = 30
+  const c = 0.253284 * side
 
-  it("splits 26h3m into 1d over 2h (no mixed h+m beyond a day)", () => {
-    expect(countdownRows(now + 26 * 3_600_000 + 3 * 60_000, now)).toEqual({ top: "1d", bottom: "2h" })
+  it("starts at the chamfer's upper corner", () => {
+    const pt = pointAtFraction(side, 0)
+    expect(pt.x).toBeCloseTo(c, 5)
+    expect(pt.y).toBe(0)
   })
 
-  it("splits sub-day remainders into hours over minutes", () => {
-    expect(countdownRows(now + 5 * 3_600_000 + 3 * 60_000, now)).toEqual({ top: "5h", bottom: "3m" })
+  it("ends back at the anchor after a full lap", () => {
+    const pt = pointAtFraction(side, 1)
+    expect(pt.x).toBeCloseTo(c, 5)
+    expect(pt.y).toBeCloseTo(0, 5)
   })
 
-  it("returns now for imminent resets and null when unknown", () => {
-    expect(countdownRows(now + 30_000, now)).toEqual({ top: "now", bottom: "" })
-    expect(countdownRows(null, now)).toBeNull()
+  it("reaches the amber start (left edge, above the bottom-left arc) at 75%", () => {
+    const r = 0.209419 * side
+    const pt = pointAtFraction(side, 0.75)
+    expect(pt.x).toBeCloseTo(0, 3)
+    expect(pt.y).toBeCloseTo(side - r, 3)
+  })
+
+  it("reaches the red start (chamfer's lower corner) at 90%", () => {
+    const c = 0.253284 * side
+    const pt = pointAtFraction(side, 0.9)
+    expect(pt.x).toBeCloseTo(0, 3)
+    expect(pt.y).toBeCloseTo(c, 3)
+  })
+
+  it("stays inside the ring bounds for every fraction", () => {
+    for (let i = 0; i <= 100; i++) {
+      const pt = pointAtFraction(side, i / 100)
+      expect(pt.x).toBeGreaterThanOrEqual(-0.01)
+      expect(pt.x).toBeLessThanOrEqual(side + 0.01)
+      expect(pt.y).toBeGreaterThanOrEqual(-0.01)
+      expect(pt.y).toBeLessThanOrEqual(side + 0.01)
+    }
   })
 })
 

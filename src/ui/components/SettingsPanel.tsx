@@ -329,7 +329,7 @@ export function SettingsPanel({
                 <input
                   className="settings-slider"
                   type="range"
-                  min={16}
+                  min={10}
                   max={48}
                   step={1}
                   value={stripConfig.quotaRingSize}

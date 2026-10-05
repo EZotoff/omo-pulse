@@ -33,7 +33,7 @@ export function clampRecentProjectsLimit(n: number): number {
 /** Clamp quotaRingSize to a sane range (16..48 px) */
 export function clampQuotaRingSize(n: number): number {
   if (!Number.isFinite(n)) return DEFAULT_CONFIG.quotaRingSize
-  return Math.min(48, Math.max(16, Math.round(n)))
+  return Math.min(48, Math.max(10, Math.round(n)))
 }
 
 /** Read persisted strip config from localStorage, returning defaults on failure */

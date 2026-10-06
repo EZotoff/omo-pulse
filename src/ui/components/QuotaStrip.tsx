@@ -138,14 +138,16 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style, ri
           const duration = WINDOW_DURATION_MS[w.id]
           const now = Date.now()
           /* Silver trough = elapsed window time: empty at open, fills clockwise
-           * to full at reset — exactly like the usage arc (dashoffset = remaining). */
+           * to full at reset — exactly like the usage arc (dashoffset = remaining).
+           * Clipped to the arc's inner half so the glow lives inside the ring. */
           const remaining =
             w.resetsAtMs !== null && duration
               ? Math.min(Math.max((w.resetsAtMs - now) / duration, 0), 1)
               : null
           const strokeW = Math.max(0.35, (2.5 * ringSize) / 40)
           const troughW = strokeW + Math.max(1.4, (2.6 * ringSize) / 40)
-          const glow = Math.max(1.2, ringSize * 0.05)
+          const glow = Math.max(1.5, ringSize * 0.08)
+          const clipId = `ringClip-${provider.providerId}-${w.id}`
           return (
             <div
               key={w.id}
@@ -157,18 +159,24 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style, ri
             >
               <svg width={ringSize} height={ringSize}>
                 {remaining !== null && (
-                  <path
-                    className="quota-ring__trough"
-                    d={path}
-                    transform={`translate(${inset} ${inset})`}
-                    pathLength={100}
-                    style={{
-                      strokeWidth: troughW,
-                      strokeDasharray: 100,
-                      strokeDashoffset: remaining * 100,
-                      filter: `drop-shadow(0 0 ${glow.toFixed(2)}px rgba(240, 242, 248, 0.85))`,
-                    }}
-                  />
+                  <>
+                    <clipPath id={clipId}>
+                      <path d={path} />
+                    </clipPath>
+                    <path
+                      className="quota-ring__trough"
+                      d={path}
+                      transform={`translate(${inset} ${inset})`}
+                      clipPath={`url(#${clipId})`}
+                      pathLength={100}
+                      style={{
+                        strokeWidth: troughW,
+                        strokeDasharray: 100,
+                        strokeDashoffset: remaining * 100,
+                        filter: `drop-shadow(0 0 ${glow.toFixed(2)}px rgba(240, 242, 248, 0.765))`,
+                      }}
+                    />
+                  </>
                 )}
                 <path
                   className="quota-ring__bg"
@@ -188,14 +196,18 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style, ri
                     strokeDashoffset: 100 - pct,
                   }}
                 />
+                <text
+                  className="quota-ring__label"
+                  x={ringSize / 2}
+                  y={ringSize / 2}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize={Math.max(6, Math.round(ringSize * 0.39))}
+                  aria-hidden="true"
+                >
+                  {w.shortLabel}
+                </text>
               </svg>
-              <span
-                className="quota-ring__label"
-                style={{ fontSize: Math.max(6, Math.round(ringSize * 0.26)) }}
-                aria-hidden="true"
-              >
-                {w.shortLabel}
-              </span>
             </div>
           )
         })
@@ -265,22 +277,9 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style, ri
     }
   }
 
-  /* Single-row styles use an aligned grid: ceil(n/2) columns (two rows for 6
-     providers), each column as wide as its tallest ring count — so both rows
-     share exact column boundaries (OL sits directly above MI). */
-  const columns = singleRow ? Math.ceil(quotas.providers.length / 2) : 1
-  const gridTemplate = singleRow
-    ? Array.from({ length: columns }, (_, col) => {
-        let maxRings = 1
-        for (let i = col; i < quotas.providers.length; i += columns) {
-          maxRings = Math.max(maxRings, providerRingCount(quotas.providers[i]))
-        }
-        return `${maxRings}fr`
-      }).join(" ")
-    : undefined
 
   return (
-    <div className="quota-strip" role="status" aria-label="Provider quota usage" data-style={style} style={gridTemplate ? { gridTemplateColumns: gridTemplate } : undefined}>
+    <div className="quota-strip" role="status" aria-label="Provider quota usage" data-style={style}>
       {quotas.providers.map((provider: ProviderQuota) => {
         const states = windowStates(provider.windows)
         return (
@@ -289,6 +288,7 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style, ri
             className="quota-strip__provider"
             data-status={provider.status}
             title={tooltipFor(provider, states)}
+            style={singleRow ? { flexGrow: provider.windows.length || 1 } : undefined}
           >
             {useIcons && provider.icon ? (
               <img

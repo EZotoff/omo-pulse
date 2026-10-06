@@ -176,8 +176,7 @@
    otherwise read as one continuous stream. */
 .quota-strip[data-style="rings"],
 .quota-strip[data-style="type"] {
-  display: grid;
-  row-gap: 6px;
+  display: flex;
   column-gap: 8px;
 }
 
@@ -223,16 +222,12 @@
   stroke: rgba(240, 242, 248, 0.95);
   stroke-linecap: round;
 }
-/* Gray window identifier (5H / WK / MO) inside the arc */
+/* Gray window identifier (5H / WK / MO) inside the arc — SVG text with
+   dominant-baseline central for true optical centering */
 .quota-ring__label {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-family: var(--font-mono);
   letter-spacing: 0.2px;
-  color: var(--text-muted);
+  fill: var(--text-muted);
 }
 .quota-ring[data-level="ok"] .quota-ring__val { stroke: var(--accent-primary); }
 .quota-ring[data-level="warn"] .quota-ring__val { stroke: var(--accent-warning); }

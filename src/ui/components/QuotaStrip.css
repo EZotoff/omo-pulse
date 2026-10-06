@@ -210,40 +210,34 @@
 .quota-ring__bg {
   fill: none;
   stroke: var(--border-primary);
-  stroke-width: 2.5;
 }
 .quota-ring__val {
   fill: none;
-  stroke-width: 2.5;
   stroke-linecap: round;
   transition: stroke-dashoffset var(--transition-normal);
+}
+/* Silver time trough: elapsed window time, empty → full clockwise; sits
+   beneath the gray backdrop so the colored arc rides in a glowing bed */
+.quota-ring__trough {
+  fill: none;
+  stroke: rgba(240, 242, 248, 0.95);
+  stroke-linecap: round;
+}
+/* Gray window identifier (5H / WK / MO) inside the arc */
+.quota-ring__label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  letter-spacing: 0.2px;
+  color: var(--text-muted);
 }
 .quota-ring[data-level="ok"] .quota-ring__val { stroke: var(--accent-primary); }
 .quota-ring[data-level="warn"] .quota-ring__val { stroke: var(--accent-warning); }
 .quota-ring[data-level="danger"] .quota-ring__val { stroke: var(--accent-danger); }
 .quota-ring[data-level="exhausted"] .quota-ring__val { stroke: #5a3232; }
-/* Countdown inside the ring — Type-style typography: mono, semibold, level-colored */
-.quota-ring__text {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5px;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.2px;
-  line-height: 1.05;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-}
-.quota-ring[data-level="ok"] .quota-ring__text { color: var(--accent-primary); }
-.quota-ring[data-level="warn"] .quota-ring__text { color: var(--accent-warning); }
-.quota-ring[data-level="danger"] .quota-ring__text { color: var(--accent-danger); }
-.quota-ring[data-level="exhausted"] .quota-ring__text { color: #7a3b3b; }
 
 /* Suppressed windows (a longer quota is exhausted → provider locked out):
    keep the layout static — dim to near-invisible and strip all color */

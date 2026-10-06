@@ -18,7 +18,7 @@ const DEFAULT_CONFIG: StripConfigState = {
   showQuotas: true,
   quotaIconMode: "icons",
   quotaStyle: "bars",
-  quotaRingSize: 27,
+  quotaRingSize: 26,
   stripDisplayMode: "project",
   recentProjectsLimit: 6,
   projectListMode: "recent",

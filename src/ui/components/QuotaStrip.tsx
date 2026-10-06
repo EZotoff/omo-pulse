@@ -27,49 +27,7 @@ const WINDOW_DURATION_MS: Record<string, number> = {
   monthly: 30 * 86_400_000,
 }
 
-/**
- * Perimeter point at `frac` (0..1) along the mirrored cut-corner path,
- * starting at the chamfer's upper corner and running clockwise. Piecewise
- * analytic — same segment math as cutCornerPath, so the satellite dot lands
- * exactly on the rendered stroke without DOM measurement.
- */
-export function pointAtFraction(side: number, frac: number): { x: number; y: number } {
-  const c = CUT_CORNER.c * side
-  const r = CUT_CORNER.r * side
-  const f = Math.min(Math.max(frac, 0), 1)
-  const arc = (Math.PI * r) / 2
-  const top = side - r - c
-  const right = side - 2 * r
-  const bottom = side - 2 * r
-  const left = side - r - c
-  const chamfer = c * Math.SQRT2
-  let d = f * (top + arc + right + arc + bottom + arc + left + chamfer)
-  if (d <= top) return { x: c + d, y: 0 }
-  d -= top
-  if (d <= arc) {
-    const a = -Math.PI / 2 + (d / arc) * (Math.PI / 2)
-    return { x: side - r + r * Math.cos(a), y: r + r * Math.sin(a) }
-  }
-  d -= arc
-  if (d <= right) return { x: side, y: r + d }
-  d -= right
-  if (d <= arc) {
-    const a = (d / arc) * (Math.PI / 2)
-    return { x: side - r + r * Math.cos(a), y: side - r + r * Math.sin(a) }
-  }
-  d -= arc
-  if (d <= bottom) return { x: side - r - d, y: side }
-  d -= bottom
-  if (d <= arc) {
-    const a = Math.PI / 2 + (d / arc) * (Math.PI / 2)
-    return { x: r + r * Math.cos(a), y: side - r + r * Math.sin(a) }
-  }
-  d -= arc
-  if (d <= left) return { x: 0, y: side - r - d }
-  d -= left
-  const t = d / chamfer
-  return { x: t * c, y: c - t * c }
-}
+
 
 /**
  * Usage level thresholds are pinned to the cut-corner ring geometry: with
@@ -179,26 +137,15 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style, ri
           const path = cutCornerPath(side)
           const duration = WINDOW_DURATION_MS[w.id]
           const now = Date.now()
-          const elapsed =
+          /* Silver trough = elapsed window time: empty at open, fills clockwise
+           * to full at reset — exactly like the usage arc (dashoffset = remaining). */
+          const remaining =
             w.resetsAtMs !== null && duration
-              ? Math.min(Math.max(1 - (w.resetsAtMs - now) / duration, 0), 1)
+              ? Math.min(Math.max((w.resetsAtMs - now) / duration, 0), 1)
               : null
-          const dot =
-            elapsed !== null
-              ? (() => {
-                  const pt = pointAtFraction(side, elapsed)
-                  const glow = Math.max(1.5, ringSize * 0.07)
-                  return (
-                    <circle
-                      cx={(pt.x + inset).toFixed(2)}
-                      cy={(pt.y + inset).toFixed(2)}
-                      r={Math.max(1, ringSize * 0.06)}
-                      fill="#f0f2f8"
-                      style={{ filter: `drop-shadow(0 0 ${glow.toFixed(2)}px #f0f2f8)` }}
-                    />
-                  )
-                })()
-              : null
+          const strokeW = Math.max(0.35, (2.5 * ringSize) / 40)
+          const troughW = strokeW + Math.max(1.4, (2.6 * ringSize) / 40)
+          const glow = Math.max(1.2, ringSize * 0.05)
           return (
             <div
               key={w.id}
@@ -209,16 +156,46 @@ export const QuotaStrip = memo(function QuotaStrip({ quotas, iconMode, style, ri
               title={`${w.shortLabel}: ${Math.round(w.usedPercent)}% used${w.suppressed ? " (locked out)" : ""}${w.resetsAtMs !== null ? `, resets in ${formatRemaining(w.resetsAtMs)}` : ""}`}
             >
               <svg width={ringSize} height={ringSize}>
-                <path className="quota-ring__bg" d={path} transform={`translate(${inset} ${inset})`} pathLength={100} />
+                {remaining !== null && (
+                  <path
+                    className="quota-ring__trough"
+                    d={path}
+                    transform={`translate(${inset} ${inset})`}
+                    pathLength={100}
+                    style={{
+                      strokeWidth: troughW,
+                      strokeDasharray: 100,
+                      strokeDashoffset: remaining * 100,
+                      filter: `drop-shadow(0 0 ${glow.toFixed(2)}px rgba(240, 242, 248, 0.85))`,
+                    }}
+                  />
+                )}
+                <path
+                  className="quota-ring__bg"
+                  d={path}
+                  transform={`translate(${inset} ${inset})`}
+                  pathLength={100}
+                  style={{ strokeWidth: strokeW * 0.85 }}
+                />
                 <path
                   className="quota-ring__val"
                   d={path}
                   transform={`translate(${inset} ${inset})`}
                   pathLength={100}
-                  style={{ strokeDasharray: 100, strokeDashoffset: 100 - pct }}
+                  style={{
+                    strokeWidth: strokeW,
+                    strokeDasharray: 100,
+                    strokeDashoffset: 100 - pct,
+                  }}
                 />
-                {dot}
               </svg>
+              <span
+                className="quota-ring__label"
+                style={{ fontSize: Math.max(6, Math.round(ringSize * 0.26)) }}
+                aria-hidden="true"
+              >
+                {w.shortLabel}
+              </span>
             </div>
           )
         })

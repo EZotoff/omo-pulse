@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
-import { affectedProjectRoot, isFreshnessRelevant } from "../ingest/opencode-event-map"
+import { affectedProjectRoot, isFreshnessRelevant, resolveProjectRoot } from "../ingest/opencode-event-map"
 import type { OpenCodeEvent } from "../ingest/realtime-types"
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -59,6 +59,24 @@ function eventByKind(kind: string): OpenCodeEvent {
 }
 
 describe("opencode-event-map", () => {
+  it.each([
+    { name: "exact root before ancestors", directory: "/root/sub", roots: ["/root", "/root/sub"], expected: "/root/sub" },
+    { name: "longest parent prefix", directory: "/root/sub/deeper", roots: ["/root/sub", "/root"], expected: "/root/sub" },
+    { name: "parent for subdirectory", directory: "/root/sub", roots: ["/root"], expected: "/root" },
+    { name: "trailing slash", directory: "/root/", roots: ["/root"], expected: "/root" },
+    { name: "path boundary", directory: "/a/bc", roots: ["/a/b"], expected: null },
+    { name: "child store is not a parent", directory: "/a/b", roots: ["/a/bc"], expected: null },
+    { name: "dot segments", directory: "/root/sub/../../other", roots: ["/root"], expected: null },
+    { name: "dot-prefixed child", directory: "/root/..child", roots: ["/root"], expected: "/root" },
+    { name: "filesystem root", directory: "/root/sub", roots: ["/"], expected: "/" },
+    { name: "unknown directory", directory: "/unknown", roots: ["/root"], expected: null },
+    { name: "missing directory", directory: undefined, roots: ["/root"], expected: null },
+    { name: "empty directory", directory: "", roots: ["/root"], expected: null },
+    { name: "no known roots", directory: "/root", roots: [], expected: null },
+  ])("resolves $name", ({ directory, roots, expected }) => {
+    expect(resolveProjectRoot(directory, roots)).toBe(expected)
+  })
+
   it("loads both fixtures as parseable SSE frames", () => {
     expect(realFrames.length).toBeGreaterThanOrEqual(100)
     expect(syntheticFrames.length).toBe(15)

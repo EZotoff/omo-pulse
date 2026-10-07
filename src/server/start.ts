@@ -156,6 +156,11 @@ const server = Bun.serve({
 });
 
 sseClient?.start();
+
+// Boot warm: kick off the first payload build immediately so the initial user
+// request joins an in-flight build (single-flight) instead of triggering one.
+// Fire-and-forget: failures are handled per-request.
+void multiProjectService.getMultiProjectPayload().catch(() => {});
 let disconnectedSince: number | null = null;
 let outageLogged = false;
 const healthTimer = sseClient ? setInterval(() => {

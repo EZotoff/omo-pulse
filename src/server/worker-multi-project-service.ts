@@ -129,21 +129,32 @@ export function createWorkerMultiProjectService(opts: {
     if (!reply.ok) throw new Error("worker failed to acknowledge invalidate")
   }
 
+  let payloadInflight: Promise<DashboardMultiProjectPayload> | null = null
   return {
-    async getMultiProjectPayload(): Promise<DashboardMultiProjectPayload> {
-      try {
-        return await requestPayload()
-      } catch {
-        // Fail soft: serve the last good snapshot rather than wedging routes.
-        if (lastGood) return { ...lastGood, serverNowMs: Date.now() }
-        return { projects: [], serverNowMs: Date.now(), pollIntervalMs: opts.pollIntervalMs ?? 30_000 }
-      }
+    getMultiProjectPayload(): Promise<DashboardMultiProjectPayload> {
+      // Single-flight: join an in-flight worker build instead of stacking a
+      // second one; invalidation clears it so post-invalidation requests rebuild.
+      if (payloadInflight) return payloadInflight
+      payloadInflight = (async () => {
+        try {
+          return await requestPayload()
+        } catch {
+          // Fail soft: serve the last good snapshot rather than wedging routes.
+          if (lastGood) return { ...lastGood, serverNowMs: Date.now() }
+          return { projects: [], serverNowMs: Date.now(), pollIntervalMs: opts.pollIntervalMs ?? 30_000 }
+        } finally {
+          payloadInflight = null
+        }
+      })()
+      return payloadInflight
     },
     invalidate(): void {
+      payloadInflight = null
       void invalidateAndWait()
     },
     invalidateAndWait,
     invalidateForDirectories(directories: readonly string[]): void {
+      payloadInflight = null
       void invalidateForDirectoriesAndWait(directories)
     },
     invalidateForDirectoriesAndWait,

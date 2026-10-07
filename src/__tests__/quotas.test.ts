@@ -9,7 +9,7 @@ import {
   parseGoUsage,
   parseKimiUsage,
   parseMimoUsage,
-  parseOllamaUsage,
+  parseOllamaBalance,
   parseOpenAiUsage,
   parseZaiUsage,
   type FetchLike,
@@ -181,24 +181,28 @@ describe("parseOpenAiUsage", () => {
   })
 })
 
-describe("parseOllamaUsage", () => {
-  const nowMs = Date.UTC(2026, 8, 12, 12, 0, 0)
-
-  it("converts 0..1 fractions to percent with epoch-aligned resets", () => {
-    const windows = parseOllamaUsage(
-      { limits: { session: { usage: 0.046 }, weekly: { usage: 0.051 } } },
-      nowMs,
-    )
+describe("parseOllamaBalance", () => {
+  it("inverts remaining_percent and uses the reported reset timestamps", () => {
+    const windows = parseOllamaBalance({
+      included: {
+        session: { remaining_percent: 96.99, resets_at: "2026-10-07T23:00:00Z" },
+        weekly: { remaining_percent: 80.37, resets_at: "2026-10-12T00:00:00Z" },
+      },
+      purchased: { balance_usd: 0 },
+    })
     expect(windows).toHaveLength(2)
-    expect(windows[0]).toMatchObject({ id: "5h", usedPercent: 4.6 })
-    const fiveHourPeriodMs = 5 * 3_600_000
-    expect(windows[0].resetsAtMs).toBe((Math.floor(nowMs / fiveHourPeriodMs) + 1) * fiveHourPeriodMs)
-    expect(windows[1]).toMatchObject({ id: "weekly", usedPercent: 5.1 })
+    expect(windows[0]).toMatchObject({ id: "5h", shortLabel: "5H" })
+    expect(windows[0].usedPercent).toBeCloseTo(3.01, 6)
+    expect(windows[0].resetsAtMs).toBe(Date.parse("2026-10-07T23:00:00Z"))
+    expect(windows[1]).toMatchObject({ id: "weekly", shortLabel: "WK" })
+    expect(windows[1].usedPercent).toBeCloseTo(19.63, 6)
+    expect(windows[1].resetsAtMs).toBe(Date.parse("2026-10-12T00:00:00Z"))
   })
 
-  it("returns empty when limits absent", () => {
-    expect(parseOllamaUsage({ limits: {} }, nowMs)).toEqual([])
-    expect(parseOllamaUsage(null, nowMs)).toEqual([])
+  it("returns empty when included absent or malformed", () => {
+    expect(parseOllamaBalance({ included: {} })).toEqual([])
+    expect(parseOllamaBalance({ included: { session: {} } })).toEqual([])
+    expect(parseOllamaBalance(null)).toEqual([])
   })
 })
 
@@ -363,7 +367,7 @@ describe("createQuotaService", () => {
     const authPath = await withTempAuth(
       JSON.stringify({ "ollama-cloud": { type: "api", key: "sk-ol" } }),
     )
-    const fetchImpl: FetchLike = async () => jsonResponse({ limits: { session: { usage: 0.5 } } })
+    const fetchImpl: FetchLike = async () => jsonResponse({ included: { session: { remaining_percent: 50, resets_at: "2026-10-07T23:00:00Z" } } })
     const service = createQuotaService({ authPath, fetchImpl })
     const payload: ProviderQuotasPayload = await service.getQuotas()
     expect(payload.serverNowMs).toBeGreaterThan(0)

@@ -53,7 +53,7 @@ function fixtureEvent(kind: string): OpenCodeEvent {
 const sessionEvent = fixtureEvent("session.updated")
 
 describe("multi-project realtime invalidation", () => {
-  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(100_000); listSources.mockClear() })
+  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(100_000); listSources.mockReset(); getSourceById.mockReset(); clearCacheCalls.clear() })
   afterEach(() => { vi.useRealTimers() })
 
   it("forces a fresh DashboardStore snapshot without replacing the store", () => {
@@ -125,6 +125,61 @@ describe("multi-project realtime invalidation", () => {
 
     expect(clearCacheCalls.get("/tmp/per-source-a")).toBe(1)
     expect(clearCacheCalls.get("/tmp/per-source-b")).toBe(1)
+  })
+
+  it.each([
+    { name: "unknown directory falls back to global", directory: "/unknown", roots: ["/root/a", "/root/b"], cleared: [1, 1] },
+    { name: "subdirectory clears only its parent", directory: "/root/sub", roots: ["/root", "/other"], cleared: [1, 0] },
+    { name: "longest parent wins", directory: "/root/sub/deeper", roots: ["/root", "/root/sub"], cleared: [0, 1] },
+    { name: "exact root wins over ancestor", directory: "/root/sub", roots: ["/root", "/root/sub"], cleared: [0, 1] },
+    { name: "path boundary does not clear a sibling", directory: "/a/b", roots: ["/a/b", "/a/bc"], cleared: [1, 0] },
+    { name: "prefix lookalike falls back to global", directory: "/a/b", roots: ["/a/bc", "/other"], cleared: [1, 1] },
+  ])("$name", async ({ directory, roots, cleared }) => {
+    listSources.mockReturnValue(roots.map((id) => ({ id })))
+    getSourceById.mockImplementation((_storageRoot, id) =>
+      typeof id === "string" && roots.includes(id) ? { id, projectRoot: id } : null,
+    )
+    const service = createMultiProjectService({ storageRoot: "/tmp/storage", storageBackend, realtimeDebounceMs: 300 })
+    const first = await service.getMultiProjectPayload()
+    clearCacheCalls.clear()
+
+    service.onRealtimeEvent({ kind: "session.updated", ts: 2, directory })
+    await vi.advanceTimersByTimeAsync(300)
+    const refreshed = await service.getMultiProjectPayload()
+
+    expect(listSources).toHaveBeenCalledTimes(2)
+    roots.forEach((root, index) => {
+      expect(clearCacheCalls.get(root) ?? 0).toBe(cleared[index])
+      const previousSeries = first.projects.find((project) => project.projectRoot === root)?.sessionTimeSeries
+      const refreshedSeries = refreshed.projects.find((project) => project.projectRoot === root)?.sessionTimeSeries
+      expect(previousSeries).toBeDefined()
+      if (cleared[index] === 1) expect(refreshedSeries).not.toBe(previousSeries)
+      else expect(refreshedSeries).toBe(previousSeries)
+    })
+  })
+
+  it("invalidates every affected root in a burst before publishing refresh", async () => {
+    const roots = ["/root/a", "/root/b", "/root/c"]
+    listSources.mockReturnValue(roots.map((id) => ({ id })))
+    getSourceById.mockImplementation((_storageRoot, id) =>
+      typeof id === "string" && roots.includes(id) ? { id, projectRoot: id } : null,
+    )
+    const realtimeBus = createRealtimeBus()
+    const published = vi.fn(() => expect([...clearCacheCalls.keys()]).toEqual(["/root/a", "/root/b"]))
+    realtimeBus.subscribe(published)
+    const service = createMultiProjectService({ storageRoot: "/tmp/storage", storageBackend, realtimeBus, realtimeDebounceMs: 300 })
+    await service.getMultiProjectPayload()
+    clearCacheCalls.clear()
+
+    service.onRealtimeEvent({ kind: "session.updated", ts: 2, directory: "/root/a/sub" })
+    service.onRealtimeEvent({ kind: "session.updated", ts: 3, directory: "/root/b/sub" })
+    service.onRealtimeEvent({ kind: "session.updated", ts: 4, directory: "/root/a" })
+    await vi.advanceTimersByTimeAsync(300)
+
+    expect(published).toHaveBeenCalledTimes(1)
+    expect(clearCacheCalls.get("/root/a")).toBe(1)
+    expect(clearCacheCalls.get("/root/b")).toBe(1)
+    expect(clearCacheCalls.has("/root/c")).toBe(false)
   })
 
   it("ignores irrelevant deltas and keeps the TTL fallback active", async () => {

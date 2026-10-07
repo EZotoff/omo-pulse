@@ -1,3 +1,4 @@
+import { isAbsolute, relative, sep } from "node:path"
 import type { OpenCodeEvent } from "./realtime-types"
 
 /**
@@ -49,4 +50,16 @@ export function affectedProjectRoot(event: OpenCodeEvent): string | null {
   if (typeof directory !== "string") return null
   const trimmed = directory.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+export function resolveProjectRoot(directory: string | undefined, knownRoots: Iterable<string>): string | null {
+  if (!directory?.trim()) return null
+  let matchedRoot: string | null = null
+  for (const root of knownRoots) {
+    const childPath = relative(root, directory.trim())
+    if (childPath === "") return root
+    if (isAbsolute(childPath) || childPath.split(sep)[0] === "..") continue
+    if (matchedRoot === null || root.length > matchedRoot.length) matchedRoot = root
+  }
+  return matchedRoot
 }

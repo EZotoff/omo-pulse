@@ -2,7 +2,7 @@ import * as path from "node:path"
 import { Database } from "bun:sqlite"
 import { getGitUncommittedCount } from "../ingest/git-status"
 import { getWorktreeInfo } from "../ingest/git-worktrees"
-import { affectedProjectRoot, isFreshnessRelevant } from "../ingest/opencode-event-map"
+import { affectedProjectRoot, isFreshnessRelevant, resolveProjectRoot } from "../ingest/opencode-event-map"
 import { derivePerSessionTimeSeries } from "../ingest/per-session-timeseries"
 import { readRealtimeConfig } from "../ingest/realtime-config"
 import type { OpenCodeEvent, RealtimeBus } from "../ingest/realtime-types"
@@ -289,6 +289,10 @@ export function createMultiProjectService(opts: {
   const sessionSummaryByProjectRoot = new Map<string, { value: SessionSummary[]; fetchedAt: number }>()
   let cachedPayload: DashboardMultiProjectPayload | null = null
   let cachedPayloadAt = 0
+  // Single-flight: concurrent callers join an in-flight build instead of
+  // stacking duplicate full-tree recomputes. Cleared by invalidation so a
+  // post-invalidation request never joins a build that started before it.
+  let payloadInflight: Promise<DashboardMultiProjectPayload> | null = null
   /** Discovered roots whose dashboard store is already warmed up */
   const builtDiscoveredRoots = new Set<string>()
   /** Discovered roots queued for background warm-up (bounded by MAX_DISCOVERED_PROJECTS) */
@@ -406,6 +410,18 @@ export function createMultiProjectService(opts: {
         serverNowMs: nowMs,
       }
     }
+    if (payloadInflight) return payloadInflight
+    const build = buildMultiProjectPayload()
+    payloadInflight = build
+    try {
+      return await build
+    } finally {
+      if (payloadInflight === build) payloadInflight = null
+    }
+  }
+
+  async function buildMultiProjectPayload(): Promise<DashboardMultiProjectPayload> {
+    const nowMs = Date.now()
 
     const sources = listSources(opts.storageRoot)
     const snapshots: Array<{ snapshot: ProjectSnapshot; projectRoot: string }> = []
@@ -539,6 +555,7 @@ export function createMultiProjectService(opts: {
   function invalidate(): void {
     cachedPayload = null
     cachedPayloadAt = 0
+    payloadInflight = null
     // Clear each store's in-memory snapshot rather than dropping the stores:
     // recreating them discards stagger stride and forced discovered-roots
     // warm-up state, pushing a cold multi-store rebuild onto the next request.
@@ -550,13 +567,23 @@ export function createMultiProjectService(opts: {
   /**
    * Directory-scoped invalidation: drops the aggregate payload cache (cheap to
    * rebuild when stores stay warm) and clears only the stores + per-root side
-   * caches whose canonical project root matches one of the given directories.
+   * caches for the nearest known project roots. Unknown directories use the
+   * global fallback because they may belong to a newly discovered project.
    */
   function invalidateForDirectories(directories: readonly string[]): void {
+    const projectRoots = new Set<string>()
+    for (const directory of directories) {
+      const projectRoot = resolveProjectRoot(directory, storeByProjectRoot.keys())
+      if (projectRoot === null) {
+        invalidate()
+        return
+      }
+      projectRoots.add(projectRoot)
+    }
     cachedPayload = null
     cachedPayloadAt = 0
-    for (const directory of directories) {
-      const projectRoot = canonicalizeProjectRoot(directory)
+    payloadInflight = null
+    for (const projectRoot of projectRoots) {
       storeByProjectRoot.get(projectRoot)?.clearCache()
       sessionTimeSeriesByProjectRoot.delete(projectRoot)
       sessionSummaryByProjectRoot.delete(projectRoot)

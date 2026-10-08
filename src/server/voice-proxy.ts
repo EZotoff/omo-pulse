@@ -25,6 +25,10 @@ const WS_OPEN = 1
 export const VOICE_CLIENT_CLASSES = ["dash", "beacon"] as const
 export type VoiceClientClass = (typeof VOICE_CLIENT_CLASSES)[number]
 
+/** Voice models the proxy accepts on /api/voice-ws; forwarded to the bridge. */
+export const VOICE_MODELS = ["gemini", "moshi"] as const
+export type VoiceModel = (typeof VOICE_MODELS)[number]
+
 /** Per-boot token file written by the voice-bridge (mode 0600). */
 export function defaultVoiceTokenPath(): string {
   return join(homedir(), ".local", "state", "voice-bridge", "token")
@@ -53,8 +57,9 @@ export function resolveVoiceBridgeUrl(): string {
 
 /** Data attached to each upgraded server socket. */
 export interface VoiceProxyData {
-  readonly token: string
+readonly token: string
   readonly clientClass: VoiceClientClass
+  readonly voiceModel: VoiceModel
   client: VoiceBridgeSocket | null
   /** Frames from the browser queued until the bridge socket is OPEN. */
   pending: Array<string | Uint8Array>
@@ -113,11 +118,17 @@ export function handleVoiceProxyUpgrade(
   const url = new URL(request.url)
   if (url.pathname !== VOICE_PROXY_PATH) return undefined
 
-  const classParam = url.searchParams.get("clientClass")
-  if (classParam !== null && !(VOICE_CLIENT_CLASSES as readonly string[]).includes(classParam)) {
-    return new Response("invalid clientClass", { status: 400 })
-  }
+const classParam = url.searchParams.get("clientClass")
+if (classParam !== null && !(VOICE_CLIENT_CLASSES as readonly string[]).includes(classParam)) {
+return new Response("invalid clientClass", { status: 400 })
+}
   const clientClass: VoiceClientClass = classParam === "beacon" ? "beacon" : "dash"
+
+  const modelParam = url.searchParams.get("voiceModel")
+  if (modelParam !== null && !(VOICE_MODELS as readonly string[]).includes(modelParam)) {
+    return new Response("invalid voiceModel", { status: 400 })
+  }
+  const voiceModel: VoiceModel = modelParam === "moshi" ? "moshi" : "gemini"
 
   const token = readToken()
   if (token === null) {
@@ -125,7 +136,7 @@ export function handleVoiceProxyUpgrade(
   }
 
   const upgraded = server.upgrade(request, {
-    data: { token, clientClass, client: null, pending: [], closed: false },
+    data: { token, clientClass, voiceModel, client: null, pending: [], closed: false },
   })
   if (!upgraded) {
     return new Response("websocket upgrade required", { status: 426 })
@@ -146,7 +157,7 @@ export function createVoiceProxyHandler(
   return {
     open(ws): void {
       const data = ws.data
-      const target = `${bridgeUrl}/voice?client=${data.clientClass}&token=${encodeURIComponent(data.token)}`
+      const target = `${bridgeUrl}/voice?client=${data.clientClass}&voiceModel=${data.voiceModel}&token=${encodeURIComponent(data.token)}`
       let client: VoiceBridgeSocket
       try {
         client = connectBridge(target)

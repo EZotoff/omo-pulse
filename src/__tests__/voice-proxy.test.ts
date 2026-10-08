@@ -176,6 +176,45 @@ describe("handleVoiceProxyUpgrade clientClass", () => {
 })
 
 // ---------------------------------------------------------------------------
+// voiceModel validation
+// ---------------------------------------------------------------------------
+
+describe("handleVoiceProxyUpgrade voiceModel", () => {
+  test("defaults to gemini when the parameter is absent", () => {
+    const server = new FakeUpgradeServer()
+    const response = handleVoiceProxyUpgrade(
+      new Request(`http://localhost${VOICE_PROXY_PATH}`),
+      server,
+      () => "t",
+    )
+    expect(response).toBeUndefined()
+    expect(server.upgraded?.voiceModel).toBe("gemini")
+  })
+
+  test("accepts moshi", () => {
+    const server = new FakeUpgradeServer()
+    const response = handleVoiceProxyUpgrade(
+      new Request(`http://localhost${VOICE_PROXY_PATH}?voiceModel=moshi`),
+      server,
+      () => "t",
+    )
+    expect(response).toBeUndefined()
+    expect(server.upgraded?.voiceModel).toBe("moshi")
+  })
+
+  test("rejects an unknown value with 400 and no upgrade", () => {
+    const server = new FakeUpgradeServer()
+    const response = handleVoiceProxyUpgrade(
+      new Request(`http://localhost${VOICE_PROXY_PATH}?voiceModel=whisper`),
+      server,
+      () => "t",
+    )
+    expect(response?.status).toBe(400)
+    expect(server.upgraded).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Proxy handler (transport injected so the pipe logic runs under any runtime)
 // ---------------------------------------------------------------------------
 
@@ -250,7 +289,7 @@ type Harness = {
   readonly urls: string[]
 }
 
-function connectHarness(token: string | null = "secret-token", clientClass?: string): Harness {
+function connectHarness(token: string | null = "secret-token", clientClass?: string, voiceModel?: string): Harness {
   const urls: string[] = []
   let bridge: FakeBridgeSocket | null = null
   const handler = createVoiceProxyHandler("ws://127.0.0.1:18220", {
@@ -261,10 +300,12 @@ function connectHarness(token: string | null = "secret-token", clientClass?: str
     },
   })
   const server = new FakeUpgradeServer()
+  const params = new URLSearchParams()
+  if (clientClass !== undefined) params.set("clientClass", clientClass)
+  if (voiceModel !== undefined) params.set("voiceModel", voiceModel)
+  const query = params.toString()
   const response = handleVoiceProxyUpgrade(
-    new Request(
-      `http://localhost${VOICE_PROXY_PATH}${clientClass === undefined ? "" : `?clientClass=${clientClass}`}`,
-    ),
+    new Request(`http://localhost${VOICE_PROXY_PATH}${query === "" ? "" : `?${query}`}`),
     server,
     () => token,
   )
@@ -281,12 +322,17 @@ describe("createVoiceProxyHandler", () => {
 test("dials the bridge as client=dash with the token", () => {
 const { server, urls } = connectHarness("secret-token")
 expect(server.upgraded?.token).toBe("secret-token")
-expect(urls).toEqual(["ws://127.0.0.1:18220/voice?client=dash&token=secret-token"])
+expect(urls).toEqual(["ws://127.0.0.1:18220/voice?client=dash&voiceModel=gemini&token=secret-token"])
   })
 
   test("dials the bridge as client=beacon when clientClass=beacon", () => {
     const { urls } = connectHarness("secret-token", "beacon")
-    expect(urls).toEqual(["ws://127.0.0.1:18220/voice?client=beacon&token=secret-token"])
+    expect(urls).toEqual(["ws://127.0.0.1:18220/voice?client=beacon&voiceModel=gemini&token=secret-token"])
+  })
+
+  test("dials the bridge with voiceModel=moshi when requested", () => {
+    const { urls } = connectHarness("secret-token", undefined, "moshi")
+    expect(urls).toEqual(["ws://127.0.0.1:18220/voice?client=dash&voiceModel=moshi&token=secret-token"])
   })
 
   test("pipes text frames both directions verbatim", () => {

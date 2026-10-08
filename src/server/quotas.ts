@@ -597,20 +597,6 @@ const providerDefs: ProviderDef[] = [
     },
   },
   {
-    providerId: "ollama-cloud",
-    name: "Ollama Cloud",
-    symbol: "OL",
-    iconUrl: "https://ollama.com/public/icon-32x32.png",
-    authKeys: ["ollama-cloud"],
-    fetchWindows: async ({ entry, fetchImpl }) => {
-      if (entry.type !== "api") throw new Error("ollama-cloud auth entry is not an API key")
-      const body = await fetchJson(fetchImpl, OLLAMA_BALANCE_URL, {
-        Authorization: `Bearer ${entry.key}`,
-      })
-      return parseOllamaBalance(body)
-    },
-  },
-  {
     providerId: "kimi",
     name: "Kimi",
     symbol: "KI",
@@ -633,6 +619,20 @@ const providerDefs: ProviderDef[] = [
         Authorization: `Bearer ${token}`,
       })
       return parseKimiUsage(body, nowMs)
+    },
+  },
+  {
+    providerId: "ollama-cloud",
+    name: "Ollama Cloud",
+    symbol: "OL",
+    iconUrl: "https://ollama.com/public/icon-32x32.png",
+    authKeys: ["ollama-cloud"],
+    fetchWindows: async ({ entry, fetchImpl }) => {
+      if (entry.type !== "api") throw new Error("ollama-cloud auth entry is not an API key")
+      const body = await fetchJson(fetchImpl, OLLAMA_BALANCE_URL, {
+        Authorization: `Bearer ${entry.key}`,
+      })
+      return parseOllamaBalance(body)
     },
   },
   {

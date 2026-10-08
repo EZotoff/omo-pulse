@@ -3,13 +3,13 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 
 /**
- * Origin-relative WebSocket proxy for the voice widget.
+ * Origin-relative WebSocket proxy for voice clients (dash widget, OC Beacon).
  *
  * The voice-bridge binds loopback only and authenticates with a per-boot token
- * persisted to a local file. A remote phone cannot reach the bridge directly,
- * so the widget connects to omo-pulse's `/api/voice-ws`; this module upgrades
- * that connection and pipes it to the bridge with the token attached
- * server-side. The token never reaches the browser, a response body, or a log.
+ * persisted to a local file. A remote client cannot reach the bridge directly,
+ * so clients connect to omo-pulse's `/api/voice-ws`; this module upgrades that
+ * connection and pipes it to the bridge with the token attached server-side.
+ * The token never reaches the browser, a response body, or a log.
  */
 
 /** Route the widget connects to (origin-relative in production). */
@@ -20,6 +20,10 @@ export const DEFAULT_VOICE_BRIDGE_URL = "ws://127.0.0.1:18220"
 
 const BRIDGE_URL_ENV = "OMO_PULSE_VOICE_BRIDGE_URL"
 const WS_OPEN = 1
+
+/** Client classes the proxy accepts on /api/voice-ws (contract 2026-10-08 item 9). */
+export const VOICE_CLIENT_CLASSES = ["dash", "beacon"] as const
+export type VoiceClientClass = (typeof VOICE_CLIENT_CLASSES)[number]
 
 /** Per-boot token file written by the voice-bridge (mode 0600). */
 export function defaultVoiceTokenPath(): string {
@@ -50,6 +54,7 @@ export function resolveVoiceBridgeUrl(): string {
 /** Data attached to each upgraded server socket. */
 export interface VoiceProxyData {
   readonly token: string
+  readonly clientClass: VoiceClientClass
   client: VoiceBridgeSocket | null
   /** Frames from the browser queued until the bridge socket is OPEN. */
   pending: Array<string | Uint8Array>
@@ -108,13 +113,19 @@ export function handleVoiceProxyUpgrade(
   const url = new URL(request.url)
   if (url.pathname !== VOICE_PROXY_PATH) return undefined
 
+  const classParam = url.searchParams.get("clientClass")
+  if (classParam !== null && !(VOICE_CLIENT_CLASSES as readonly string[]).includes(classParam)) {
+    return new Response("invalid clientClass", { status: 400 })
+  }
+  const clientClass: VoiceClientClass = classParam === "beacon" ? "beacon" : "dash"
+
   const token = readToken()
   if (token === null) {
     return new Response("voice bridge token unavailable", { status: 503 })
   }
 
   const upgraded = server.upgrade(request, {
-    data: { token, client: null, pending: [], closed: false },
+    data: { token, clientClass, client: null, pending: [], closed: false },
   })
   if (!upgraded) {
     return new Response("websocket upgrade required", { status: 426 })
@@ -124,8 +135,7 @@ export function handleVoiceProxyUpgrade(
 
 /**
  * Builds the Bun.serve websocket handler. Per connection it dials the bridge
- * as `client=dash` with the token read at upgrade time, pipes text and binary
- * frames both directions verbatim, and propagates close both ways.
+ * as `client=<clientClass>` with the token read at upgrade time, pipes text and
  */
 export function createVoiceProxyHandler(
   bridgeUrl: string,
@@ -136,7 +146,7 @@ export function createVoiceProxyHandler(
   return {
     open(ws): void {
       const data = ws.data
-      const target = `${bridgeUrl}/voice?client=dash&token=${encodeURIComponent(data.token)}`
+      const target = `${bridgeUrl}/voice?client=${data.clientClass}&token=${encodeURIComponent(data.token)}`
       let client: VoiceBridgeSocket
       try {
         client = connectBridge(target)

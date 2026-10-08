@@ -126,6 +126,56 @@ describe("handleVoiceProxyUpgrade", () => {
 })
 
 // ---------------------------------------------------------------------------
+// clientClass validation (contract 2026-10-08 item 9)
+// ---------------------------------------------------------------------------
+
+describe("handleVoiceProxyUpgrade clientClass", () => {
+  test("defaults to dash when the parameter is absent", () => {
+    const server = new FakeUpgradeServer()
+    const response = handleVoiceProxyUpgrade(
+      new Request(`http://localhost${VOICE_PROXY_PATH}`),
+      server,
+      () => "t",
+    )
+    expect(response).toBeUndefined()
+    expect(server.upgraded?.clientClass).toBe("dash")
+  })
+
+  test("accepts an explicit dash", () => {
+    const server = new FakeUpgradeServer()
+    const response = handleVoiceProxyUpgrade(
+      new Request(`http://localhost${VOICE_PROXY_PATH}?clientClass=dash`),
+      server,
+      () => "t",
+    )
+    expect(response).toBeUndefined()
+    expect(server.upgraded?.clientClass).toBe("dash")
+  })
+
+  test("accepts beacon", () => {
+    const server = new FakeUpgradeServer()
+    const response = handleVoiceProxyUpgrade(
+      new Request(`http://localhost${VOICE_PROXY_PATH}?clientClass=beacon`),
+      server,
+      () => "t",
+    )
+    expect(response).toBeUndefined()
+    expect(server.upgraded?.clientClass).toBe("beacon")
+  })
+
+  test("rejects an unknown value with 400 and no upgrade", () => {
+    const server = new FakeUpgradeServer()
+    const response = handleVoiceProxyUpgrade(
+      new Request(`http://localhost${VOICE_PROXY_PATH}?clientClass=page`),
+      server,
+      () => "t",
+    )
+    expect(response?.status).toBe(400)
+    expect(server.upgraded).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Proxy handler (transport injected so the pipe logic runs under any runtime)
 // ---------------------------------------------------------------------------
 
@@ -200,7 +250,7 @@ type Harness = {
   readonly urls: string[]
 }
 
-function connectHarness(token: string | null = "secret-token"): Harness {
+function connectHarness(token: string | null = "secret-token", clientClass?: string): Harness {
   const urls: string[] = []
   let bridge: FakeBridgeSocket | null = null
   const handler = createVoiceProxyHandler("ws://127.0.0.1:18220", {
@@ -212,7 +262,9 @@ function connectHarness(token: string | null = "secret-token"): Harness {
   })
   const server = new FakeUpgradeServer()
   const response = handleVoiceProxyUpgrade(
-    new Request(`http://localhost${VOICE_PROXY_PATH}`),
+    new Request(
+      `http://localhost${VOICE_PROXY_PATH}${clientClass === undefined ? "" : `?clientClass=${clientClass}`}`,
+    ),
     server,
     () => token,
   )
@@ -226,10 +278,15 @@ function connectHarness(token: string | null = "secret-token"): Harness {
 }
 
 describe("createVoiceProxyHandler", () => {
-  test("dials the bridge as client=dash with the token", () => {
-    const { server, urls } = connectHarness("secret-token")
-    expect(server.upgraded?.token).toBe("secret-token")
-    expect(urls).toEqual(["ws://127.0.0.1:18220/voice?client=dash&token=secret-token"])
+test("dials the bridge as client=dash with the token", () => {
+const { server, urls } = connectHarness("secret-token")
+expect(server.upgraded?.token).toBe("secret-token")
+expect(urls).toEqual(["ws://127.0.0.1:18220/voice?client=dash&token=secret-token"])
+  })
+
+  test("dials the bridge as client=beacon when clientClass=beacon", () => {
+    const { urls } = connectHarness("secret-token", "beacon")
+    expect(urls).toEqual(["ws://127.0.0.1:18220/voice?client=beacon&token=secret-token"])
   })
 
   test("pipes text frames both directions verbatim", () => {

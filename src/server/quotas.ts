@@ -10,7 +10,7 @@
  * - Z.AI:         GET https://api.z.ai/api/monitor/usage/quota/limit   (undocumented)
  * - Kimi:         GET https://api.kimi.com/coding/v1/usages            (undocumented)
  * - ChatGPT:      GET https://chatgpt.com/backend-api/wham/usage       (codex-rs contract)
- * - Ollama Cloud: GET https://ollama.com/api/usage                     (undocumented)
+ * - Ollama Cloud: GET https://ollama.com/api/balance                   (documented)
  */
 
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
@@ -36,7 +36,7 @@ const GO_USAGE_URL = "https://opencode.ai/zen/go/v1/usage"
 const ZAI_USAGE_URL = "https://api.z.ai/api/monitor/usage/quota/limit"
 const KIMI_USAGE_URL = "https://api.kimi.com/coding/v1/usages"
 const OPENAI_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage"
-const OLLAMA_USAGE_URL = "https://ollama.com/api/usage"
+const OLLAMA_BALANCE_URL = "https://ollama.com/api/balance"
 const MIMO_USAGE_URL = "https://platform.xiaomimimo.com/api/v1/tokenPlan/usage"
 
 const HOUR_SECONDS = 3_600
@@ -132,11 +132,6 @@ function toIsoMs(value: unknown): number | null {
   return Number.isFinite(ms) ? ms : null
 }
 
-/** Next epoch-aligned boundary for fixed-period windows (Ollama Cloud resets). */
-function nextBoundaryMs(nowMs: number, periodSeconds: number): number {
-  const periodMs = periodSeconds * 1_000
-  return (Math.floor(nowMs / periodMs) + 1) * periodMs
-}
 
 /** First day of the next UTC calendar month (Kimi monthly cap has no reset field). */
 function nextMonthBoundaryMs(nowMs: number): number {
@@ -380,27 +375,30 @@ export function parseOpenAiUsage(body: unknown): QuotaWindow[] {
   return windows
 }
 
-/** Ollama Cloud: limits.{session,weekly}.usage as 0..1 fractions, no reset timestamps. */
-export function parseOllamaUsage(body: unknown, nowMs: number): QuotaWindow[] {
+/**
+ * Ollama Cloud /api/balance (documented): included.{session,weekly} carry
+ * remaining_percent plus a real resets_at timestamp; usedPercent is the inverse.
+ */
+export function parseOllamaBalance(body: unknown): QuotaWindow[] {
   const root = asRecord(body)
-  const limits = root ? asRecord(root.limits) : null
-  if (!limits) return []
+  const included = root ? asRecord(root.included) : null
+  if (!included) return []
   const windows: QuotaWindow[] = []
-  const defs: Array<{ key: string; id: string; shortLabel: string; label: string; periodSeconds: number }> = [
-    { key: "session", id: "5h", shortLabel: "5H", label: "5-hour rolling", periodSeconds: FIVE_HOURS_SECONDS },
-    { key: "weekly", id: "weekly", shortLabel: "WK", label: "Weekly", periodSeconds: WEEK_SECONDS },
+  const defs: Array<{ key: string; id: string; shortLabel: string; label: string }> = [
+    { key: "session", id: "5h", shortLabel: "5H", label: "5-hour rolling" },
+    { key: "weekly", id: "weekly", shortLabel: "WK", label: "Weekly" },
   ]
   for (const def of defs) {
-    const win = asRecord(limits[def.key])
+    const win = asRecord(included[def.key])
     if (!win) continue
-    const fraction = toNumber(win.usage)
-    if (fraction === null) continue
+    const remaining = toNumber(win.remaining_percent)
+    if (remaining === null) continue
     windows.push({
       id: def.id,
       shortLabel: def.shortLabel,
       label: def.label,
-      usedPercent: clampPercent(fraction * 100),
-      resetsAtMs: nextBoundaryMs(nowMs, def.periodSeconds),
+      usedPercent: clampPercent(100 - remaining),
+      resetsAtMs: toIsoMs(win.resets_at),
     })
   }
   return windows
@@ -604,12 +602,12 @@ const providerDefs: ProviderDef[] = [
     symbol: "OL",
     iconUrl: "https://ollama.com/public/icon-32x32.png",
     authKeys: ["ollama-cloud"],
-    fetchWindows: async ({ entry, fetchImpl, nowMs }) => {
+    fetchWindows: async ({ entry, fetchImpl }) => {
       if (entry.type !== "api") throw new Error("ollama-cloud auth entry is not an API key")
-      const body = await fetchJson(fetchImpl, OLLAMA_USAGE_URL, {
+      const body = await fetchJson(fetchImpl, OLLAMA_BALANCE_URL, {
         Authorization: `Bearer ${entry.key}`,
       })
-      return parseOllamaUsage(body, nowMs)
+      return parseOllamaBalance(body)
     },
   },
   {

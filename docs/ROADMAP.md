@@ -48,6 +48,14 @@ Per the contract's pending ledger, in order:
 
 ## Planned
 
+### Supervisor card genres (operator-view fields) — planned (contract Amendment 2026-10-11)
+
+Contract Amendment 2026-10-11 (multi-genre supervisor communications) adds
+`headline`/`ask`/`options`/`recommendation` to operator-view cards. Dash side:
+FocusRemote prefers `ask` over the legacy `question ?? rationale` path, renders
+`options` as reply choices, and demotes `reasonText` to expandable detail. Lands
+after the supervisor-side publisher (contract → supervisor → consumers).
+
 The Focus Remote keymap is the semantic pre-implementation of future tapxr 4-way navigation: n/enter ≈ next/act, j/k ≈ up/down.
 
 ### Perf backlog — TOP ITEM: async SQLite reads

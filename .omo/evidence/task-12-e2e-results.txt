@@ -1,0 +1,19 @@
+
+Running 14 tests using 1 worker
+
+  ✓   1 [chromium] › tests/e2e/dashboard.spec.ts:228:3 › Dashboard E2E › loads and shows project strips (186ms)
+  ✓   2 [chromium] › tests/e2e/dashboard.spec.ts:244:3 › Dashboard E2E › shows aggregate status attributes for a multi-session project (121ms)
+  ✓   3 [chromium] › tests/e2e/dashboard.spec.ts:266:3 › Dashboard E2E › shows per-session indicators in session display mode (572ms)
+  ✓   4 [chromium] › tests/e2e/dashboard.spec.ts:297:3 › Dashboard E2E › sorts attention projects ahead of newer non-attention projects (139ms)
+  ✓   5 [chromium] › tests/e2e/dashboard.spec.ts:334:3 › Dashboard E2E › persists collapsed strip display mode across reload (670ms)
+  ✓   6 [chromium] › tests/e2e/dashboard.spec.ts:370:3 › Dashboard E2E › keeps stale attention statuses visible (212ms)
+  ✓   7 [chromium] › tests/e2e/dashboard.spec.ts:404:3 › Dashboard E2E › strip expand/collapse toggles (325ms)
+  ✓   8 [chromium] › tests/e2e/dashboard.spec.ts:427:3 › Dashboard E2E › sparkline SVG renders correctly (183ms)
+  ✓   9 [chromium] › tests/e2e/dashboard.spec.ts:445:3 › Dashboard E2E › plan progress shows correct content (185ms)
+  ✓  10 [chromium] › tests/e2e/dashboard.spec.ts:463:3 › Dashboard E2E › theme toggle switches dark/light (529ms)
+  ✓  11 [chromium] › tests/e2e/dashboard.spec.ts:486:3 › Dashboard E2E › data auto-refreshes with updated timestamp (3.6s)
+  ✓  12 [chromium] › tests/e2e/dashboard.spec.ts:510:3 › Dashboard E2E › scrolling works with many projects (202ms)
+  ✓  13 [chromium] › tests/e2e/dashboard.spec.ts:528:3 › Dashboard E2E › density mode applied based on project count (283ms)
+  ✓  14 [chromium] › tests/e2e/dashboard.spec.ts:557:3 › Dashboard E2E › expand all and collapse all buttons work (251ms)
+
+  14 passed (8.3s)

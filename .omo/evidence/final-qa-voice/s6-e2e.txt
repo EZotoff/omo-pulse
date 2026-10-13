@@ -1,0 +1,40 @@
+[WebServer] [0m[2m[35m$[0m [2m[1mvite[0m
+
+Running 2 tests using 1 worker
+
+[WebServer] [2m4:57:31 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/supervisor/queue[39m
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:18039
+[WebServer]     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+[WebServer] [2m4:57:31 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/projects[39m
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:18039
+[WebServer]     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+[WebServer] [2m4:57:31 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/supervisor/queue[39m
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:18039
+[WebServer]     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+[WebServer] [2m4:57:31 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/projects[39m
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:18039
+[WebServer]     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+[WebServer] [2m4:57:31 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/events[39m
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:18039
+[WebServer]     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+[voice-widget.spec] SIGKILL fallback used for stub-bridge (pid 2193874)
+[voice-widget.spec] killed api-server (pid 2193902, exit 0)
+  ✓  1 [chromium] › tests/e2e/voice-widget.spec.ts:162:3 › VoiceWidget full loop against stub bridge › connect → view-context → show → selection round-trip (498ms)
+[WebServer] [2m4:57:35 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/supervisor/queue[39m
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:18039
+[WebServer]     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+[WebServer] [2m4:57:35 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/projects[39m
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:18039
+[WebServer]     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+[WebServer] [2m4:57:35 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/supervisor/queue[39m
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:18039
+[WebServer]     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+[WebServer] [2m4:57:35 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/projects[39m
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:18039
+[WebServer]     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+[WebServer] [2m4:57:35 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/events[39m
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:18039
+[WebServer]     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+  ✓  2 [chromium] › tests/e2e/voice-widget.spec.ts:204:3 › VoiceWidget bridge absent → quiet offline › widget hides and no error banner appears (192ms)
+
+  2 passed (5.7s)

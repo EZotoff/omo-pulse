@@ -1,0 +1,120 @@
+TASK 1 REPAIR: Merge Log - Compliant History
+==============================================
+
+Strategy: git merge --no-ff (no fast-forward for all three)
+Base commit: 998f415a2046a9a2511ed9fc84813d30330ab5ff
+
+MERGE 1: fix/timestamp-sanitization
+===================================
+Commit SHA: d7de789
+Result: Merge made by the 'ort' strategy
+Files changed: 5
+- src/__tests__/activity-status.test.ts (9 lines added)
+- src/__tests__/nan-timestamp.test.ts (75 lines added, new file)
+- src/ingest/activity-status.ts (4 lines modified)
+- src/server/dashboard.ts (4 lines modified)
+- src/ui/components/ProjectStrip.tsx (59 lines added)
+Total: 148 insertions, 3 deletions
+
+Test Result After Merge 1: PASS
+- Test Files: 9 passed
+- Tests: 67 passed
+- Duration: 1.03s
+
+MERGE 2: feature/worktree-discovery-respin
+==========================================
+Commit SHA: d9a3028
+Result: Merge made by the 'ort' strategy (auto-resolved ProjectStrip.tsx)
+Files changed: 6
+- src/__tests__/git-worktrees.test.ts (486 lines added, new file)
+- src/__tests__/multi-project.test.ts (4 lines added)
+- src/ingest/git-worktrees.ts (254 lines added, new file)
+- src/server/multi-project.ts (8 lines modified, 3 deletions)
+- src/types.ts (21 lines added)
+- src/ui/components/ProjectStrip.css (99 lines added)
+Total: 869 insertions, 3 deletions
+
+Test Result After Merge 2: PASS
+- Test Files: 10 passed
+- Tests: 78 passed
+- Duration: 1.24s
+
+MERGE 3: feature/uninitiated-plans-respin (WITH ABSORBED MOCK FIX)
+=================================================================
+Commit SHA: a81a4f2
+Method: git merge --no-ff --no-commit (staged auto-merge, then edited)
+Result: Merge made by the 'ort' strategy (auto-resolved 4 files)
+Auto-merged files:
+- src/server/dashboard.ts
+- src/server/multi-project.ts
+- src/types.ts
+- src/ui/components/ProjectStrip.tsx
+
+Files changed: 8
+- src/__tests__/dashboard-sqlite-aggregation.test.ts (124 lines added, new file)
+- src/__tests__/uninitiated-plans.test.ts (119 lines added, new file)
+- src/ingest/boulder.ts (66 lines added)
+- src/server/dashboard.ts (8 lines modified, 4 deletions)
+- src/server/multi-project.ts (1 line added)
+- src/types.ts (9 lines added)
+- src/ui/components/ProjectStrip.tsx (69 lines added, 4 deletions)
+- tests/e2e/dashboard.spec.ts (137 lines added)
+- src/__tests__/nan-timestamp.test.ts (1 line added: scanUnintiatedPlans mock)
+Total: 529 insertions, 4 deletions + 1 insertion (mock fix)
+
+Mock Fix Absorbed Into Merge Commit:
+- File: src/__tests__/nan-timestamp.test.ts
+- Change: Added line 7: `scanUnintiatedPlans: vi.fn(() => []),`
+- Result: This change is now part of the third merge commit tree, not a separate commit
+
+Test Result After Merge 3 (with absorbed fix): PASS
+- Test Files: 12 passed
+- Tests: 85 passed
+- Duration: 1.17s
+
+Build Result: PASS
+- Command: bun run build
+- Output: vite v5.4.21 building for production
+- Modules transformed: 63
+- HTML: 1.11 kB (gzip 0.65 kB)
+- CSS: 47.91 kB (gzip 7.92 kB)
+- JS: 251.55 kB (gzip 77.59 kB)
+- Build time: 694ms
+
+Final Master State:
+===================
+SHA: a81a4f2bb6d4559b286b5da80c938c4d78548407
+Status: Clean, merge-only history
+Commits after base 998f415: exactly 3 merge commits
+Working tree: clean
+
+Merge Graph (--graph output):
+*   a81a4f2 Merge feature/uninitiated-plans-respin
+|\  
+| * cca95b1 fix(dashboard): finalize uninitiated plan respin cleanup
+| * 3fd3775 feat(dashboard): surface uninitiated plans in sqlite payloads
+| * 01bd3ed feat(dashboard): surface uninitiated plans
+*   d9a3028 Merge feature/worktree-discovery-respin
+|\  
+| * f56c93b feat(ui): show worktree indicators in project strip
+| * 2a4ee24 feat(server): expose worktree data in project snapshots
+| * a631d99 feat(ingest): add git worktree discovery
+* d7de789 Merge fix/timestamp-sanitization
+* 35cca5b fix(ui): guard relative time rendering for invalid timestamps
+* 310272e fix(server): suppress invalid dashboard timestamp labels
+* 38c3b25 fix(ingest): sanitize invalid last updated timestamps
+
+Verification Checklist:
+✓ bun run test passes after merge 1 (67 tests)
+✓ bun run test passes after merge 2 (78 tests)
+✓ bun run test passes after merge 3 (85 tests)
+✓ bun run build passes after merge 3
+✓ scanUnintiatedPlans exists in src/ingest/boulder.ts:139
+✓ UnintiatedPlan exists in src/types.ts:28
+✓ All three merges use --no-ff strategy
+✓ Exactly 3 merge commits after base 998f415
+✓ No extra standalone post-merge fix commits
+✓ Mock fix absorbed into merge 3 tree, not as separate commit
+✓ Working tree clean after all operations
+✓ Master branch ready for dependent tasks
+✓ History is merge-only and compliant with requirements

@@ -1,0 +1,87 @@
+{
+  "default": {
+    "projectCount": 15,
+    "totalSessions": 1,
+    "qaTestProject": {
+      "aggregateStatus": "unknown",
+      "sessionCount": 0,
+      "mainSession": {
+        "agent": "unknown",
+        "currentModel": null,
+        "currentTool": "-",
+        "lastUpdated": "never",
+        "sessionLabel": "(no session)",
+        "sessionId": null,
+        "status": "unknown"
+      }
+    }
+  },
+  "30000": {
+    "projectCount": 15,
+    "totalSessions": 1,
+    "qaTestProject": {
+      "aggregateStatus": "unknown",
+      "sessionCount": 0,
+      "mainSession": {
+        "agent": "unknown",
+        "currentModel": null,
+        "currentTool": "-",
+        "lastUpdated": "never",
+        "sessionLabel": "(no session)",
+        "sessionId": null,
+        "status": "unknown"
+      }
+    }
+  },
+  "60000": {
+    "projectCount": 15,
+    "totalSessions": 1,
+    "qaTestProject": {
+      "aggregateStatus": "unknown",
+      "sessionCount": 0,
+      "mainSession": {
+        "agent": "unknown",
+        "currentModel": null,
+        "currentTool": "-",
+        "lastUpdated": "never",
+        "sessionLabel": "(no session)",
+        "sessionId": null,
+        "status": "unknown"
+      }
+    }
+  },
+  "3600000": {
+    "projectCount": 15,
+    "totalSessions": 1,
+    "qaTestProject": {
+      "aggregateStatus": "unknown",
+      "sessionCount": 0,
+      "mainSession": {
+        "agent": "unknown",
+        "currentModel": null,
+        "currentTool": "-",
+        "lastUpdated": "never",
+        "sessionLabel": "(no session)",
+        "sessionId": null,
+        "status": "unknown"
+      }
+    }
+  },
+  "invalid": {
+    "projectCount": 15,
+    "totalSessions": 1,
+    "qaTestProject": {
+      "aggregateStatus": "unknown",
+      "sessionCount": 0,
+      "mainSession": {
+        "agent": "unknown",
+        "currentModel": null,
+        "currentTool": "-",
+        "lastUpdated": "never",
+        "sessionLabel": "(no session)",
+        "sessionId": null,
+        "status": "unknown"
+      }
+    }
+  }
+}

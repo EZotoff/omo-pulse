@@ -1,0 +1,20 @@
+$ vitest run
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/git-status.test.ts  (9 tests) 14ms
+ ✓ src/__tests__/hooks.test.ts  (11 tests) 5ms
+ ✓ src/__tests__/activity-status.test.ts  (10 tests) 5ms
+ ✓ src/__tests__/review-policy.test.ts  (8 tests) 3ms
+ ✓ src/__tests__/per-session-timeseries.test.ts  (4 tests) 6ms
+ ✓ src/__tests__/metrics.test.ts  (5 tests) 7ms
+ ✓ src/__tests__/multi-project.test.ts  (18 tests) 10ms
+ ✓ src/__tests__/api.test.ts  (8 tests) 33ms
+ ✓ src/__tests__/question-bridge.test.ts  (2 tests) 57ms
+ ✓ src/__tests__/dashboard.test.ts  (13 tests) 25ms
+
+ Test Files  10 passed (10)
+      Tests  88 passed (88)
+   Start at  00:25:29
+   Duration  893ms (transform 1.24s, setup 281ms, collect 2.21s, tests 165ms, environment 1ms, prepare 1.41s)
+

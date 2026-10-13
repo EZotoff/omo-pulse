@@ -1,0 +1,4 @@
+{"ok":false,"reason":"corrupt"}
+exit-marker
+shell-exit=0
+cleanup: fixture and script removed

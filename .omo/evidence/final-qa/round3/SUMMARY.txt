@@ -1,0 +1,31 @@
+F3 Real Manual QA — ROUND 3 re-review (delta commit 98627a3)
+Date: 2026-09-23  Branch: feat/project-list-mode  HEAD: 98627a338e431d5cace5c5b857f43ab91f291fce
+Rebuilt dist before QA: `bun run build` exit 0 (dist/assets/index-Dxg95vd5.js).
+
+SCENARIO 1 — unreachable upstream (OMO_PULSE_OPENCODE_ENDPOINT=http://127.0.0.1:9, port 18032)
+  curl -N /api/events -> `event: status` / `data: {"state":"down"}`   PASS
+  UI badge -> {"badgeText":"polling","dataConnection":"polling"}      PASS
+  Evidence: s1-events-down.txt, s1-ui-down.json, s1-ui-down.png
+
+SCENARIO 2 — SSE disabled (OMO_PULSE_OPENCODE_SSE_ENABLED=false, port 18033)
+  curl -N /api/events -> `event: status` / `data: {"state":"disabled"}`  PASS
+  UI badge -> {"badgeText":"polling","dataConnection":"polling"}         PASS
+  Evidence: s2-events-disabled.txt, s2-ui-disabled.json, s2-ui-disabled.png
+
+SCENARIO 3 — real authenticated upstream (http://127.0.0.1:3021, Basic auth from serve.env, port 18034)
+  curl -N /api/events -> `event: status` / `data: {"state":"connected"}` + refresh frames  PASS
+  UI badge -> {"badgeText":"live","dataConnection":"live"}                                  PASS
+  Evidence: s3-events-connected.txt, s3-ui-live.json, s3-ui-live.png
+
+SCENARIO 4 — suites
+  bunx playwright test tests/e2e/realtime-e2e.spec.ts --reporter=line -> 2 passed (5.2s)  PASS
+  bun run test -> Test Files 37 passed (37), Tests 336 passed (336)                        PASS
+  Evidence: s4-playwright.txt, s4-unit.txt
+
+SCENARIO 5 — cleanup
+  No f3 tmux sessions; no listeners on 18030-18039 or 5173; no server/vite processes of mine.
+  (PID 822634 = pre-existing systemd service on :4300, cwd ~/.local/share/omo-pulse, started 10:26 — untouched.)
+  Evidence: this file.
+
+VERDICT: APPROVE — the round-2 blocker is fixed. Upstream link state now propagates to the
+browser: down/disabled -> badge "polling", connected -> badge "live". No console errors.

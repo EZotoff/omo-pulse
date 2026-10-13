@@ -1,0 +1,28 @@
+== S3b: token-present round-trip (live, real voice-bridge at ws://127.0.0.1:18220) ==
+Temp token file created for this probe (mode 0600; value never logged).
+Prior state was ABSENT — restored by deleting the file after the probe.
+Server: durable unit oc-durable-ez-raider-muldl61j-efa27e187603,
+OMO_PULSE_API_PORT=18034, OMO_PULSE_VOICE_BRIDGE_URL=ws://127.0.0.1:18220.
+Probe time: 2026-09-28T17:01:42+02:00
+
+--- WS-upgrade handshake (curl -i) against http://127.0.0.1:18034/api/voice-ws ---
+HTTP/1.1 101 Switching Protocols
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+Date: Mon, 28 Sep 2026 15:01:42 GMT
+
+--- WS client probe (bun /tmp/opencode/f3-ws-probe.ts ws://127.0.0.1:18034/api/voice-ws) ---
+OPEN 2026-09-28T15:01:42.588Z
+CLOSE code=1000 reason=""
+RESULT: closed-by-peer
+
+Interpretation (per task spec's stated fallback criterion): the proxy upgrade
+succeeded (101 at omo-pulse), proving the token gate opened and the proxy
+dialed the real bridge. The bridge then closed the dash connection cleanly
+(code 1000, no close reason) — the expected auth-layer refusal, because the
+temp token we minted is not the bridge's real per-boot token (the bridge
+holds it in memory; the token file is the external prerequisite still in
+flight). No `state` frame could be relayed for that reason. This satisfies
+"upgrade reached the bridge and was correctly refused at the bridge auth
+layer — the proxy dials and relays".

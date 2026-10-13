@@ -1,0 +1,59 @@
+event: refresh
+data: {"ts":1790152080621}
+
+event: refresh
+data: {"ts":1790152080909}
+
+event: refresh
+data: {"ts":1790152081076}
+
+event: refresh
+data: {"ts":1790152081718}
+
+event: refresh
+data: {"ts":1790152081986}
+
+event: refresh
+data: {"ts":1790152083257}
+
+event: refresh
+data: {"ts":1790152083455}
+
+event: refresh
+data: {"ts":1790152084292}
+
+event: refresh
+data: {"ts":1790152084458}
+
+event: refresh
+data: {"ts":1790152085074}
+
+event: refresh
+data: {"ts":1790152085628}
+
+event: refresh
+data: {"ts":1790152088487}
+
+event: refresh
+data: {"ts":1790152088732}
+
+event: refresh
+data: {"ts":1790152089318}
+
+event: refresh
+data: {"ts":1790152089663}
+
+event: refresh
+data: {"ts":1790152089902}
+
+: heartbeat
+
+event: refresh
+data: {"ts":1790152090992}
+
+event: refresh
+data: {"ts":1790152091882}
+
+event: refresh
+data: {"ts":1790152093358}
+

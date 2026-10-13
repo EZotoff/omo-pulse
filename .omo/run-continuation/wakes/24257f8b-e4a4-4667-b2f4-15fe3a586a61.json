@@ -1,0 +1,46 @@
+{
+  "wakeID": "24257f8b-e4a4-4667-b2f4-15fe3a586a61",
+  "sessionID": "ses_f204c953bffeEpLvKKyDEa0l76",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_c38c239c`\n**Description:** T1 voice protocol codec TDD (redispatch) via session.status\n- Failed session: `ses_f17b49cdcffesUz0ulXZeIu19p`\n- Failed model: `openai/gpt-6-sol`\n- Error: The usage limit has been reached\n- Next model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_c38c239c`\n**Description:** T1 voice protocol codec TDD (redispatch)\n**Retry attempt:** 2\n**Retry session:** `ses_f17b47cfbffecokfc7YE7WVOyi`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f17b47cfbffecokfc7YE7WVOyi\n- Failed session: `ses_f17b49cdcffesUz0ulXZeIu19p`\n- Failed model: `openai/gpt-6-sol`\n- Error: The usage limit has been reached\n- Model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_c38c239c`\n**Description:** T1 voice protocol codec TDD (redispatch) via session.status\n- Failed session: `ses_f17b47cfbffecokfc7YE7WVOyi`\n- Failed model: `ollama-cloud/deepseek-v4.1-flash`\n- Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: f9d1a983-ac9f-4383-9b5b-4a4b16c73880)\n- Next model: `opencode-go/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_c38c239c`\n**Description:** T1 voice protocol codec TDD (redispatch)\n**Retry attempt:** 3\n**Retry session:** `ses_f17b4783fffeNV1BYjOPecAdvp`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f17b4783fffeNV1BYjOPecAdvp\n- Failed session: `ses_f17b47cfbffecokfc7YE7WVOyi`\n- Failed model: `ollama-cloud/deepseek-v4.1-flash`\n- Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: f9d1a983-ac9f-4383-9b5b-4a4b16c73880)\n- Model: `opencode-go/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_c38c239c`\n**Description:** T1 voice protocol codec TDD (redispatch) via session.status\n- Failed session: `ses_f17b49cdcffesUz0ulXZeIu19p`\n- Failed model: `openai/gpt-6-sol`\n- Error: The usage limit has been reached\n- Next model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_c38c239c`\n**Description:** T1 voice protocol codec TDD (redispatch)\n**Retry attempt:** 2\n**Retry session:** `ses_f17b47cfbffecokfc7YE7WVOyi`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f17b47cfbffecokfc7YE7WVOyi\n- Failed session: `ses_f17b49cdcffesUz0ulXZeIu19p`\n- Failed model: `openai/gpt-6-sol`\n- Error: The usage limit has been reached\n- Model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_c38c239c`\n**Description:** T1 voice protocol codec TDD (redispatch) via session.status\n- Failed session: `ses_f17b47cfbffecokfc7YE7WVOyi`\n- Failed model: `ollama-cloud/deepseek-v4.1-flash`\n- Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: f9d1a983-ac9f-4383-9b5b-4a4b16c73880)\n- Next model: `opencode-go/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_c38c239c`\n**Description:** T1 voice protocol codec TDD (redispatch)\n**Retry attempt:** 3\n**Retry session:** `ses_f17b4783fffeNV1BYjOPecAdvp`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f17b4783fffeNV1BYjOPecAdvp\n- Failed session: `ses_f17b47cfbffecokfc7YE7WVOyi`\n- Failed model: `ollama-cloud/deepseek-v4.1-flash`\n- Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: f9d1a983-ac9f-4383-9b5b-4a4b16c73880)\n- Model: `opencode-go/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>\n<!-- OMO_WAKE:24257f8b-e4a4-4667-b2f4-15fe3a586a61 -->",
+  "payloadHash": "b767c092b66734fd96b280a0ab7183e421034e385d018e7d999fb43fce63884d",
+  "promptContext": {
+    "agent": "Atlas",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash"
+    }
+  },
+  "shouldReply": false,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 1,
+  "claimedBy": null,
+  "generation": 1,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790603661863,
+  "dispatchedAt": 1790603661863,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790603657980,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790603661834,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790603661863,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

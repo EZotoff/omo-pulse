@@ -1,0 +1,47 @@
+Task 3 — useVoiceSession hook + audio worklets
+================================================
+
+Reducer contract (TDD, RED -> GREEN)
+------------------------------------
+Command: bunx vitest run src/__tests__/voice-session-state.test.ts
+Result:  1 file passed, 16 tests passed (16)
+Coverage: lifecycle (idle/connected/reconnecting/error/closed->offline),
+          handoff -> quiet offline (error cleared), plain close -> offline,
+          transcript append order, missed-audio system line, local system line,
+          confirmation-pending toggle, interrupt (lastInterrupt + system line),
+          error (message + state=error + system line), show contextTag tracking,
+          reducer immutability, view-context dedup (first send / identical
+          suppressed / changed re-sent / reordered-but-equal suppressed),
+          selection staleness (no show -> drop, mismatch -> drop, match -> send).
+
+Full suite
+----------
+Command: bun run test
+Result:  44 test files passed, 430 tests passed, 1 skipped (431)
+
+Typecheck
+---------
+Command: bunx tsc --noEmit
+Result:  exit 0 (0 errors)
+
+Worklet source syntax
+---------------------
+Command: bun -e 'new Function(CAPTURE_WORKLET_SOURCE); new Function(PLAYBACK_WORKLET_SOURCE)'
+Result:  worklet sources parse OK
+
+QA scenario "hook wiring smoke"
+-------------------------------
+DEFERRED to Task 5's e2e (Playwright). Unit coverage stays at the reducer level,
+per the plan. No hook runtime test is included here.
+
+Notes
+-----
+- Duplicate T3 dispatch observed in this worktree (two agents writing
+  concurrently). Reconciled to a single coherent contract: the hook imports the
+  session-state API (initialVoiceState / VoiceUiState / shouldSendSelection /
+  shouldSendViewContext(lastKey, frame) / viewContextKey); the test was restored
+  to that same API.
+- Hook fixes applied on top of the inherited draft: handoff text frame is now
+  detected in onmessage (parseServerFrame does not model it) so a takeover is a
+  quiet offline and never a reconnect; a visibilitychange listener re-arms the
+  socket when the tab returns to the foreground.

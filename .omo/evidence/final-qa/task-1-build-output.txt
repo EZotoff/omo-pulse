@@ -1,0 +1,19 @@
+$ vite build
+vite v5.4.21 building for production...
+transforming...
+✓ 65 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/manifest.webmanifest                          0.41 kB
+dist/index.html                                    1.52 kB │ gzip:  0.81 kB
+dist/assets/index-BeLnixGO.css                    36.00 kB │ gzip:  6.35 kB
+dist/assets/workbox-window.prod.es5-vqzQaGvo.js    5.72 kB │ gzip:  2.35 kB
+dist/assets/index-Du6ZthVT.js                    236.83 kB │ gzip: 74.56 kB
+✓ built in 556ms
+
+PWA v1.2.0
+mode      generateSW
+precache  10 entries (315.98 KiB)
+files generated
+  dist/sw.js
+  dist/workbox-1ef09536.js

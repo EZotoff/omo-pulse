@@ -1,0 +1,11 @@
+=== Scenario 3: live upgrade smoke (token ABSENT path) ===
+token file: ls: cannot access '/home/ezotoff/.local/state/voice-bridge/token': No such file or directory
+--- upgrade attempt (curl -i -N) ---
+HTTP/1.1 503 Service Unavailable
+content-type: text/plain;charset=utf-8
+Date: Mon, 28 Sep 2026 14:56:05 GMT
+Content-Length: 30
+
+voice bridge token unavailable--- health after upgrade attempt ---
+health HTTP 200
+{"ok":true,"version":"0.1.0"}

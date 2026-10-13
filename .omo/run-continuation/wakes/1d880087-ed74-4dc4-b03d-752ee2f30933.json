@@ -1,0 +1,47 @@
+{
+  "wakeID": "1d880087-ed74-4dc4-b03d-752ee2f30933",
+  "sessionID": "ses_f204c953bffeEpLvKKyDEa0l76",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_b4b80152`\n**Description:** T2 voice-ws proxy TDD via session.status\n- Failed session: `ses_f2049783dffem5f8OHhwRFoH5v`\n- Failed model: `opencode-go/deepseek-v4.1-flash`\n- Error: weekly usage limit reached. It will reset in 1 day 2 hours. To continue using this model now, enable usage from your available balance - https://opencode.ai/workspace/wrk_01KEFHBBJAMF4E6NXD3MW79A15/go\n- Next model: `kimi-for-coding-oauth/k3`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_b4b80152`\n**Description:** T2 voice-ws proxy TDD\n**Retry attempt:** 4\n**Retry session:** `ses_f20451fbcffeU7jYEIk4Z1t0ih`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f20451fbcffeU7jYEIk4Z1t0ih\n- Failed session: `ses_f2049783dffem5f8OHhwRFoH5v`\n- Failed model: `opencode-go/deepseek-v4.1-flash`\n- Error: weekly usage limit reached. It will reset in 1 day 2 hours. To continue using this model now, enable usage from your available balance - https://opencode.ai/workspace/wrk_01KEFHBBJAMF4E6NXD3MW79A15/go\n- Model: `kimi-for-coding-oauth/k3`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_b4b80152`\n**Description:** T2 voice-ws proxy TDD via session.status\n- Failed session: `ses_f2049783dffem5f8OHhwRFoH5v`\n- Failed model: `opencode-go/deepseek-v4.1-flash`\n- Error: weekly usage limit reached. It will reset in 1 day 2 hours. To continue using this model now, enable usage from your available balance - https://opencode.ai/workspace/wrk_01KEFHBBJAMF4E6NXD3MW79A15/go\n- Next model: `kimi-for-coding-oauth/k3`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_b4b80152`\n**Description:** T2 voice-ws proxy TDD\n**Retry attempt:** 4\n**Retry session:** `ses_f20451fbcffeU7jYEIk4Z1t0ih`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f20451fbcffeU7jYEIk4Z1t0ih\n- Failed session: `ses_f2049783dffem5f8OHhwRFoH5v`\n- Failed model: `opencode-go/deepseek-v4.1-flash`\n- Error: weekly usage limit reached. It will reset in 1 day 2 hours. To continue using this model now, enable usage from your available balance - https://opencode.ai/workspace/wrk_01KEFHBBJAMF4E6NXD3MW79A15/go\n- Model: `kimi-for-coding-oauth/k3`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>\n<!-- OMO_WAKE:1d880087-ed74-4dc4-b03d-752ee2f30933 -->",
+  "payloadHash": "4294257509f71e0623269750fc59339e0943e612dcb4b7d7686c7a1888b6c6e7",
+  "promptContext": {
+    "agent": "Atlas",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash"
+    },
+    "variant": "high"
+  },
+  "shouldReply": false,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 1,
+  "claimedBy": null,
+  "generation": 1,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790459972753,
+  "dispatchedAt": 1790459972753,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790459960289,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790459970956,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790459972753,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

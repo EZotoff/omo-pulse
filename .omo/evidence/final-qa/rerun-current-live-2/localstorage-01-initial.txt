@@ -1,0 +1,16 @@
+### Result
+dashboard-project-visibility={}
+dashboard-sound-config={"enabled":true,"volume":50,"onSessionIdle":true,"onPlanComplete":true,"onSessionError":true,"onQuestion":true}
+dashboard-grid-gap=10
+dashboard-pane-heights={}
+dashboard-collapsed-height=40
+dashboard-strip-config={"showMiniSparkline":true,"showPlanProgress":true,"showAgentBadge":true,"showLastUpdated":true,"showStatusDot":true,"showTokenUsage":true,"showBackgroundTasks":true,"showGitWorktrees":true,"showAvatar":true,"showProjectName":true,"stripDisplayMode":"project"}
+dashboard-project-order={"orderedIds":["ec056b844fb9cd916e9da19a8e6a777bae550a927c3b14b86e9a8d078e0d7e34","da2a593afc32585768ae02e5ed8f5d47282ebaff1aed0b55e32fc2159b0375f1","cad0481d58ba0d7c17d1a68dfa5afdfeef3870a984a9b844eff014bc6bb10bb0","3e12bf58994072aae1feeb986088a401bdaf79684d6de88ea148c3627f6fc4d0","60b630e1bcc053c341ecb25a1ea57ba9634a9d2df66d3b5025276011b07469be","5816c451be4f695af7103aea6b82920b372f5885cccfbe948d9bec9b1819d29a","d4a43e07e88bcd7d347b8b3fbff053aec626c4203021807c42429b47634aab14","eda2453369d0c8a804fabcc73d80c388f6464727fd467a62ab3a857ca5f2d4d5","60e70985bf1420886806752a45a37cd35774c0b4983095f92069882e5eea46e8","bfe9fe5ff9084a46b483969cb2ec8c2a8e8aa3f46eb5c65137fcfab092ce0eb9","f9c19d6e3df03c1a2a0c8023f0faa968dce10abbd26e7d5d7fdd504ea87b6fcc","1366a54d1ce036215d4b856349ba4b12530bc793e1df403eb3c9dcbfc2a3dc6a","de5294a3b52d3f32cdd22042ee7bc5737e0c4a9c662b7a28bd0b3c0c3122be78","ac2662cc1216c8d9e3448c063043882a43355c625ad4ac4929655e5d83f6915d"],"columns":1,"isManualOrder":false}
+idle-timeout-ms=300000
+ez-dash-expanded=[]
+dashboard-zoom=1
+dashboard-column-widths={}
+### Ran Playwright code
+```js
+await page.evaluate(() => ({ ...localStorage }));
+```

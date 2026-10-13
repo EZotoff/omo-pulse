@@ -1,0 +1,66 @@
+### Result
+{
+  "stripConfig": "{\"showMiniSparkline\":true,\"showPlanProgress\":true,\"showAgentBadge\":true,\"showLastUpdated\":true,\"showStatusDot\":true,\"showTokenUsage\":true,\"showBackgroundTasks\":true,\"showGitWorktrees\":true,\"showAvatar\":true,\"showProjectName\":true,\"stripDisplayMode\":\"session\"}",
+  "order": [
+    {
+      "index": 1,
+      "label": "ESM",
+      "sessionCount": 1,
+      "dotCount": 1,
+      "aggregateStatus": "error"
+    },
+    {
+      "index": 2,
+      "label": "qa-test-project",
+      "sessionCount": 1,
+      "dotCount": 1,
+      "aggregateStatus": "error"
+    },
+    {
+      "index": 3,
+      "label": "present",
+      "sessionCount": 2,
+      "dotCount": 2,
+      "aggregateStatus": "error"
+    },
+    {
+      "index": 4,
+      "label": "System",
+      "sessionCount": 2,
+      "dotCount": 2,
+      "aggregateStatus": "thinking"
+    },
+    {
+      "index": 5,
+      "label": "LLM Review",
+      "sessionCount": 0,
+      "dotCount": 0,
+      "aggregateStatus": "unknown"
+    },
+    {
+      "index": 6,
+      "label": "kraken",
+      "sessionCount": 0,
+      "dotCount": 0,
+      "aggregateStatus": "unknown"
+    },
+    {
+      "index": 7,
+      "label": "traveller",
+      "sessionCount": 0,
+      "dotCount": 0,
+      "aggregateStatus": "unknown"
+    },
+    {
+      "index": 8,
+      "label": "ANIA",
+      "sessionCount": 0,
+      "dotCount": 0,
+      "aggregateStatus": "unknown"
+    }
+  ]
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => (({stripConfig: localStorage.getItem(\'dashboard-strip-config\'), order: Array.from(document.querySelectorAll(\'.project-strip\')).slice(0,8).map(function(el, index){ return { index: index + 1, label: el.querySelector(\'.strip-label\') && el.querySelector(\'.strip-label\').textContent.trim(), sessionCount: Number(el.getAttribute(\'data-session-count\')||0), dotCount: el.querySelectorAll(\'.session-dot\').length, aggregateStatus: el.getAttribute(\'data-aggregate-status\') }; })}))');
+```

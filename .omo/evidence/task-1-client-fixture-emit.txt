@@ -1,0 +1,5 @@
+Command: bun run test -- opencode-sse-client
+Result: PASS, 1 file, 5 tests, 0 failures (2026-09-23)
+Cases: recorded global-event envelope normalization; split-chunk ordered emit; after=42 reconnect and duplicate suppression; stop abort; unreachable endpoint.
+Full-suite command: bun run test
+Result: PASS, 35 files, 319 tests, 0 failures.

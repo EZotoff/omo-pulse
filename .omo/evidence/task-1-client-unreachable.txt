@@ -1,0 +1,4 @@
+Command: bun run test -- opencode-sse-client
+Case: reports down without throwing when the endpoint is unreachable
+Target: http://127.0.0.1:9 (closed port; no local listener launched)
+Result: PASS; client transitions to down with no unhandled rejection.

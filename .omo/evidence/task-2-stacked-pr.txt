@@ -1,0 +1,56 @@
+STACKED PR VERIFICATION
+=======================
+
+PR URL: https://github.com/EZotoff/omo-pulse/pull/26
+PR Number: 26
+
+PR Metadata:
+  Title: feat(ci): migrate AI review to Copilot-based review parser
+  State: OPEN
+  Base Branch: ai-review-v2-impl (NOT master)
+  Head Branch: feature/copilot-review-parser
+  Body: "Stacked on #22. Retarget to master after #22 merges."
+
+Stacking Information:
+  - Stacked on: PR #22 (ai-review-v2-impl base)
+  - Instructions: "Retarget to master after #22 merges"
+  - Current target: ai-review-v2-impl (correct until #22 is merged)
+
+Git State at PR Creation:
+  Branch: feature/copilot-review-parser
+  Commits ahead of origin/ai-review-v2-impl: 1
+  Latest commit: 268a6367a89489fb3ff069fea6c613475d85b7de
+  Commit message: feat(ci): migrate AI review from custom LLM to Copilot review parser
+
+Files in Diff (vs ai-review-v2-impl base):
+  1. .github/copilot-instructions.md (NEW, 76 lines)
+  2. .github/workflows/ai-review-pr-gate.yml (MODIFIED)
+  3. docs/review-gate.md (NEW, 165 lines)
+  4. scripts/ai-diff-review.ts (DELETED, 584 lines)
+  5. scripts/copilot-review-parser.ts (NEW, 567 lines)
+  6. src/review/merge-scorecards.ts (MODIFIED)
+  7. src/__tests__/ai-diff-review.test.ts (DELETED, 392 lines)
+  8. src/__tests__/copilot-review-parser.test.ts (NEW, 466 lines)
+  9. src/__tests__/merge-scorecards.test.ts (MODIFIED)
+
+Total: 9 files changed, +1389 insertions, -1092 deletions
+
+Verification Checklist:
+  ✓ PR created successfully (returned URL)
+  ✓ PR state is OPEN
+  ✓ Base branch is ai-review-v2-impl (not master)
+  ✓ Single commit in diff
+  ✓ Commit message matches requirement
+  ✓ Exactly 9 files in diff (matches allowlist)
+  ✓ No files outside allowlist
+  ✓ PR body includes stacking note (#22)
+  ✓ PR body includes retarget instruction
+
+Stacking Hierarchy:
+  master
+    ↑
+  #22 (ai-review-v2-impl) [MERGEABLE, OPEN]
+    ↑
+  #26 (feature/copilot-review-parser) [OPEN, stacked]
+
+Status: ✓ READY FOR REVIEW

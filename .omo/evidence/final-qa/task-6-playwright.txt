@@ -1,0 +1,8 @@
+[1A[2K[WebServer] [0m[2m[35m$[0m [2m[1mvite[0m
+
+
+Running 2 tests using 1 worker
+
+[1A[2K[1/2] [chromium] › tests/e2e/realtime-e2e.spec.ts:163:3 › T6: Real-time SSE subscription & connection-health badge › Scenario (a): Happy path — dashboard updates within 1000ms of a refresh event
+[1A[2K[2/2] [chromium] › tests/e2e/realtime-e2e.spec.ts:199:3 › T6: Real-time SSE subscription & connection-health badge › Scenario (b): Failure/edge — SSE down (503) shows 'polling' badge and keeps updating via interval
+[1A[2K  2 passed (5.6s)

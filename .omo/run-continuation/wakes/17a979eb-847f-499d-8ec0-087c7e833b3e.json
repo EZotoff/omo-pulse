@@ -1,0 +1,46 @@
+{
+  "wakeID": "17a979eb-847f-499d-8ec0-087c7e833b3e",
+  "sessionID": "ses_f36a8b8bbffez7QDfJM10ETB3l",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK RESULT READY]\n**ID:** `bg_859752dd`\n**Description:** oracle background task\n**Duration:** 1m 50s\n\n**1 task still in progress.** You WILL be notified when ALL complete.\nDo NOT poll - continue productive work.\n\nUse `background_output(task_id=\"bg_859752dd\")` to retrieve this result when ready.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK RESULT READY]\n**ID:** `bg_859752dd`\n**Description:** oracle background task\n**Duration:** 1m 50s\n\n**1 task still in progress.** You WILL be notified when ALL complete.\nDo NOT poll - continue productive work.\n\nUse `background_output(task_id=\"bg_859752dd\")` to retrieve this result when ready.\n</system-reminder>\n<!-- OMO_WAKE:17a979eb-847f-499d-8ec0-087c7e833b3e -->",
+  "payloadHash": "b44b4a34c9c96dcca316a885ce122a1cffd4f087a0f7789a030b779cc288dafb",
+  "promptContext": {
+    "agent": "Sisyphus",
+    "model": {
+      "providerID": "ollama-cloud",
+      "modelID": "deepseek-v4.1-flash"
+    }
+  },
+  "shouldReply": false,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 1,
+  "claimedBy": null,
+  "generation": 1,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790152979538,
+  "dispatchedAt": 1790152979538,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790152979081,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790152979474,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790152979538,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

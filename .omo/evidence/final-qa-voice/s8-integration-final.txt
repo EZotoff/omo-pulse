@@ -1,0 +1,8 @@
+### S8 integration — 2026-09-28T16:58:13+02:00
+{"ok":true,"version":"0.1.0"}
+HTTP 200
+-- /api/voice-ws probe (no upgrade):
+HTTP 503
+-- ports I may have started (must be clean):
+LISTEN 0      512                      127.0.0.1:4399       0.0.0.0:*    users:(("bun",pid=2197021,fd=17))                                                                                                                                                                                                                                                                                                                                                                                                                                               
+LISTEN 0      511                      127.0.0.1:5173       0.0.0.0:*    users:(("node",pid=2198889,fd=20))                                                                                                                                                                                                                                                                                                                                                                                                                                              

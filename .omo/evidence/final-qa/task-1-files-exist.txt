@@ -1,0 +1,2 @@
+-rw-rw-r-- 1 ezotoff ezotoff  414 Mar 10 00:19 dist/manifest.webmanifest
+-rw-rw-r-- 1 ezotoff ezotoff 1513 Mar 10 00:19 dist/sw.js

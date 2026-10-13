@@ -1,0 +1,11 @@
+$ vitest run opencode-event-map -t "unknown event kinds"
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/opencode-event-map.test.ts  (8 tests | 7 skipped) 4ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 7 skipped (8)
+   Start at  10:03:25
+   Duration  1.28s (transform 163ms, setup 42ms, collect 37ms, tests 4ms, environment 0ms, prepare 469ms)
+

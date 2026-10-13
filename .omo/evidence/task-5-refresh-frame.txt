@@ -1,0 +1,4 @@
+status: 200
+content-type: text/event-stream
+frames received: ": heartbeat\n\nevent: refresh\ndata: {\"ts\":1727088000123}\n\n"
+QA-OK: refresh frame received; irrelevant delta produced no frame before it

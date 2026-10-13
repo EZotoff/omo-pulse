@@ -1,0 +1,30 @@
+TASK 1 REPAIR: Merged Master - Prerequisites Verified
+=====================================================
+
+Status: REPAIRED - COMPLIANT
+
+Pre-repair State:
+- Invalid commit: 58d0b9c (standalone post-merge fix commit)
+- Backup created: backup/task1-invalid-attempt
+
+Repair Method:
+- Reset master to base: 998f415a2046a9a2511ed9fc84813d30330ab5ff
+- Replayed all 3 merges with --no-ff
+- Absorbed mock fix into third merge commit tree (not as separate commit)
+
+Final Master State:
+- Branch: master (clean)
+- Commits after base: exactly 3 merge commits (verified via --graph)
+- SHA: a81a4f2bb6d4559b286b5da80c938c4d78548407
+
+Required Symbols Verified After Final Merge:
+- scanUnintiatedPlans: ✓ Found at src/ingest/boulder.ts:139
+- UnintiatedPlan type: ✓ Found at src/types.ts:28
+
+Merge Commit Structure:
+1. d7de789 Merge fix/timestamp-sanitization
+2. d9a3028 Merge feature/worktree-discovery-respin
+3. a81a4f2 Merge feature/uninitiated-plans-respin
+   └─ (includes mock fix in tree: scanUnintiatedPlans: vi.fn(() => []))
+
+All respin branches verified as sources for merges.

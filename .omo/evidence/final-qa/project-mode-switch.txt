@@ -1,0 +1,6 @@
+### Result
+"project"
+### Ran Playwright code
+```js
+await page.evaluate('() => { const labels=[...document.querySelectorAll(\'.settings-segmented-option\')]; const target=labels.find(el => el.textContent?.includes(\'Per-Project\')); if (target) { target.scrollIntoView({block:\'center\'}); target.click(); return JSON.parse(localStorage.getItem(\'dashboard-strip-config\') || \'{}\').stripDisplayMode ?? null; } return \'missing\'; }');
+```

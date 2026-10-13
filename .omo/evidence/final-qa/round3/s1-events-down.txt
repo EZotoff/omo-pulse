@@ -1,0 +1,3 @@
+event: status
+data: {"state":"down"}
+

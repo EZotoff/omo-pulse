@@ -1,0 +1,2 @@
+-rw-rw-r-- 1 ezotoff ezotoff 10072 Mar  9 23:18 public/pwa-192x192.png
+-rw-rw-r-- 1 ezotoff ezotoff 31104 Mar  9 23:18 public/pwa-512x512.png

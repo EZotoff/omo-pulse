@@ -1,0 +1,71 @@
+### Result
+[
+  {
+    "label": "present",
+    "aggregateStatus": "error",
+    "status": "error",
+    "sessionCount": 2,
+    "dotCount": 2,
+    "stale": "false"
+  },
+  {
+    "label": "LLM Review",
+    "aggregateStatus": "error",
+    "status": "error",
+    "sessionCount": 1,
+    "dotCount": 1,
+    "stale": "false"
+  },
+  {
+    "label": "System",
+    "aggregateStatus": "thinking",
+    "status": "thinking",
+    "sessionCount": 3,
+    "dotCount": 3,
+    "stale": "false"
+  },
+  {
+    "label": "ESM",
+    "aggregateStatus": "running_tool",
+    "status": "running_tool",
+    "sessionCount": 1,
+    "dotCount": 1,
+    "stale": "false"
+  },
+  {
+    "label": "qa-test-project",
+    "aggregateStatus": "running_tool",
+    "status": "running_tool",
+    "sessionCount": 1,
+    "dotCount": 1,
+    "stale": "false"
+  },
+  {
+    "label": "kraken",
+    "aggregateStatus": "unknown",
+    "status": "unknown",
+    "sessionCount": 0,
+    "dotCount": 0,
+    "stale": "true"
+  },
+  {
+    "label": "traveller",
+    "aggregateStatus": "unknown",
+    "status": "unknown",
+    "sessionCount": 0,
+    "dotCount": 0,
+    "stale": "true"
+  },
+  {
+    "label": "ANIA",
+    "aggregateStatus": "unknown",
+    "status": "unknown",
+    "sessionCount": 0,
+    "dotCount": 0,
+    "stale": "false"
+  }
+]
+### Ran Playwright code
+```js
+await page.evaluate('() => (Array.from(document.querySelectorAll(\'.project-strip\')).slice(0,8).map(function(el){ return { label: el.querySelector(\'.strip-label\') && el.querySelector(\'.strip-label\').textContent.trim(), aggregateStatus: el.getAttribute(\'data-aggregate-status\'), status: el.getAttribute(\'data-status\'), sessionCount: Number(el.getAttribute(\'data-session-count\')||0), dotCount: el.querySelectorAll(\'.session-dot\').length, stale: el.getAttribute(\'data-stale\') }; }))');
+```

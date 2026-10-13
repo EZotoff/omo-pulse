@@ -1,0 +1,141 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                      TASK 5 COMPLETION REPORT                             ║
+║            Build Verification and Integration Smoke Test                  ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+EXECUTION SUMMARY
+─────────────────────────────────────────────────────────────────────────────
+Date: 2026-03-14 02:22 UTC
+Category: Verification & Testing (no source code changes)
+Status: ✓ COMPLETE
+
+EVIDENCE ARTIFACTS GENERATED
+─────────────────────────────────────────────────────────────────────────────
+1. .sisyphus/evidence/task-5-build-test.txt (2.5 KB)
+   - Build output: vite build (713ms, 69 modules, production assets)
+   - Test output: vitest run (24 files, 205 tests, 1.40s total)
+   - JS asset: dist/assets/index-BdSERhX6.js
+   - Fresh timestamp: 2026-03-14 02:22
+
+2. .sisyphus/evidence/task-5-api-smoke.txt (2.1 KB)
+   - Health check: OK (version 0.1.0)
+   - API variants tested: 7 (no param, 30000, 60000, 3600000, notanumber, 3600001, 999999)
+   - Project count: 15 (consistent across all idleWindowMs values)
+   - Total sessions: 1 in qa-test-project (sparse dataset)
+   - All variants returned HTTP 200 with valid JSON
+
+3. .sisyphus/evidence/task-5-settings-panel.png (62 KB) [ORIGINAL]
+   - Settings dialog open, showing both Per-Project / Per-Session display mode controls
+   - Idle Timeout slider visible and functional
+   - Screenshot captured during original Task 5 verification
+
+4. .sisyphus/evidence/task-5-e2e-idle-30s.png (73 KB) [ORIGINAL]
+   - Dashboard with 30s idle window
+   - Per-session display mode ENABLED
+   - Screenshot captured during original Task 5 verification
+
+5. .sisyphus/evidence/task-5-e2e-idle-1h.png (75 KB) [ORIGINAL]
+   - Dashboard with 1h idle window
+   - Per-session display mode ENABLED
+   - Screenshot captured during original Task 5 verification
+
+6. .sisyphus/evidence/task-5-verification-summary.txt (4.2 KB)
+   - Comprehensive verification report (REFRESHED post-cleanup)
+   - Part 1: Build & test results (205 tests, all passing)
+   - Part 2: API smoke tests (7 idleWindowMs variants)
+   - Part 3: Browser QA findings with post-cleanup revalidation
+   - Part 4: Session dot family behavior analysis
+
+KEY FINDINGS
+─────────────────────────────────────────────────────────────────────────────
+
+✓ BUILD & TEST (No regression)
+  - Build time: 713ms (fast, clean)
+  - Modules: 69 transformed
+  - JS asset: dist/assets/index-BdSERhX6.js
+  - Test count: 205 tests in 24 files (current cleaned baseline)
+  - Test duration: 1.40s
+  - All tests passing
+  - No compile errors, warnings, or lint issues
+
+✓ API LAYER (Stable)
+  - idleWindowMs parameter: fully functional across all values
+  - 7 variants tested: no param, 30000, 60000, 3600000, notanumber, 3600001, 999999
+  - All returned HTTP 200 with valid JSON
+  - All showed 15 projects and 1 total session in qa-test-project
+  - 999999ms is VALID and was used as a control test (not invalid)
+  - Sparse live dataset prevents API count deltas from distinguishing fallback/default handling
+  - Health check: returning correct version
+
+✓ UI/BROWSER (Functional)
+  - Settings panel: responsive, controls accessible
+  - Settings screenshot shows Per-Project / Per-Session controls and Idle Timeout slider
+  - Per-session display mode: toggles correctly
+  - Idle timeout slider: functional
+  - Dashboard updates reflect slider changes
+
+✓ SESSION DOT FAMILY (CRITICAL VALIDATION - POST-CLEANUP REVALIDATION)
+  - Real DOM attribute: data-family (not data-status)
+  - Selector: .session-dot[data-family]
+  - One visible session dot found in sparse dataset
+  - At 30s idle window: dot rendered data-family="idle"
+  - At 1h idle window: same dot rendered data-family="active"
+  - Behavior: Consistent with getSessionDotFamily() implementation
+  - Revalidated on cleaned build after scope cleanup
+
+STALE EVIDENCE SUPERSEDED
+─────────────────────────────────────────────────────────────────────────────
+Prior Task 5 reports referenced incorrect claims that are now removed:
+
+  - REMOVED: Claims that session dots use data-status attribute (real attribute is data-family)
+  - REMOVED: Claims of "5 idle dots at 30s" and "3 idle dots at 1h" (sparse dataset shows one dot)
+  - REMOVED: Claims that API smoke tested only 5 variants (actually 7 variants tested)
+  - REMOVED: Claims that 999999 was an invalid edge case (it is a valid control value)
+  - REMOVED: Claims of 191 tests in 23 files (superseded by 209-test baseline)
+  - REMOVED: Claims of 209 tests / 1.72s / 637ms (superseded by current cleaned baseline)
+
+Current ground truth: 205 tests in 24 files, 713ms build, data-family attribute, one dot with family change.
+Build/test evidence is from CURRENT repo state post-cleanup (2026-03-14 02:22 UTC).
+Screenshots are ORIGINAL Task 5 captures but still depict correct one-dot behavior.
+Post-cleanup browser revalidation confirmed DOM contract on cleaned build.
+
+VERIFICATION CHECKLIST
+─────────────────────────────────────────────────────────────────────────────
+[✓] bun run build passes cleanly (713ms, 69 modules, index-BdSERhX6.js)
+[✓] bun run test passes (205/205 tests)
+[✓] Test report reflects CURRENT cleaned baseline (not stale 209)
+[✓] API smoke checks for: no param, 30000, 60000, 3600000, notanumber, 3600001, 999999
+[✓] All 7 API variants return HTTP 200, valid JSON, 15 projects, 1 session
+[✓] 999999ms correctly identified as valid control value
+[✓] Sparse data limitation correctly noted (cannot distinguish fallback via counts)
+[✓] Playwright browser session opened and controlled (post-cleanup revalidation)
+[✓] Settings panel verified (Per-Project/Per-Session controls, Idle Timeout slider)
+[✓] Dashboard at 30s idle window verified (one dot, data-family="idle")
+[✓] Dashboard at 1h idle window verified (same dot, data-family="active")
+[✓] Session dot family behavior confirmed via data-family DOM attribute
+[✓] All evidence files written to .sisyphus/evidence/
+[✓] Text artifacts refreshed with post-cleanup baseline (2026-03-14 02:22 UTC)
+
+EXACT STALE CLAIMS CHANGED IN THIS REFRESH
+─────────────────────────────────────────────────────────────────────────────
+1. Changed: Build time from 637ms to 713ms
+2. Changed: Test count from 209 to 205 (4 tests removed after scope narrowing)
+3. Changed: Test duration from 1.72s to 1.40s
+4. Changed: JS asset reference to include index-BdSERhX6.js
+5. Changed: Framing of screenshots from "fresh" to "original Task 5" with post-cleanup revalidation noted
+6. Added: 209-test baseline to stale/superseded section
+7. Added: Explicit post-cleanup browser revalidation facts (data-family selector, idle/active transitions)
+8. Removed: Stale claims about 5 dots at 30s / 3 dots at 1h (actual: one dot)
+9. Removed: Claims that all evidence files were freshly generated (only text artifacts refreshed)
+
+COMMIT READINESS
+─────────────────────────────────────────────────────────────────────────────
+No source code changes made.
+No files modified outside .sisyphus/evidence/ and .sisyphus/notepads/.
+Task 5 is a pure verification exercise; all evidence is observational.
+
+Ready for final review.
+
+═════════════════════════════════════════════════════════════════════════════
+Task 5: ✓ COMPLETE
+═════════════════════════════════════════════════════════════════════════════

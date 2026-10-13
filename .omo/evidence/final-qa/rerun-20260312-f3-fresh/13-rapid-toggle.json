@@ -1,0 +1,11 @@
+### Result
+{
+  "ok": true,
+  "expanded": "false",
+  "strips": 14,
+  "columns": "340.219px 340.219px 340.219px"
+}
+### Ran Playwright code
+```js
+await page.evaluate('async () => { const target = document.querySelector(\'.project-strip .strip-header\'); if (!target) return {ok:false}; for (let i = 0; i < 5; i += 1) { target.click(); await new Promise(r => setTimeout(r, 120)); } return { ok: true, expanded: document.querySelector(\'.project-strip\')?.getAttribute(\'data-expanded\'), strips: document.querySelectorAll(\'.project-strip\').length, columns: getComputedStyle(document.querySelector(\'.project-stack\')).gridTemplateColumns }; }');
+```

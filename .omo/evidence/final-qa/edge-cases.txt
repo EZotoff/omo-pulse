@@ -1,0 +1,12 @@
+$ vitest run opencode-event-map multi-project-realtime
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/opencode-event-map.test.ts  (8 tests) 15ms
+ ✓ src/__tests__/multi-project-realtime.test.ts  (3 tests) 7ms
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  10:32:00
+   Duration  817ms (transform 353ms, setup 39ms, collect 310ms, tests 22ms, environment 0ms, prepare 471ms)
+

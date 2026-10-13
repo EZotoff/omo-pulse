@@ -1,0 +1,16 @@
+== S2: stub-bridge e2e (bunx playwright test tests/e2e/voice-widget.spec.ts) ==
+Run 1 (worktree, 2026-09-28 ~16:56): 2 failed — ERR_CONNECTION_REFUSED at
+http://127.0.0.1:5173 on both tests; vite webServer had not come up.
+Diagnosed as transient: manual `bun run dev:ui` probe answered HTTP 200 on
+5173 in <1s, second full run passed.
+Run 2 (worktree, 2026-09-28 ~16:59): exit=0
+  ✓ 1 [chromium] tests/e2e/voice-widget.spec.ts:162 connect → view-context → show → selection round-trip
+  ✓ 2 [chromium] tests/e2e/voice-widget.spec.ts:204 widget hides and no error banner appears
+  2 passed (5.6s)
+(The [WebServer] "proxy error: /api/events ECONNREFUSED 18032" lines in run 2
+are expected: the offline scenario runs after the loop scenario's API server
+was torn down and /api/events is not mocked — the test itself passed.)
+
+== S2 rerun from main repo after worktree reclaim ==
+See f3-s2-playwright-rerun.log (this run also regenerated the lost
+task-5-e2e-loop.png / task-5-offline.png / task-5-stub-log.jsonl).

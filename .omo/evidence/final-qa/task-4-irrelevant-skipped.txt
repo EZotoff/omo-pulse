@@ -1,0 +1,11 @@
+$ vitest run multi-project-realtime -t "ignores irrelevant deltas"
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/multi-project-realtime.test.ts  (3 tests | 2 skipped) 3ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 2 skipped (3)
+   Start at  10:03:25
+   Duration  1.61s (transform 419ms, setup 152ms, collect 298ms, tests 3ms, environment 0ms, prepare 445ms)
+

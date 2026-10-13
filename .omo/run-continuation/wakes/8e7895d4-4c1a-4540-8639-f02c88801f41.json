@@ -1,0 +1,63 @@
+{
+  "wakeID": "8e7895d4-4c1a-4540-8639-f02c88801f41",
+  "sessionID": "ses_f0280b056ffeD90y1yXCXNMaUV",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK RESULT READY]\n**ID:** `bg_28553e9d`\n**Description:** Explore Vox voice-bridge architecture\n**Duration:** 45s\n\n**1 task still in progress.** You WILL be notified when ALL complete.\nDo NOT poll - continue productive work.\n\nUse `background_output(task_id=\"bg_28553e9d\")` to retrieve this result when ready.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK RESULT READY]\n**ID:** `bg_28553e9d`\n**Description:** Explore Vox voice-bridge architecture\n**Duration:** 45s\n\n**1 task still in progress.** You WILL be notified when ALL complete.\nDo NOT poll - continue productive work.\n\nUse `background_output(task_id=\"bg_28553e9d\")` to retrieve this result when ready.\n</system-reminder>\n<!-- OMO_WAKE:8e7895d4-4c1a-4540-8639-f02c88801f41 -->",
+  "payloadHash": "b65af3684c220f09f0e7ff59f8a3cffeeec59681f7cfc1057b548c41ed3e3559",
+  "promptContext": {
+    "agent": "Sisyphus-Junior",
+    "model": {
+      "providerID": "ollama-cloud",
+      "modelID": "deepseek-v4.1-flash"
+    },
+    "tools": {
+      "task": false,
+      "call_omo_agent": true,
+      "question": false,
+      "team_create": false,
+      "team_delete": false,
+      "team_shutdown_request": false,
+      "team_approve_shutdown": false,
+      "team_reject_shutdown": false,
+      "team_send_message": false,
+      "team_task_create": false,
+      "team_task_list": false,
+      "team_task_update": false,
+      "team_task_get": false,
+      "team_status": false,
+      "team_list": false
+    }
+  },
+  "shouldReply": false,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 1,
+  "claimedBy": null,
+  "generation": 1,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790959426301,
+  "dispatchedAt": 1790959426301,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790959425707,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790959426191,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790959426301,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

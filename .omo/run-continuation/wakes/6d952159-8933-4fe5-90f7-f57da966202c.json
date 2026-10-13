@@ -1,0 +1,46 @@
+{
+  "wakeID": "6d952159-8933-4fe5-90f7-f57da966202c",
+  "sessionID": "ses_f302f8ba7ffedZdhXq5zX70CU7",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK RESULT READY]\n**ID:** `bg_b91e263a`\n**Description:** F4 re-review after fix\n**Duration:** 46s\n\n**1 task still in progress.** You WILL be notified when ALL complete.\nDo NOT poll - continue productive work.\n\nUse `background_output(task_id=\"bg_b91e263a\")` to retrieve this result when ready.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK RESULT READY]\n**ID:** `bg_b91e263a`\n**Description:** F4 re-review after fix\n**Duration:** 46s\n\n**1 task still in progress.** You WILL be notified when ALL complete.\nDo NOT poll - continue productive work.\n\nUse `background_output(task_id=\"bg_b91e263a\")` to retrieve this result when ready.\n</system-reminder>\n<!-- OMO_WAKE:6d952159-8933-4fe5-90f7-f57da966202c -->",
+  "payloadHash": "93d7de4b7a0124e933988034631734e392cf6b833e6be64918b47f37adc77945",
+  "promptContext": {
+    "agent": "Atlas",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash"
+    }
+  },
+  "shouldReply": false,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 1,
+  "claimedBy": null,
+  "generation": 1,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790196052350,
+  "dispatchedAt": 1790196052350,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790196051735,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790196052234,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790196052350,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

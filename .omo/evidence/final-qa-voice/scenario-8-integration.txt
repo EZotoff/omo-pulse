@@ -1,0 +1,11 @@
+=== Scenario 8: integration pass (live service, NO deploy) ===
+--- health ---
+GET /api/health -> HTTP 200
+{"ok":true,"version":"0.1.0"}
+--- UI shell ---
+GET / -> HTTP 200 (1111 bytes, text/html; charset=UTF-8)
+--- voice-ws route presence ---
+GET /api/voice-ws -> HTTP 503
+voice bridge token unavailable
+--- control: unknown route ---
+GET /api/definitely-not-a-route -> HTTP 404

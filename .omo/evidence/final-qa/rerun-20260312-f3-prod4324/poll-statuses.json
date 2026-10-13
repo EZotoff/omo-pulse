@@ -1,0 +1,916 @@
+[
+  {
+    "poll": 1,
+    "rows": [
+      {
+        "label": "/tmp/omo-final-qa-projects/emptyish",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/busy",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/attention",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/fresh-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-error",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "qa-test-project",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "LLM Review",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "System",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "kraken",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "traveller",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ESM",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ANIA",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "present",
+        "aggregate": "unknown",
+        "sessions": []
+      }
+    ]
+  },
+  {
+    "poll": 2,
+    "rows": [
+      {
+        "label": "/tmp/omo-final-qa-projects/emptyish",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/busy",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/attention",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/fresh-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-error",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "qa-test-project",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "LLM Review",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "System",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "kraken",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "traveller",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ESM",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ANIA",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "present",
+        "aggregate": "unknown",
+        "sessions": []
+      }
+    ]
+  },
+  {
+    "poll": 3,
+    "rows": [
+      {
+        "label": "/tmp/omo-final-qa-projects/emptyish",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/busy",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/attention",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/fresh-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-error",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "qa-test-project",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "LLM Review",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "System",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "kraken",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "traveller",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ESM",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ANIA",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "present",
+        "aggregate": "unknown",
+        "sessions": []
+      }
+    ]
+  },
+  {
+    "poll": 4,
+    "rows": [
+      {
+        "label": "/tmp/omo-final-qa-projects/emptyish",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/busy",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/attention",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/fresh-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-error",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "qa-test-project",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "LLM Review",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "System",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "kraken",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "traveller",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ESM",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ANIA",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "present",
+        "aggregate": "unknown",
+        "sessions": []
+      }
+    ]
+  },
+  {
+    "poll": 5,
+    "rows": [
+      {
+        "label": "/tmp/omo-final-qa-projects/emptyish",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/busy",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/attention",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/fresh-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-error",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "qa-test-project",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "LLM Review",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "System",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "kraken",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "traveller",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ESM",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ANIA",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "present",
+        "aggregate": "unknown",
+        "sessions": []
+      }
+    ]
+  },
+  {
+    "poll": 6,
+    "rows": [
+      {
+        "label": "/tmp/omo-final-qa-projects/emptyish",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/busy",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/attention",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/fresh-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-error",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "qa-test-project",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "LLM Review",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "System",
+        "aggregate": "thinking",
+        "sessions": [
+          "thinking"
+        ]
+      },
+      {
+        "label": "kraken",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "traveller",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ESM",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ANIA",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "present",
+        "aggregate": "unknown",
+        "sessions": []
+      }
+    ]
+  },
+  {
+    "poll": 7,
+    "rows": [
+      {
+        "label": "/tmp/omo-final-qa-projects/emptyish",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/busy",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/attention",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/fresh-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-error",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "qa-test-project",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "LLM Review",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "System",
+        "aggregate": "thinking",
+        "sessions": [
+          "thinking"
+        ]
+      },
+      {
+        "label": "kraken",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "traveller",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ESM",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ANIA",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "present",
+        "aggregate": "unknown",
+        "sessions": []
+      }
+    ]
+  },
+  {
+    "poll": 8,
+    "rows": [
+      {
+        "label": "/tmp/omo-final-qa-projects/emptyish",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/busy",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/attention",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/fresh-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-error",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "qa-test-project",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "LLM Review",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "System",
+        "aggregate": "thinking",
+        "sessions": [
+          "thinking"
+        ]
+      },
+      {
+        "label": "kraken",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "traveller",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ESM",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ANIA",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "present",
+        "aggregate": "unknown",
+        "sessions": []
+      }
+    ]
+  },
+  {
+    "poll": 9,
+    "rows": [
+      {
+        "label": "/tmp/omo-final-qa-projects/emptyish",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/busy",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/attention",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/fresh-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-error",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "qa-test-project",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "LLM Review",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "System",
+        "aggregate": "thinking",
+        "sessions": [
+          "thinking"
+        ]
+      },
+      {
+        "label": "kraken",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "traveller",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ESM",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ANIA",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "present",
+        "aggregate": "unknown",
+        "sessions": []
+      }
+    ]
+  },
+  {
+    "poll": 10,
+    "rows": [
+      {
+        "label": "/tmp/omo-final-qa-projects/emptyish",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/busy",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/attention",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/fresh-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-error",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "qa-test-project",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "LLM Review",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "System",
+        "aggregate": "thinking",
+        "sessions": [
+          "thinking"
+        ]
+      },
+      {
+        "label": "kraken",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "traveller",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ESM",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ANIA",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "present",
+        "aggregate": "unknown",
+        "sessions": []
+      }
+    ]
+  },
+  {
+    "poll": 11,
+    "rows": [
+      {
+        "label": "/tmp/omo-final-qa-projects/emptyish",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/busy",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/attention",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/fresh-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-error",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "qa-test-project",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "LLM Review",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "System",
+        "aggregate": "thinking",
+        "sessions": [
+          "thinking"
+        ]
+      },
+      {
+        "label": "kraken",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "traveller",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ESM",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ANIA",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "present",
+        "aggregate": "unknown",
+        "sessions": []
+      }
+    ]
+  },
+  {
+    "poll": 12,
+    "rows": [
+      {
+        "label": "/tmp/omo-final-qa-projects/emptyish",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/busy",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/attention",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/fresh-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-error",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "/tmp/omo-final-qa-projects/stale-question",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "qa-test-project",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "LLM Review",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "System",
+        "aggregate": "thinking",
+        "sessions": [
+          "thinking"
+        ]
+      },
+      {
+        "label": "kraken",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "traveller",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ESM",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "ANIA",
+        "aggregate": "unknown",
+        "sessions": []
+      },
+      {
+        "label": "present",
+        "aggregate": "unknown",
+        "sessions": []
+      }
+    ]
+  }
+]

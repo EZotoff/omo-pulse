@@ -1,0 +1,14 @@
+=== token-absent string source ===
+/home/ezotoff/.local/share/opencode/worktree/d8d11124fc0ff6a2a6d3b5dce5f236030f5e460d/plan/voice-widget-remote-ui/src/server/voice-proxy.ts:113:    return new Response("voice bridge token unavailable", { status: 503 })
+
+=== rest-of-API unaffected probe ===
+/api/projects -> 
+/api/sources -> 
+/api/health -> 
+=== rest-of-API unaffected (live 4300) ===
+/api/projects -> 000
+/api/sources -> 200
+/api/health -> 200
+=== /api/projects retry (t=30s) ===
+http=000 time=29.999361s size=0
+{"projects":[{"sourceId":"4a8c12ff031c982cf641266a3b3e0515cdda19f6fd4f165335a0e44cc02afd65","label":"Veran","projectRoot":"/home/ezotoff/AI_projects/veran","mainSession":{"agent":"Sisyphus","currentMo

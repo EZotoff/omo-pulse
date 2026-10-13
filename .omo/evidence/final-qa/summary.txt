@@ -1,0 +1,44 @@
+Final QA summary for plan multi-session-tracking (F3)
+
+Environment:
+- Production server: http://127.0.0.1:4320
+- XDG_DATA_HOME: /tmp/omo-final-qa-xdg
+- Clean browser state enforced via localStorage clear before testing
+
+Scenario results:
+1. Aggregate multi-session status display: PASS
+   - Fresh Question Project and Attention Project rendered aggregateStatus=question with sessionCount=3.
+   - Evidence: strip-state-refreshed.json, strip-state-project-mode-refreshed.json, page-2026-03-12T03-11-58-299Z.yml, api-projects-after-update.json
+2. Session indicators in session mode: PASS
+   - Per-session mode showed 3 dots with active/attention/idle families for multi-session projects.
+   - Evidence: strip-state-refreshed.json, page-2026-03-12T03-11-58-299Z.yml
+3. Settings toggle persistence across reload: PASS
+   - stripDisplayMode persisted as "session" after reload and after rapid toggling.
+   - Evidence: 03-after-reload-persisted.png, strip-state-after-reload.json, rapid-toggle-result.txt, strip-state-after-rapid-toggle.json
+4. Attention-first top ordering: FAIL
+   - Busy Project remained above Attention Project/Fresh Question Project instead of attention-first ordering.
+   - Evidence: strip-state-project-mode-refreshed.json, 06-project-mode-ordering.png
+5. Stale error/question remaining visible: FAIL
+   - Stale Error Project and Stale Question Project dropped out to aggregateStatus=unknown with sessionCount=0 instead of remaining visible.
+   - Evidence: strip-state-refreshed.json, api-projects-refreshed.json
+6. Backend /api/projects presence of multi-session fields: PASS
+   - API payload includes sessions[] and aggregateStatus fields.
+   - Evidence: api-projects-after-update.json, api-projects-refreshed.json
+
+Integration checks:
+- UI/API aggregate status alignment for active multi-session projects: PASS
+- Settings toggle + localStorage + reload persistence: PASS
+- Attention ordering + stale-attention retention across full stack: FAIL
+
+Edge cases exercised:
+- Clean state with cleared localStorage
+- Empty-ish/default project state
+- Reload persistence
+- Rapid toggle + reload persistence
+- Stale attention state aging
+
+Console checks:
+- console logs remained clean across baseline, session-mode, rapid-toggle, and final checks.
+
+Build verification:
+- bun run build passed.

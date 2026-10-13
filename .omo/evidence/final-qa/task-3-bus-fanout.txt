@@ -1,0 +1,11 @@
+$ vitest run realtime-bus
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/realtime-bus.test.ts  (6 tests) 5ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  10:03:04
+   Duration  943ms (transform 288ms, setup 31ms, collect 40ms, tests 5ms, environment 0ms, prepare 483ms)
+

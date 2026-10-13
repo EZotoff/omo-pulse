@@ -1,0 +1,76 @@
+=== API SMOKE TEST: idleWindowMs Parameter Variants ===
+
+METHODOLOGY: Live curl testing against http://127.0.0.1:4301/api/projects
+Session count measured as: total sessions across all returned projects
+Current dataset: 15 projects registered, 1 session active in qa-test-project
+
+[1] GET /api/projects (no idleWindowMs param)
+HTTP Status: 200
+Valid JSON: YES
+Projects in response: 15
+Total sessions across all projects: 1
+Non-empty project: qa-test-project (1 session)
+
+[2] GET /api/projects?idleWindowMs=30000 (30 seconds)
+HTTP Status: 200
+Valid JSON: YES
+Projects in response: 15
+Total sessions across all projects: 1
+Non-empty project: qa-test-project (1 session)
+
+[3] GET /api/projects?idleWindowMs=60000 (60 seconds)
+HTTP Status: 200
+Valid JSON: YES
+Projects in response: 15
+Total sessions across all projects: 1
+Non-empty project: qa-test-project (1 session)
+
+[4] GET /api/projects?idleWindowMs=3600000 (1 hour)
+HTTP Status: 200
+Valid JSON: YES
+Projects in response: 15
+Total sessions across all projects: 1
+Non-empty project: qa-test-project (1 session)
+
+[5] GET /api/projects?idleWindowMs=notanumber (INVALID: non-numeric string)
+HTTP Status: 200
+Valid JSON: YES
+Projects in response: 15
+Total sessions across all projects: 1
+Non-empty project: qa-test-project (1 session)
+NOTE: Returns valid response identical to other variants; sparse dataset cannot distinguish whether parameter was silently handled as default or rejected
+
+[6] GET /api/projects?idleWindowMs=3600001 (1 hour + 1ms; beyond typical range)
+HTTP Status: 200
+Valid JSON: YES
+Projects in response: 15
+Total sessions across all projects: 1
+Non-empty project: qa-test-project (1 session)
+NOTE: Returns valid response identical to other variants; sparse dataset cannot distinguish whether parameter was accepted or handled as default
+
+[7] GET /api/projects?idleWindowMs=999999 (very large valid value)
+HTTP Status: 200
+Valid JSON: YES
+Projects in response: 15
+Total sessions across all projects: 1
+Non-empty project: qa-test-project (1 session)
+NOTE: 999999ms is VALID and was used as control test (not invalid test)
+
+[8] Health check /api/health
+{
+  "ok": true,
+  "version": "0.1.0"
+}
+
+FINDINGS:
+- All parameter variants return HTTP 200 with valid JSON
+- All variants return identical session counts (15 projects, 1 total session)
+- Sparse dataset: only 1 active session across all 15 projects
+- Session count identical across no param, 30s, 60s, 1h, notanumber, 3600001, and 999999
+- 999999ms is VALID (control case, not invalid test)
+- Observable live behavior: identical response structure and session counts for all tested variants
+- Sparse dataset prevents distinguishing parameter handling (fallback vs acceptance) via session count alone
+- Per previously verified unit tests: invalid params (notanumber, 3600001) are treated as undefined and default to 300_000ms in the route layer
+
+INTERPRETATION:
+Whether notanumber and 3600001 are silently converted to defaults or explicitly rejected, the live smoke results are identical—both approaches yield the same observable behavior in this sparse dataset. The route-layer validation (verified in unit tests) handles both as defaults. Live smoke confirms the API returns valid, consistent data regardless of parameter value.

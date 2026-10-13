@@ -1,0 +1,58 @@
+{
+  "wakeID": "35787139-9bc1-4173-b481-d57757c78c62",
+  "sessionID": "ses_f204c953bffeEpLvKKyDEa0l76",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n[ALL BACKGROUND TASKS COMPLETE]\n\n**Completed:**\n- `bg_6d7f20df`: T4 finish: commit ShowView deliverables\n- `bg_be5bd81b`: T5 VoiceWidget mount + e2e\n\nAll sibling background tasks are complete. Your next action should be to call `background_output(task_id=\"<id>\")` for each task ID above.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n[ALL BACKGROUND TASKS COMPLETE]\n\n**Completed:**\n- `bg_6d7f20df`: T4 finish: commit ShowView deliverables\n- `bg_be5bd81b`: T5 VoiceWidget mount + e2e\n\nAll sibling background tasks are complete. Your next action should be to call `background_output(task_id=\"<id>\")` for each task ID above.\n</system-reminder>\n<!-- OMO_WAKE:35787139-9bc1-4173-b481-d57757c78c62 -->",
+  "payloadHash": "2fb7ff66c98e3c5a20360c75491d81dc544cc36a2124177aecbf967c2dbcf44a",
+  "promptContext": {
+    "agent": "Atlas",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash"
+    }
+  },
+  "shouldReply": true,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 2,
+  "claimedBy": null,
+  "generation": 2,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790607076629,
+  "dispatchedAt": 1790607082873,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790607076268,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790607076609,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790607076629,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    },
+    {
+      "at": 1790607082867,
+      "from": "dispatched-awaiting-output",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790607082873,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

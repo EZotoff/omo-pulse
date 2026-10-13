@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Cache-Control: no-cache
+Date: Mon, 28 Sep 2026 14:54:31 GMT
+Content-Length: 29
+
+{"ok":true,"version":"0.1.0"}

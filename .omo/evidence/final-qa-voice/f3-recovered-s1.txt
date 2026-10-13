@@ -1,0 +1,16 @@
+== S1a: bun run test (clean state, merged code e79fb21-era worktree, 2026-09-28 16:57) ==
+$ vitest run
+ Test Files  44 passed (44)
+      Tests  431 passed | 1 skipped (432)
+   Duration  1.03s
+exit=0  — matches expected 44 files / 431 pass / 1 skip exactly.
+
+== S1b: bunx tsc --noEmit ==
+exit=0 (no output)
+
+== S1c: bun run build ==
+dist/index.html                   1.11 kB │ gzip:   0.65 kB
+dist/assets/index-gEPDsTKD.css   83.90 kB │ gzip:  13.58 kB
+dist/assets/index-DuBGtkjZ.js   300.64 kB │ gzip:  90.23 kB
+✓ built in 193ms
+exit=0

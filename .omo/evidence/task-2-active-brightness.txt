@@ -1,0 +1,16 @@
+Task 2: Active Strip Brightness (opacity 0.78)
+===============================================
+Session: ses_34a7f4d3fffe5PVqtNjua1siNw
+Date verified: 2026-03-04
+Status: PRESENT
+
+Verification:
+  grep -n 'opacity.*0\.78' src/ui/components/ProjectStrip.css
+  → 588:  opacity: 0.78;
+
+  Context: Line 588 is within the .project-strip[data-status="busy"],
+  .project-strip[data-status="running_tool"],
+  .project-strip[data-status="thinking"] selector block.
+
+Result: Active strip brightness differentiation (opacity: 0.78) is present.
+        No restoration needed.

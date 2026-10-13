@@ -1,0 +1,71 @@
+{
+  "wakeID": "c8f6a722-ccd8-47bf-8816-f78f1bf38485",
+  "sessionID": "ses_f204c953bffeEpLvKKyDEa0l76",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n[ALL BACKGROUND TASKS COMPLETE]\n\n**Completed:**\n- `bg_c38c239c`: T1 voice protocol codec TDD (redispatch)\nBackground task attempts:\n  - Attempt 1 — ERROR — openai/gpt-6-sol — ses_f17b49cdcffesUz0ulXZeIu19p\n    Error: The usage limit has been reached\n  - Attempt 2 — ERROR — ollama-cloud/deepseek-v4.1-flash — ses_f17b47cfbffecokfc7YE7WVOyi\n    Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: f9d1a983-ac9f-4383-9b5b-4a4b16c73880)\n  - Attempt 3 — COMPLETED — opencode-go/deepseek-v4.1-flash — ses_f17b4783fffeNV1BYjOPecAdvp\n- `bg_c2f88751`: T2 voice-ws proxy TDD (redispatch)\nBackground task attempts:\n  - Attempt 1 — ERROR — openai/gpt-6-sol — ses_f17b49cb7ffe7u6A02ChlGcvkV\n    Error: The usage limit has been reached\n  - Attempt 2 — ERROR — ollama-cloud/deepseek-v4.1-flash — ses_f17b456befferUaQwR8E0QfNjz\n    Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: 1931d787-9550-458f-ad1a-831d21afd98a)\n  - Attempt 3 — COMPLETED — opencode-go/deepseek-v4.1-flash — ses_f17b4525dffegk5Zt0w7eYvV9l\n\nAll sibling background tasks are complete. Your next action should be to call `background_output(task_id=\"<id>\")` for each task ID above.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n[ALL BACKGROUND TASKS COMPLETE]\n\n**Completed:**\n- `bg_c38c239c`: T1 voice protocol codec TDD (redispatch)\nBackground task attempts:\n  - Attempt 1 — ERROR — openai/gpt-6-sol — ses_f17b49cdcffesUz0ulXZeIu19p\n    Error: The usage limit has been reached\n  - Attempt 2 — ERROR — ollama-cloud/deepseek-v4.1-flash — ses_f17b47cfbffecokfc7YE7WVOyi\n    Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: f9d1a983-ac9f-4383-9b5b-4a4b16c73880)\n  - Attempt 3 — COMPLETED — opencode-go/deepseek-v4.1-flash — ses_f17b4783fffeNV1BYjOPecAdvp\n- `bg_c2f88751`: T2 voice-ws proxy TDD (redispatch)\nBackground task attempts:\n  - Attempt 1 — ERROR — openai/gpt-6-sol — ses_f17b49cb7ffe7u6A02ChlGcvkV\n    Error: The usage limit has been reached\n  - Attempt 2 — ERROR — ollama-cloud/deepseek-v4.1-flash — ses_f17b456befferUaQwR8E0QfNjz\n    Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: 1931d787-9550-458f-ad1a-831d21afd98a)\n  - Attempt 3 — COMPLETED — opencode-go/deepseek-v4.1-flash — ses_f17b4525dffegk5Zt0w7eYvV9l\n\nAll sibling background tasks are complete. Your next action should be to call `background_output(task_id=\"<id>\")` for each task ID above.\n</system-reminder>\n<!-- OMO_WAKE:c8f6a722-ccd8-47bf-8816-f78f1bf38485 -->",
+  "payloadHash": "bd747b7352f5a787ec689b52201f1b25fbc1a838e7fcdc4e959e95c7d002f041",
+  "promptContext": {
+    "agent": "Atlas",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash"
+    },
+    "variant": "high"
+  },
+  "shouldReply": true,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 3,
+  "claimedBy": null,
+  "generation": 3,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790603769885,
+  "dispatchedAt": 1790603770591,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790603709795,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790603710129,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790603710129,
+      "from": "dispatching",
+      "to": "queued",
+      "reason": "prompt gate reserved"
+    },
+    {
+      "at": 1790603769860,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790603769885,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    },
+    {
+      "at": 1790603770545,
+      "from": "dispatched-awaiting-output",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790603770591,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "wakeID": "5b9cad5d-73ba-49f5-ba97-6ed29fea1230",
+  "sessionID": "ses_f1796318fffe2QaPsQzlGHCF1D",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_f9e2e2b2`\n**Description:** F2 code quality review via session.status\n- Failed session: `ses_f17796f24ffefv2cl8UdtA36QS`\n- Failed model: `ollama-cloud/minimax-m3`\n- Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: ad7e115f-4e5f-4215-8d6f-9acd1ac3c471)\n- Next model: `opencode-go/minimax-m3`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_f9e2e2b2`\n**Description:** F2 code quality review\n**Retry attempt:** 4\n**Retry session:** `ses_f17796c4fffesdBFUaBTky3QYq`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f17796c4fffesdBFUaBTky3QYq\n- Failed session: `ses_f17796f24ffefv2cl8UdtA36QS`\n- Failed model: `ollama-cloud/minimax-m3`\n- Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: ad7e115f-4e5f-4215-8d6f-9acd1ac3c471)\n- Model: `opencode-go/minimax-m3`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_f9e2e2b2`\n**Description:** F2 code quality review via session.status\n- Failed session: `ses_f17796f24ffefv2cl8UdtA36QS`\n- Failed model: `ollama-cloud/minimax-m3`\n- Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: ad7e115f-4e5f-4215-8d6f-9acd1ac3c471)\n- Next model: `opencode-go/minimax-m3`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_f9e2e2b2`\n**Description:** F2 code quality review\n**Retry attempt:** 4\n**Retry session:** `ses_f17796c4fffesdBFUaBTky3QYq`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f17796c4fffesdBFUaBTky3QYq\n- Failed session: `ses_f17796f24ffefv2cl8UdtA36QS`\n- Failed model: `ollama-cloud/minimax-m3`\n- Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: ad7e115f-4e5f-4215-8d6f-9acd1ac3c471)\n- Model: `opencode-go/minimax-m3`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>\n<!-- OMO_WAKE:5b9cad5d-73ba-49f5-ba97-6ed29fea1230 -->",
+  "payloadHash": "f33e313941bcb81ebd0297e4b5825675d796c58792821d3dc22b5f1b0e78370f",
+  "promptContext": {
+    "agent": "Atlas",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash"
+    },
+    "variant": "high",
+    "tools": {
+      "task": false,
+      "call_omo_agent": true,
+      "question": false,
+      "team_create": false,
+      "team_delete": false,
+      "team_shutdown_request": false,
+      "team_approve_shutdown": false,
+      "team_reject_shutdown": false,
+      "team_send_message": false,
+      "team_task_create": false,
+      "team_task_list": false,
+      "team_task_update": false,
+      "team_task_get": false,
+      "team_status": false,
+      "team_list": false
+    }
+  },
+  "shouldReply": false,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 2,
+  "claimedBy": null,
+  "generation": 2,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790607531470,
+  "dispatchedAt": 1790607531470,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790607528879,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790607529292,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790607529293,
+      "from": "dispatching",
+      "to": "queued",
+      "reason": "prompt gate reserved"
+    },
+    {
+      "at": 1790607531463,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790607531470,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+### Result
+dashboard-strip-config={"showMiniSparkline":true,"showPlanProgress":true,"showAgentBadge":true,"showLastUpdated":true,"showStatusDot":true,"showTokenUsage":true,"showBackgroundTasks":true,"showGitWorktrees":true,"showAvatar":true,"showProjectName":true,"stripDisplayMode":"session"}
+### Ran Playwright code
+```js
+await page.evaluate(() => localStorage.getItem('dashboard-strip-config'));
+```

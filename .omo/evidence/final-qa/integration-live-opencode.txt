@@ -1,0 +1,7 @@
+endpoint=http://127.0.0.1:3021
+authHeaderConfigured=true
+state=connected
+connectedAfterMs=102
+normalizedEventCount=0
+firstEvents=[]
+RESULT=FAIL

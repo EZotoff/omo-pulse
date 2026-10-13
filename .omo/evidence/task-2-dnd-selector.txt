@@ -1,0 +1,17 @@
+Task 2: DnD Teal Border Selector Fix
+=====================================
+Session: ses_34a7f4d3fffe5PVqtNjua1siNw
+Date verified: 2026-03-04
+Status: PRESENT
+
+Verification:
+  grep -n 'style*="translate"' src/ui/App.css
+  → 151:.project-stack > [style*="translate"] {
+  → 157:.project-stack > [style*="translate"] .project-strip {
+
+  grep -n 'style*="transform"' src/ui/App.css
+  → (no matches — transform selector correctly replaced with translate)
+
+Result: The DnD selector uses [style*="translate"] (correct).
+        The old [style*="transform"] is not present.
+        No restoration needed.

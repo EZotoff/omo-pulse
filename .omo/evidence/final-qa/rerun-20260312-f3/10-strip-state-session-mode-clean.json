@@ -1,0 +1,79 @@
+### Result
+[
+  {
+    "index": 1,
+    "label": "ESM",
+    "aggregateStatus": "error",
+    "status": "error",
+    "sessionCount": 1,
+    "dotCount": 1,
+    "stale": "false"
+  },
+  {
+    "index": 2,
+    "label": "present",
+    "aggregateStatus": "error",
+    "status": "error",
+    "sessionCount": 2,
+    "dotCount": 2,
+    "stale": "false"
+  },
+  {
+    "index": 3,
+    "label": "System",
+    "aggregateStatus": "thinking",
+    "status": "thinking",
+    "sessionCount": 2,
+    "dotCount": 2,
+    "stale": "false"
+  },
+  {
+    "index": 4,
+    "label": "qa-test-project",
+    "aggregateStatus": "running_tool",
+    "status": "running_tool",
+    "sessionCount": 1,
+    "dotCount": 1,
+    "stale": "false"
+  },
+  {
+    "index": 5,
+    "label": "LLM Review",
+    "aggregateStatus": "unknown",
+    "status": "unknown",
+    "sessionCount": 0,
+    "dotCount": 0,
+    "stale": "false"
+  },
+  {
+    "index": 6,
+    "label": "kraken",
+    "aggregateStatus": "unknown",
+    "status": "unknown",
+    "sessionCount": 0,
+    "dotCount": 0,
+    "stale": "true"
+  },
+  {
+    "index": 7,
+    "label": "traveller",
+    "aggregateStatus": "unknown",
+    "status": "unknown",
+    "sessionCount": 0,
+    "dotCount": 0,
+    "stale": "true"
+  },
+  {
+    "index": 8,
+    "label": "ANIA",
+    "aggregateStatus": "unknown",
+    "status": "unknown",
+    "sessionCount": 0,
+    "dotCount": 0,
+    "stale": "false"
+  }
+]
+### Ran Playwright code
+```js
+await page.evaluate('() => (Array.from(document.querySelectorAll(\'.project-strip\')).slice(0,8).map(function(el, index){ return { index: index + 1, label: el.querySelector(\'.strip-label\') && el.querySelector(\'.strip-label\').textContent.trim(), aggregateStatus: el.getAttribute(\'data-aggregate-status\'), status: el.getAttribute(\'data-status\'), sessionCount: Number(el.getAttribute(\'data-session-count\')||0), dotCount: el.querySelectorAll(\'.session-dot\').length, stale: el.getAttribute(\'data-stale\') }; }))');
+```

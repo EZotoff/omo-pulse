@@ -1,0 +1,46 @@
+{
+  "wakeID": "48de2df4-4dcc-48db-b8d7-c2a26e8d1748",
+  "sessionID": "ses_f36a8b8bbffez7QDfJM10ETB3l",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_2c952da8`\n**Description:** Sisyphus-Junior background task via session.status\n- Failed session: `ses_f3292ff33ffeduvAlqqiTn7bl0`\n- Failed model: `zai-coding-plan/glm-5.3`\n- Error: Usage limit reached for 5 hour. Your limit will reset at 2026-09-23 17:20:01\n- Next model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_2c952da8`\n**Description:** Sisyphus-Junior background task\n**Retry attempt:** 2\n**Retry session:** `ses_f3292f868ffeSSxXF9GeRWe3tA`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f3292f868ffeSSxXF9GeRWe3tA\n- Failed session: `ses_f3292ff33ffeduvAlqqiTn7bl0`\n- Failed model: `zai-coding-plan/glm-5.3`\n- Error: Usage limit reached for 5 hour. Your limit will reset at 2026-09-23 17:20:01\n- Model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_2c952da8`\n**Description:** Sisyphus-Junior background task via session.status\n- Failed session: `ses_f3292ff33ffeduvAlqqiTn7bl0`\n- Failed model: `zai-coding-plan/glm-5.3`\n- Error: Usage limit reached for 5 hour. Your limit will reset at 2026-09-23 17:20:01\n- Next model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_2c952da8`\n**Description:** Sisyphus-Junior background task\n**Retry attempt:** 2\n**Retry session:** `ses_f3292f868ffeSSxXF9GeRWe3tA`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f3292f868ffeSSxXF9GeRWe3tA\n- Failed session: `ses_f3292ff33ffeduvAlqqiTn7bl0`\n- Failed model: `zai-coding-plan/glm-5.3`\n- Error: Usage limit reached for 5 hour. Your limit will reset at 2026-09-23 17:20:01\n- Model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>\n<!-- OMO_WAKE:48de2df4-4dcc-48db-b8d7-c2a26e8d1748 -->",
+  "payloadHash": "ed1edc90fb6cc1d14537268dc4f3421a59d7072c32a7e163bfd217db1b625a3b",
+  "promptContext": {
+    "agent": "Sisyphus",
+    "model": {
+      "providerID": "ollama-cloud",
+      "modelID": "deepseek-v4.1-flash"
+    }
+  },
+  "shouldReply": false,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 1,
+  "claimedBy": null,
+  "generation": 1,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790152876290,
+  "dispatchedAt": 1790152876290,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790152869797,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790152876285,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790152876290,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

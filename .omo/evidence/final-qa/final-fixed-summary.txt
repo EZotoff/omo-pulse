@@ -1,0 +1,39 @@
+Final manual QA retry on current fixed repo state
+
+Date: 2026-03-14
+Baseline referenced: current fixed build/test baseline remains 24 files / 205 tests.
+Services reused:
+- UI healthy on http://127.0.0.1:4300
+- API healthy on http://127.0.0.1:4301
+
+Fresh evidence created for this retry:
+- final-fixed-01-smoke.png
+- final-fixed-02-settings.png
+- final-fixed-03-min-label-30s.png
+- final-fixed-04-per-session-enabled.png
+- final-fixed-05-default-collapsed.png
+- final-fixed-06-after-35s-30s.png
+- final-fixed-07c-max-1h-settings.png
+- final-fixed-08c-max-active-collapsed.png
+- final-fixed-api-checks.json
+- final-fixed-health.json
+
+Observed browser behavior:
+1. Fresh smoke check loaded cleanly with 0 console errors.
+2. Settings visibly showed Per-Project / Per-Session controls and the Idle Timeout slider.
+3. Default baseline showed Per-Project selected and Idle Timeout value 300000 with visible label "5 min".
+4. Moving the slider to minimum showed slider value 30000 with visible label "30s".
+5. Enabling Per-Session mode and collapsing strips exposed visible `.session-dot[data-family]` indicators.
+6. With the 30s setting active, visible session dots remained `data-family="idle"`, including the idle-session-persistence session after 35 seconds.
+7. In a fresh retest session, moving the slider to maximum showed slider value 3600000 with visible label "1h".
+8. The same fresh retest session triggered `/api/projects?idleWindowMs=3600000` requests and rendered visible session dots as `data-family="active"` in collapsed per-session mode.
+9. Sparse live data still limits verification to observed one/few-dot family changes rather than count deltas.
+
+Observed API behavior:
+- Fresh API health returned `{ "ok": true, "version": "0.1.0" }`.
+- Fresh direct API checks for default / 30000 / 60000 / 3600000 / invalid all returned 15 projects and 1 total session in aggregate.
+- Direct API snapshot for `qa-test-project` was sparse and did not expose the visible dot session at capture time, so integration judgment is based on direct live UI polling evidence plus browser-observed request URLs.
+
+Verdict basis:
+- The previous blocking defect is fixed: the minimum slider label now visibly reads `30s`.
+- End-to-end integration was re-observed as settings change -> `idleWindowMs` polling request -> `.session-dot[data-family]` rendering.

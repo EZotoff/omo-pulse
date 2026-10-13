@@ -1,0 +1,6 @@
+### Result
+"{\n  \"mode\": \"session\",\n  \"strips\": [\n    {\n      \"index\": 0,\n      \"label\": \"Busy Project\",\n      \"dots\": 0\n    },\n    {\n      \"index\": 1,\n      \"label\": \"Attention Project\",\n      \"dots\": 0\n    },\n    {\n      \"index\": 2,\n      \"label\": \"Empty-ish Project\",\n      \"dots\": 0\n    },\n    {\n      \"index\": 3,\n      \"label\": \"Stale Error Project\",\n      \"dots\": 1\n    },\n    {\n      \"index\": 4,\n      \"label\": \"Fresh Question Project\",\n      \"dots\": 0\n    },\n    {\n      \"index\": 5,\n      \"label\": \"Stale Question Project\",\n      \"dots\": 1\n    }\n  ]\n}"
+### Ran Playwright code
+```js
+await page.evaluate('() => JSON.stringify({ mode: JSON.parse(localStorage.getItem(\'dashboard-strip-config\') || \'{}\').stripDisplayMode ?? null, strips: [...document.querySelectorAll(\'.project-strip\')].map((el, index) => ({ index, label: el.querySelector(\'.strip-label\')?.textContent?.trim() ?? \'\', dots: el.querySelectorAll(\'.session-dot\').length })) }, null, 2)');
+```

@@ -1,0 +1,11 @@
+$ vitest run src/__tests__/session-status-derivation.test.ts
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/session-status-derivation.test.ts  (9 tests) 13ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  18:22:49
+   Duration  533ms (transform 180ms, setup 14ms, collect 106ms, tests 13ms, environment 0ms, prepare 211ms)
+

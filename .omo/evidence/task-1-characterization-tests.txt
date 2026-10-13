@@ -1,0 +1,11 @@
+$ vitest run src/__tests__/dashboard-payload.test.ts
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/dashboard-payload.test.ts  (6 tests) 10ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  18:19:15
+   Duration  513ms (transform 85ms, setup 13ms, collect 72ms, tests 10ms, environment 0ms, prepare 114ms)
+

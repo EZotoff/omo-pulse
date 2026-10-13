@@ -1,0 +1,23 @@
+Browser observations captured during final manual QA
+
+Session: omo-pulse-final-qa
+
+Default / baseline:
+- Settings showed Idle Timeout slider at value 300000 with visible label "5 min".
+- Per-Session mode could be enabled and remained selected after reload.
+
+Min edge case (30s):
+- Using real keyboard interaction on the focused slider, Home moved the slider to value 30000.
+- Snapshot evidence showed slider value 30000.
+- Important defect: the visible helper label beside that 30000 value rendered as "1 min" instead of "30s".
+- Fresh resource timings included /api/projects?idleWindowMs=30000.
+- After waiting 35 seconds, the visible qa-test-project session dot reported data-family="idle".
+
+Max edge case (1h):
+- Using real keyboard interaction on the focused slider, End moved the slider to value 3600000.
+- Snapshot evidence showed slider value 3600000 with visible label "1h".
+- Fresh resource timings included /api/projects?idleWindowMs=3600000.
+- The same visible qa-test-project session dot reported data-family="active".
+
+Sparse-data note:
+- Live data exposed one visible session dot for qa-test-project, so verification used one-dot family changes rather than count deltas.

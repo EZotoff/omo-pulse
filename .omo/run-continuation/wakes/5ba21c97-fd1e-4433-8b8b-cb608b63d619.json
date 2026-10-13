@@ -1,0 +1,64 @@
+{
+  "wakeID": "5ba21c97-fd1e-4433-8b8b-cb608b63d619",
+  "sessionID": "ses_f1796318fffe2QaPsQzlGHCF1D",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK RESULT READY]\n**ID:** `bg_7b756702`\n**Description:** F4 scope fidelity check\n**Duration:** 1m 6s\n\n**3 tasks still in progress.** You WILL be notified when ALL complete.\nDo NOT poll - continue productive work.\n\nUse `background_output(task_id=\"bg_7b756702\")` to retrieve this result when ready.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK RESULT READY]\n**ID:** `bg_7b756702`\n**Description:** F4 scope fidelity check\n**Duration:** 1m 6s\n\n**3 tasks still in progress.** You WILL be notified when ALL complete.\nDo NOT poll - continue productive work.\n\nUse `background_output(task_id=\"bg_7b756702\")` to retrieve this result when ready.\n</system-reminder>\n<!-- OMO_WAKE:5ba21c97-fd1e-4433-8b8b-cb608b63d619 -->",
+  "payloadHash": "78dd9af244bdd9403c9ef2996659f90172e6262bb73586ba422c87def18dde94",
+  "promptContext": {
+    "agent": "Atlas",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash"
+    },
+    "variant": "high",
+    "tools": {
+      "task": false,
+      "call_omo_agent": true,
+      "question": false,
+      "team_create": false,
+      "team_delete": false,
+      "team_shutdown_request": false,
+      "team_approve_shutdown": false,
+      "team_reject_shutdown": false,
+      "team_send_message": false,
+      "team_task_create": false,
+      "team_task_list": false,
+      "team_task_update": false,
+      "team_task_get": false,
+      "team_status": false,
+      "team_list": false
+    }
+  },
+  "shouldReply": false,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 1,
+  "claimedBy": null,
+  "generation": 1,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790607577346,
+  "dispatchedAt": 1790607577346,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790607576706,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790607577159,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790607577346,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

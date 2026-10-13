@@ -1,0 +1,16 @@
+Task: T2 — recorded SSE event fixtures + event→invalidation mapping
+Scenario: Happy path — mapper classifies real + synthetic fixture events correctly
+Command: bun run test -- opencode-event-map
+Fixtures: real-sample.jsonl (292 sanitized real frames), synthetic-sample.jsonl (15 frames)
+---
+$ vitest run opencode-event-map
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/opencode-event-map.test.ts  (8 tests) 7ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  09:24:56
+   Duration  492ms (transform 195ms, setup 20ms, collect 23ms, tests 7ms, environment 0ms, prepare 262ms)
+

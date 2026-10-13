@@ -1,0 +1,53 @@
+=== SCENARIO 3: FEATURE VERIFICATION ===
+
+--- Feature: DnD Layout (T15) ---
+  - .project-stack has CSS grid layout: display=grid
+  - Default: --grid-cols=1, gridTemplateColumns=1238px
+  - After clicking "2col": --grid-cols=2, gridTemplateColumns="617px 617px"
+  - Column buttons (1col, 2col, 3col) present in header
+  - localStorage 'dashboard-project-order' saves {orderedIds: [...8 IDs], columns: 2}
+VERDICT: PASS
+
+--- Feature: Config Toggles (T16) ---
+  - Settings panel opens via gear button (⚙)
+  - "Display Options" section: 8 toggles (Mini Sparkline, Plan Progress, Agent Badge, Last Updated, Status Dot, Token Usage, Background Tasks, Git Worktrees)
+  - "Sound Notifications" section: Enable Sounds toggle + Volume slider + 3 event toggles (Session Idle, Plan Complete, Session Error)
+  - Total switches: 12
+  - Agent Badge toggle test:
+    - Before off: 8 .strip-agent-badge elements
+    - After off: 0 .strip-agent-badge elements
+    - After re-enable: 8 .strip-agent-badge elements
+  - All configs persist to localStorage under 'dashboard-strip-config'
+VERDICT: PASS
+
+--- Feature: Session Swimlane (T17) ---
+  - .session-swimlane elements found: 5
+  - .swimlane-row elements found: 19
+  - Swimlanes render inside expanded project strips
+  - Session Activity sections show individual sessions with pin buttons and labels
+VERDICT: PASS
+
+--- Feature: Sound Wiring (T18) ---
+  - 3 "Test" buttons present (Session Idle, Plan Complete, Session Error)
+  - Sound config persisted: {enabled:true, volume:50, onSessionIdle:true, onPlanComplete:true, onSessionError:true}
+  - AudioContext available in browser
+  - Sound settings panel fully functional with volume slider
+VERDICT: PASS
+
+--- Feature: AddProjectForm (T13) ---
+  - Component exists in source: src/ui/components/AddProjectForm.tsx
+  - Imported in App.tsx
+  - Present in built bundle (grep confirms)
+  - Not visible in DOM when 8 projects exist (expected - only shows for 0 projects)
+  - POST /api/sources endpoint functional with validation:
+    - Missing projectRoot: returns error "projectRoot is required..."
+    - Non-existent dir: returns error "projectRoot directory does not exist"
+VERDICT: PASS
+
+--- localStorage Persistence ---
+  - dashboard-strip-config: all 8 toggle states persisted
+  - dashboard-project-order: 8 ordered IDs + columns=2
+  - dashboard-sound-config: enabled, volume, 3 event toggles
+VERDICT: PASS
+
+=== ALL 5 FEATURES VERIFIED: PASS ===

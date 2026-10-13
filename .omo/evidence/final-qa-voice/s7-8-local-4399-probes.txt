@@ -1,0 +1,9 @@
+=== WS upgrade probe (token absent) ===
+HTTP_CODE:503
+--- body:
+voice bridge token unavailable
+=== health after probe ===
+{"ok":true,"version":"0.1.0"}
+HTTP_CODE:200
+=== projects API unaffected ===
+HTTP_CODE:200

@@ -1,0 +1,4 @@
+Command: bun run test -- multi-project-realtime
+Result: PASS; 1 file, 3 tests, 0 failures (2026-09-23).
+Ten session.updated events within one 300ms window produce one aggregate invalidation and one bus publish after invalidation. A later event produces one additional invalidation and publish.
+DashboardStore.clearCache forces a fresh snapshot within the TTL without discarding the store.

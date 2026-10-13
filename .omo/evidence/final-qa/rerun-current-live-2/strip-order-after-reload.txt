@@ -1,0 +1,119 @@
+### Result
+[
+  {
+    "index": 1,
+    "label": "System",
+    "status": "running_tool",
+    "aggregate": "running_tool",
+    "sessionCount": "1",
+    "stale": "false"
+  },
+  {
+    "index": 2,
+    "label": "ESM",
+    "status": "running_tool",
+    "aggregate": "running_tool",
+    "sessionCount": "1",
+    "stale": "false"
+  },
+  {
+    "index": 3,
+    "label": "present",
+    "status": "running_tool",
+    "aggregate": "running_tool",
+    "sessionCount": "1",
+    "stale": "false"
+  },
+  {
+    "index": 4,
+    "label": "/tmp/omo-final-qa-projects/emptyish",
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false"
+  },
+  {
+    "index": 5,
+    "label": "/tmp/omo-final-qa-projects/busy",
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false"
+  },
+  {
+    "index": 6,
+    "label": "/tmp/omo-final-qa-projects/attention",
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false"
+  },
+  {
+    "index": 7,
+    "label": "/tmp/omo-final-qa-projects/fresh-question",
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false"
+  },
+  {
+    "index": 8,
+    "label": "/tmp/omo-final-qa-projects/stale-error",
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false"
+  },
+  {
+    "index": 9,
+    "label": "/tmp/omo-final-qa-projects/stale-question",
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false"
+  },
+  {
+    "index": 10,
+    "label": "qa-test-project",
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "true"
+  },
+  {
+    "index": 11,
+    "label": "LLM Review",
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false"
+  },
+  {
+    "index": 12,
+    "label": "kraken",
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "true"
+  },
+  {
+    "index": 13,
+    "label": "traveller",
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "true"
+  },
+  {
+    "index": 14,
+    "label": "ANIA",
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false"
+  }
+]
+### Ran Playwright code
+```js
+await page.evaluate('() => Array.from(document.querySelectorAll(\'.project-strip\')).map((el,index) => ({index:index+1,label: el.querySelector(\'.strip-label\')?.textContent?.trim() ?? null,status: el.getAttribute(\'data-status\'),aggregate: el.getAttribute(\'data-aggregate-status\'),sessionCount: el.getAttribute(\'data-session-count\'),stale: el.getAttribute(\'data-stale\')}))');
+```

@@ -1,0 +1,5 @@
+Task: T2 — unknown event kind safe default
+Case: synthetic { kind: 'something.new.v2' } → isFreshnessRelevant=false, no throw
+---
+ Test Files  1 passed (1)
+      Tests  8 passed (8)

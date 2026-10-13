@@ -1,0 +1,59 @@
+{
+  "wakeID": "01cf8b1d-b1d6-4f2e-bfa8-57eadaf0d21d",
+  "sessionID": "ses_f204c953bffeEpLvKKyDEa0l76",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_c2f88751`\n**Description:** T2 voice-ws proxy TDD (redispatch) via session.status\n- Failed session: `ses_f17b456befferUaQwR8E0QfNjz`\n- Failed model: `ollama-cloud/deepseek-v4.1-flash`\n- Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: 1931d787-9550-458f-ad1a-831d21afd98a)\n- Next model: `opencode-go/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_c2f88751`\n**Description:** T2 voice-ws proxy TDD (redispatch)\n**Retry attempt:** 3\n**Retry session:** `ses_f17b4525dffegk5Zt0w7eYvV9l`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f17b4525dffegk5Zt0w7eYvV9l\n- Failed session: `ses_f17b456befferUaQwR8E0QfNjz`\n- Failed model: `ollama-cloud/deepseek-v4.1-flash`\n- Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: 1931d787-9550-458f-ad1a-831d21afd98a)\n- Model: `opencode-go/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_c2f88751`\n**Description:** T2 voice-ws proxy TDD (redispatch) via session.status\n- Failed session: `ses_f17b456befferUaQwR8E0QfNjz`\n- Failed model: `ollama-cloud/deepseek-v4.1-flash`\n- Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: 1931d787-9550-458f-ad1a-831d21afd98a)\n- Next model: `opencode-go/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_c2f88751`\n**Description:** T2 voice-ws proxy TDD (redispatch)\n**Retry attempt:** 3\n**Retry session:** `ses_f17b4525dffegk5Zt0w7eYvV9l`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f17b4525dffegk5Zt0w7eYvV9l\n- Failed session: `ses_f17b456befferUaQwR8E0QfNjz`\n- Failed model: `ollama-cloud/deepseek-v4.1-flash`\n- Error: you (genezotoff) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add usage credits: https://ollama.com/settings (ref: 1931d787-9550-458f-ad1a-831d21afd98a)\n- Model: `opencode-go/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>\n<!-- OMO_WAKE:01cf8b1d-b1d6-4f2e-bfa8-57eadaf0d21d -->",
+  "payloadHash": "0427cf5bb94d744c55564dd2c9377e7ce824244c095a9e544211109ab9ecd30b",
+  "promptContext": {
+    "agent": "Atlas",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash"
+    },
+    "variant": "high"
+  },
+  "shouldReply": false,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 2,
+  "claimedBy": null,
+  "generation": 2,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790603671369,
+  "dispatchedAt": 1790603671369,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790603668875,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790603669181,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790603669183,
+      "from": "dispatching",
+      "to": "queued",
+      "reason": "prompt gate reserved"
+    },
+    {
+      "at": 1790603671364,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790603671369,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

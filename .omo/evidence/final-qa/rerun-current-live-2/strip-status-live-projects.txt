@@ -1,0 +1,57 @@
+### Result
+[
+  {
+    "label": "qa-test-project",
+    "found": true,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "true",
+    "text": "Qqa-test-projectunknown3012/35NaNd ago▸ActivitySession ActivityPlan — multi-session-trackingmulti-session-trackingin progress[ ] `bun run test` exits 0 (all unit tests pass)[ ] `bunx playwright test t",
+    "sessionDots": 0
+  },
+  {
+    "label": "System",
+    "found": true,
+    "status": "running_tool",
+    "aggregate": "running_tool",
+    "sessionCount": "1",
+    "stale": "false",
+    "text": "SSystemAtlas (Plan Executor)7/2733s ago▸ActivitySession Activityopencode DB maintenance session startHarden Task 8 startup scheduling safety (@Sisyphus-Junior subagent)Plan — opencode-db-maintenanceop",
+    "sessionDots": 0
+  },
+  {
+    "label": "present",
+    "found": true,
+    "status": "running_tool",
+    "aggregate": "running_tool",
+    "sessionCount": "1",
+    "stale": "false",
+    "text": "PpresentSisyphus (Ultraworker)60/122m ago▸ActivitySession ActivityPlan — heartbeat-slide-refinementsheartbeat-slide-refinementsin progress[ ] `npm run build` exits 0[ ] All 10 changes visually confirm",
+    "sessionDots": 0
+  },
+  {
+    "label": "ESM",
+    "found": true,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "true",
+    "text": "EESMunknown21/41NaNd ago▸ActivitySession ActivityRecreate missing leaderboard backend files (@Sisyphus-Junior subagent)Implement leaderboard backend endpoint (@Sisyphus-Junior subagent)Plan — dashboar",
+    "sessionDots": 0
+  },
+  {
+    "label": "kraken",
+    "found": true,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "true",
+    "text": "Kkrakenunknown510/26NaNd ago▸ActivitySession ActivityNo active sessionsPlan — global-system-fixglobal-system-fixin progress[ ] All 7 models generate >0 signals on 250+ bars of XBTUSD data[ ] At least ",
+    "sessionDots": 0
+  }
+]
+### Ran Playwright code
+```js
+await page.evaluate('() => { const wanted = [\'qa-test-project\',\'System\',\'present\',\'ESM\',\'kraken\']; return wanted.map(label => { const el = Array.from(document.querySelectorAll(\'.project-strip\')).find(node => node.querySelector(\'.strip-label\')?.textContent?.trim() === label); if (!el) return {label, found:false}; const header = el.querySelector(\'.project-strip__header, button, [role=button]\'); const dots = el.querySelectorAll(\'.session-dot\').length; return { label, found:true, status: el.getAttribute(\'data-status\'), aggregate: el.getAttribute(\'data-aggregate-status\'), sessionCount: el.getAttribute(\'data-session-count\'), stale: el.getAttribute(\'data-stale\'), text: el.textContent?.replace(/\\s+/g,\' \').trim().slice(0,200) ?? \'\', sessionDots: dots }; }); }');
+```

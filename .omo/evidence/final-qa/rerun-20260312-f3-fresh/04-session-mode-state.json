@@ -1,0 +1,51 @@
+### Result
+{
+  "mode": "session",
+  "strips": [
+    {
+      "label": "qa-test-project",
+      "aggregate": "error",
+      "status": "error",
+      "sessionCount": "1",
+      "dots": 1,
+      "overflow": null,
+      "titleSamples": [
+        "multi-session tracking plan start - error"
+      ]
+    },
+    {
+      "label": "System",
+      "aggregate": "idle",
+      "status": "idle",
+      "sessionCount": "2",
+      "dots": 2,
+      "overflow": null,
+      "titleSamples": [
+        "Sisyphus session start: select work plan - running_tool",
+        "Investigating high RAM usage原因 - idle"
+      ]
+    },
+    {
+      "label": "LLM Review",
+      "aggregate": "unknown",
+      "status": "unknown",
+      "sessionCount": "0",
+      "dots": 0,
+      "overflow": null,
+      "titleSamples": []
+    },
+    {
+      "label": "kraken",
+      "aggregate": "unknown",
+      "status": "unknown",
+      "sessionCount": "0",
+      "dots": 0,
+      "overflow": null,
+      "titleSamples": []
+    }
+  ]
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => ({mode: JSON.parse(localStorage.getItem(\'dashboard-strip-config\') || \'{}\').stripDisplayMode, strips: Array.from(document.querySelectorAll(\'.project-strip\')).map(el => ({label: el.querySelector(\'.strip-label\')?.textContent?.trim(), aggregate: el.getAttribute(\'data-aggregate-status\'), status: el.getAttribute(\'data-status\'), sessionCount: el.getAttribute(\'data-session-count\'), dots: el.querySelectorAll(\'.session-dot\').length, overflow: el.querySelector(\'.strip-session-overflow\')?.textContent || null, titleSamples: Array.from(el.querySelectorAll(\'.session-dot\')).slice(0,3).map(dot => dot.getAttribute(\'title\'))})).slice(0,4)})');
+```

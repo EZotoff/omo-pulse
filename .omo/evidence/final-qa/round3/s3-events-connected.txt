@@ -1,0 +1,6 @@
+event: status
+data: {"state":"connected"}
+
+event: refresh
+data: {"ts":1790153033872}
+

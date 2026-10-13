@@ -1,0 +1,58 @@
+{
+  "wakeID": "f6f587c8-06bc-4697-bfc8-3ff11eee6860",
+  "sessionID": "ses_f02f1bc28ffebNxkD0tVyQR6ZP",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n[ALL BACKGROUND TASKS COMPLETE]\n\n**Completed:**\n- `bg_e7b2cd53`: Find key-authed MiMo usage API\n\nAll sibling background tasks are complete. Your next action should be to call `background_output(task_id=\"<id>\")` for each task ID above.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n[ALL BACKGROUND TASKS COMPLETE]\n\n**Completed:**\n- `bg_e7b2cd53`: Find key-authed MiMo usage API\n\nAll sibling background tasks are complete. Your next action should be to call `background_output(task_id=\"<id>\")` for each task ID above.\n</system-reminder>\n<!-- OMO_WAKE:f6f587c8-06bc-4697-bfc8-3ff11eee6860 -->",
+  "payloadHash": "5bb845bd34cb6793c7240a8889f851967e2efc91c1a0713cfa50244252d08207",
+  "promptContext": {
+    "agent": "Sisyphus",
+    "model": {
+      "providerID": "mimo",
+      "modelID": "mimo-v2.6-flash"
+    }
+  },
+  "shouldReply": true,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 2,
+  "claimedBy": null,
+  "generation": 2,
+  "claimedAt": null,
+  "firstDispatchedAt": 1791112484733,
+  "dispatchedAt": 1791112490240,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1791112478620,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1791112484724,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1791112484733,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    },
+    {
+      "at": 1791112490227,
+      "from": "dispatched-awaiting-output",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1791112490240,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

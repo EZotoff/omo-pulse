@@ -1,0 +1,36 @@
+Final manual QA wave — idle-session-persistence
+
+Date: 2026-03-14
+Services reused:
+- UI healthy on http://127.0.0.1:4300
+- API healthy on http://127.0.0.1:4301
+
+Fresh evidence:
+- final-wave-01-smoke.png
+- final-wave-02-settings-open.png
+- final-wave-03-per-session-enabled.png
+- final-wave-04-default-collapsed.png
+- final-wave-05-reloaded-collapsed.png
+- final-wave-06-reloaded-settings.png
+- final-wave-08-home-min.png
+- final-wave-09-min-30s-collapsed.png
+- final-wave-10-max-1h-settings.png
+- final-wave-11-max-1h-collapsed.png
+- final-wave-12-max-resource-check.png
+- final-wave-13-after-35s-at-30s.png
+- final-wave-14-back-to-1h.png
+- final-wave-api-checks.json
+- final-wave-health.json
+
+Observed results:
+1. Settings dialog visibly exposes both collapsed-strip view radios and the Idle Timeout slider.
+2. Per-Session mode can be enabled and remains selected after reload.
+3. Default UI baseline showed 5 min / 300000 ms in settings; default no-param API payload matched 15 projects and 1 qa-test-project session.
+4. Min edge case: setting the slider to 30000 ms and waiting 35 seconds changed the visible qa-test-project session dot to data-family="idle".
+5. Max edge case: setting the slider to 3600000 ms showed the same visible qa-test-project session dot as data-family="active".
+6. Integration was directly observed end-to-end: settings change caused /api/projects requests with idleWindowMs=30000 and idleWindowMs=3600000, and the visible session-dot family changed accordingly.
+7. Sparse live data remains limited to one visible qa-test-project session dot, so verification is based on one-dot family changes rather than multi-dot count deltas.
+8. Direct API checks for default / 30000 / 60000 / 3600000 / invalid all returned 15 projects and 1 qa-test-project session; invalid behaved like the stable baseline in live observation.
+
+Console note:
+- Fresh browser session console was clean (0 errors) during baseline smoke check.

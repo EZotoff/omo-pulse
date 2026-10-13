@@ -1,0 +1,27 @@
+Task 2: Build and Test Verification
+====================================
+Date: 2026-03-04
+
+Build (bun run build):
+  vite v5.4.21 building for production...
+  ✓ 60 modules transformed.
+  dist/index.html                   1.11 kB │ gzip:  0.65 kB
+  dist/assets/index-BL0Og0hF.css   33.10 kB │ gzip:  5.99 kB
+  dist/assets/index-BKtlQpjm.js   230.46 kB │ gzip: 72.35 kB
+  ✓ built in 1.46s
+  Result: PASS (exit 0)
+
+Tests (bun run test):
+  ✓ src/__tests__/hooks.test.ts  (11 tests)
+  ✓ src/__tests__/per-session-timeseries.test.ts  (4 tests)
+  ✓ src/__tests__/multi-project.test.ts  (4 tests)
+  ✓ src/__tests__/format-relative-time.test.ts  (15 tests)
+  ✓ src/__tests__/api.test.ts  (7 tests)
+  Test Files  5 passed (5)
+  Tests  41 passed (41)
+  Result: PASS (exit 0)
+
+Note: format-relative-time.test.ts required two fixes:
+  1. Import changed from "bun:test" to "vitest" (vitest compatibility)
+  2. formatRelativeTime() guard added for NaN/Infinity inputs (returns "—")
+  Both fixes were necessary for tests to pass under vitest runner.

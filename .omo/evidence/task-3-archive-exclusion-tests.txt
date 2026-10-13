@@ -1,0 +1,9 @@
+bun x vitest run src/__tests__/uninitiated-plans.test.ts
+status: passed
+tests: 8 passed
+
+coverage focus:
+- zero-completion plan discovery unchanged
+- active plan exclusion
+- archive-safe filtering for _archive directory
+- archive-safe filtering for _archive_*.md files

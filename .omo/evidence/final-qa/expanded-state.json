@@ -1,0 +1,6 @@
+### Result
+"[\n  {\n    \"label\": \"Busy Project\",\n    \"expanded\": \"false\",\n    \"status\": \"unknown\",\n    \"bgTasks\": \"Activity\"\n  },\n  {\n    \"label\": \"Attention Project\",\n    \"expanded\": \"false\",\n    \"status\": \"unknown\",\n    \"bgTasks\": \"Activity\"\n  },\n  {\n    \"label\": \"Empty-ish Project\",\n    \"expanded\": \"false\",\n    \"status\": \"unknown\",\n    \"bgTasks\": \"Activity\"\n  },\n  {\n    \"label\": \"Stale Error Project\",\n    \"expanded\": \"false\",\n    \"status\": \"idle\",\n    \"bgTasks\": \"Activity\"\n  },\n  {\n    \"label\": \"Fresh Question Project\",\n    \"expanded\": \"true\",\n    \"status\": \"unknown\",\n    \"bgTasks\": \"Activity\"\n  },\n  {\n    \"label\": \"Stale Question Project\",\n    \"expanded\": \"false\",\n    \"status\": \"question\",\n    \"bgTasks\": \"Activity\"\n  }\n]"
+### Ran Playwright code
+```js
+await page.evaluate('() => JSON.stringify([...document.querySelectorAll(\'.project-strip\')].map(el => ({ label: el.querySelector(\'.strip-label\')?.textContent?.trim() ?? \'\', expanded: el.getAttribute(\'data-expanded\'), status: el.getAttribute(\'data-status\'), bgTasks: el.querySelector(\'.strip-section-label:last-of-type\')?.textContent ?? \'\' })), null, 2)');
+```

@@ -1,0 +1,29 @@
+### Result
+{
+  "mode": "session",
+  "theme": "light",
+  "top": [
+    {
+      "label": "qa-test-project",
+      "dots": 1,
+      "aggregate": "error",
+      "status": "error"
+    },
+    {
+      "label": "System",
+      "dots": 2,
+      "aggregate": "idle",
+      "status": "idle"
+    },
+    {
+      "label": "LLM Review",
+      "dots": 0,
+      "aggregate": "unknown",
+      "status": "unknown"
+    }
+  ]
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => ({mode: JSON.parse(localStorage.getItem(\'dashboard-strip-config\') || \'{}\').stripDisplayMode, theme: document.documentElement.getAttribute(\'data-theme\'), top: Array.from(document.querySelectorAll(\'.project-strip\')).slice(0,3).map(el => ({label: el.querySelector(\'.strip-label\')?.textContent?.trim(), dots: el.querySelectorAll(\'.session-dot\').length, aggregate: el.getAttribute(\'data-aggregate-status\'), status: el.getAttribute(\'data-status\')}))})');
+```

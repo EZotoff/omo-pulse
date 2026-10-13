@@ -1,0 +1,26 @@
+### Result
+{
+  "zoom": "1.1",
+  "dotCounts": [
+    {
+      "label": "ESM",
+      "dotCount": 1
+    },
+    {
+      "label": "present",
+      "dotCount": 2
+    },
+    {
+      "label": "System",
+      "dotCount": 2
+    },
+    {
+      "label": "qa-test-project",
+      "dotCount": 1
+    }
+  ]
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => (({zoom: window.localStorage.getItem(\'dashboard-zoom\'), zoomLabel: document.querySelector(\'.dashboard-header__zoom-level\')?.textContent, dotCounts: Array.from(document.querySelectorAll(\'.project-strip\')).slice(0,4).map(function(el){ return {label: el.querySelector(\'.strip-label\')?.textContent?.trim(), dotCount: el.querySelectorAll(\'.session-dot\').length}; })}))');
+```

@@ -1,0 +1,5 @@
+### Page
+- Page URL: http://127.0.0.1:4326/
+- Page Title: ez-omo-dash
+### Snapshot
+- [Snapshot](.playwright-cli/page-2026-03-12T15-51-58-853Z.yml)

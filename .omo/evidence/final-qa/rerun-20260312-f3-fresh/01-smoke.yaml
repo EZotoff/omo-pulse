@@ -1,0 +1,116 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - heading "ez-omo-dash" [level=1] [ref=e6]
+      - generic [ref=e7]: 0 projects
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - button "Expand all" [ref=e10] [cursor=pointer]: +
+        - button "Collapse all" [ref=e11] [cursor=pointer]: −
+        - generic [ref=e12]:
+          - generic [ref=e13]: cols
+          - generic [ref=e14]:
+            - button "1" [ref=e15] [cursor=pointer]
+            - button "2" [ref=e16] [cursor=pointer]
+            - button "3" [ref=e17] [cursor=pointer]
+        - generic [ref=e18]:
+          - generic [ref=e19]: 100%
+          - generic [ref=e20]:
+            - button "Zoom out" [ref=e21] [cursor=pointer]: −
+            - button "Zoom in" [ref=e22] [cursor=pointer]: +
+            - button "Reset zoom" [ref=e23] [cursor=pointer]: ⟳
+      - generic [ref=e24]: —
+      - status "Disconnected" [ref=e25]
+      - button "Open settings" [ref=e26] [cursor=pointer]: ⚙
+  - generic [ref=e28]: Loading…
+  - dialog "Settings" [ref=e29]:
+    - generic [ref=e30]:
+      - heading "Settings" [level=2] [ref=e31]
+      - button "Close settings" [ref=e32] [cursor=pointer]: ×
+    - heading "Project Visibility" [level=3] [ref=e34]
+    - generic [ref=e35]:
+      - heading "Display Options" [level=3] [ref=e36]
+      - group "Collapsed Strip View" [ref=e37]:
+        - generic [ref=e38]: Collapsed Strip View
+        - generic [ref=e39]:
+          - generic [ref=e40] [cursor=pointer]:
+            - radio "Per-Project (aggregated)" [checked]
+            - generic [ref=e41]: Per-Project (aggregated)
+          - generic [ref=e42] [cursor=pointer]:
+            - radio "Per-Session (individual indicators)"
+            - generic [ref=e43]: Per-Session (individual indicators)
+      - heading "Collapsed View" [level=4] [ref=e44]
+      - generic [ref=e45]:
+        - generic [ref=e46]: Project Name
+        - switch "Project Name" [checked] [ref=e47] [cursor=pointer]
+      - generic [ref=e48]:
+        - generic [ref=e49]: Status Dot
+        - switch "Status Dot" [checked] [ref=e50] [cursor=pointer]
+      - generic [ref=e51]:
+        - generic [ref=e52]: Mini Sparkline
+        - switch "Mini Sparkline" [checked] [ref=e53] [cursor=pointer]
+      - generic [ref=e54]:
+        - generic [ref=e55]: Plan Progress
+        - switch "Plan Progress" [checked] [ref=e56] [cursor=pointer]
+      - generic [ref=e57]:
+        - generic [ref=e58]: Agent Badge
+        - switch "Agent Badge" [checked] [ref=e59] [cursor=pointer]
+      - generic [ref=e60]:
+        - generic [ref=e61]: Last Updated
+        - switch "Last Updated" [checked] [ref=e62] [cursor=pointer]
+      - generic [ref=e63]:
+        - generic [ref=e64]: Show Avatar
+        - switch "Show Avatar" [checked] [ref=e65] [cursor=pointer]
+      - heading "Expanded View" [level=4] [ref=e66]
+      - generic [ref=e67]:
+        - generic [ref=e68]: Token Usage
+        - switch "Token Usage" [checked] [ref=e69] [cursor=pointer]
+      - generic [ref=e70]:
+        - generic [ref=e71]: Background Tasks
+        - switch "Background Tasks" [checked] [ref=e72] [cursor=pointer]
+      - generic [ref=e73]:
+        - generic [ref=e74]: Git Worktrees
+        - switch "Git Worktrees" [checked] [ref=e75] [cursor=pointer]
+      - generic [ref=e76]:
+        - generic [ref=e77]: Collapsed Height
+        - slider "Collapsed pane height" [ref=e78] [cursor=pointer]: "80"
+        - generic [ref=e79]: 40px
+      - generic [ref=e80]:
+        - generic [ref=e81]: Column Gap
+        - slider "Grid gap between columns" [ref=e82] [cursor=pointer]: "10"
+        - generic [ref=e83]: 10px
+      - generic [ref=e84]:
+        - generic [ref=e85]: Idle Timeout
+        - slider "Idle timeout duration" [ref=e86] [cursor=pointer]: "300000"
+        - generic [ref=e87]: 5 min
+    - generic [ref=e88]:
+      - heading "Sound Notifications" [level=3] [ref=e89]
+      - generic [ref=e90]:
+        - generic [ref=e91]: Enable Sounds
+        - switch "Enable sound notifications" [checked] [ref=e92] [cursor=pointer]
+      - generic [ref=e93]:
+        - generic [ref=e94]: Volume
+        - slider "Sound volume" [ref=e95] [cursor=pointer]: "50"
+        - generic [ref=e96]: "50"
+      - generic [ref=e97]:
+        - generic [ref=e98]: Session Idle
+        - button "Test Session Idle sound" [ref=e99] [cursor=pointer]: Test
+        - switch "Session Idle" [checked] [ref=e100] [cursor=pointer]
+      - generic [ref=e101]:
+        - generic [ref=e102]: Plan Complete
+        - button "Test Plan Complete sound" [ref=e103] [cursor=pointer]: Test
+        - switch "Plan Complete" [checked] [ref=e104] [cursor=pointer]
+      - generic [ref=e105]:
+        - generic [ref=e106]: Session Error
+        - button "Test Session Error sound" [ref=e107] [cursor=pointer]: Test
+        - switch "Session Error" [checked] [ref=e108] [cursor=pointer]
+      - generic [ref=e109]:
+        - generic [ref=e110]: Question
+        - button "Test Question sound" [ref=e111] [cursor=pointer]: Test
+        - switch "Question" [checked] [ref=e112] [cursor=pointer]
+    - generic [ref=e113]:
+      - heading "System Service" [level=3] [ref=e114]
+      - paragraph [ref=e115]: Loading…
+    - generic [ref=e117]:
+      - generic [ref=e118]: Theme
+      - switch "Switch to dark theme" [checked] [ref=e119] [cursor=pointer]: ☾

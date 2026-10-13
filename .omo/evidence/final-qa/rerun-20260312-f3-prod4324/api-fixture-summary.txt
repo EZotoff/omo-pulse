@@ -1,0 +1,62 @@
+{
+  "label": "/tmp/omo-final-qa-projects/emptyish",
+  "root": "/tmp/omo-final-qa-projects/emptyish",
+  "aggregateStatus": "unknown",
+  "mainStatus": "unknown",
+  "sessions": []
+}
+{
+  "label": "/tmp/omo-final-qa-projects/busy",
+  "root": "/tmp/omo-final-qa-projects/busy",
+  "aggregateStatus": "unknown",
+  "mainStatus": "unknown",
+  "sessions": []
+}
+{
+  "label": "/tmp/omo-final-qa-projects/attention",
+  "root": "/tmp/omo-final-qa-projects/attention",
+  "aggregateStatus": "unknown",
+  "mainStatus": "unknown",
+  "sessions": []
+}
+{
+  "label": "/tmp/omo-final-qa-projects/fresh-question",
+  "root": "/tmp/omo-final-qa-projects/fresh-question",
+  "aggregateStatus": "unknown",
+  "mainStatus": "unknown",
+  "sessions": []
+}
+{
+  "label": "/tmp/omo-final-qa-projects/stale-error",
+  "root": "/tmp/omo-final-qa-projects/stale-error",
+  "aggregateStatus": "unknown",
+  "mainStatus": "unknown",
+  "sessions": []
+}
+{
+  "label": "/tmp/omo-final-qa-projects/stale-question",
+  "root": "/tmp/omo-final-qa-projects/stale-question",
+  "aggregateStatus": "unknown",
+  "mainStatus": "unknown",
+  "sessions": []
+}
+{
+  "label": "qa-test-project",
+  "root": "/home/ezotoff/AI_projects/ez-omo-dash",
+  "aggregateStatus": "error",
+  "mainStatus": "error",
+  "sessions": [
+    {
+      "status": "error",
+      "label": "multi-session tracking plan start",
+      "id": "ses_320f5cfe2ffeJt5bYWzJ5gW6hC"
+    }
+  ]
+}
+{
+  "label": "System",
+  "root": "/home/ezotoff",
+  "aggregateStatus": "unknown",
+  "mainStatus": "unknown",
+  "sessions": []
+}

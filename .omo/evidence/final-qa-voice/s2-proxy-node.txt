@@ -1,0 +1,9 @@
+
+[1m[46m RUN [49m[22m [36mv4.1.0 [39m[90m/home/ezotoff/.local/share/opencode/worktree/d8d11124fc0ff6a2a6d3b5dce5f236030f5e460d/plan/voice-widget-remote-ui[39m
+
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m18 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (19)[39m
+[2m   Start at [22m 16:56:20
+[2m   Duration [22m 182ms[2m (transform 46ms, setup 26ms, import 36ms, tests 26ms, environment 0ms)[22m
+

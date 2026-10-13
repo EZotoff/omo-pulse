@@ -1,0 +1,59 @@
+{
+  "projectCount": 6,
+  "ordered": [
+    {
+      "label": "Stale Question Project",
+      "aggregateStatus": "unknown",
+      "sessions": 0,
+      "mainStatus": "unknown",
+      "tool": "-",
+      "totalTokens": 0,
+      "bgTasks": 0
+    },
+    {
+      "label": "Fresh Question Project",
+      "aggregateStatus": "unknown",
+      "sessions": 0,
+      "mainStatus": "unknown",
+      "tool": "-",
+      "totalTokens": 0,
+      "bgTasks": 0
+    },
+    {
+      "label": "Empty-ish Project",
+      "aggregateStatus": "unknown",
+      "sessions": 0,
+      "mainStatus": "unknown",
+      "tool": "-",
+      "totalTokens": 0,
+      "bgTasks": 0
+    },
+    {
+      "label": "Stale Error Project",
+      "aggregateStatus": "unknown",
+      "sessions": 0,
+      "mainStatus": "unknown",
+      "tool": "-",
+      "totalTokens": 0,
+      "bgTasks": 0
+    },
+    {
+      "label": "Busy Project",
+      "aggregateStatus": "unknown",
+      "sessions": 0,
+      "mainStatus": "unknown",
+      "tool": "-",
+      "totalTokens": 0,
+      "bgTasks": 0
+    },
+    {
+      "label": "Attention Project",
+      "aggregateStatus": "unknown",
+      "sessions": 0,
+      "mainStatus": "unknown",
+      "tool": "-",
+      "totalTokens": 0,
+      "bgTasks": 0
+    }
+  ]
+}

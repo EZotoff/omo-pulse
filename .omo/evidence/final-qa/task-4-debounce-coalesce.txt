@@ -1,0 +1,11 @@
+$ vitest run multi-project-realtime
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/multi-project-realtime.test.ts  (3 tests) 8ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  10:03:11
+   Duration  1.16s (transform 357ms, setup 25ms, collect 249ms, tests 8ms, environment 0ms, prepare 422ms)
+

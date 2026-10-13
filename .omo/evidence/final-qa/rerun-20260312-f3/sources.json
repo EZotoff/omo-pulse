@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "sources": [
+    {
+      "id": "ec056b844fb9cd916e9da19a8e6a777bae550a927c3b14b86e9a8d078e0d7e34",
+      "label": "qa-test-project",
+      "updatedAt": 1772371305853
+    },
+    {
+      "id": "f9c19d6e3df03c1a2a0c8023f0faa968dce10abbd26e7d5d7fdd504ea87b6fcc",
+      "label": "LLM Review",
+      "updatedAt": 1772237054609
+    },
+    {
+      "id": "cad0481d58ba0d7c17d1a68dfa5afdfeef3870a984a9b844eff014bc6bb10bb0",
+      "label": "System",
+      "updatedAt": 1771971438364
+    },
+    {
+      "id": "1366a54d1ce036215d4b856349ba4b12530bc793e1df403eb3c9dcbfc2a3dc6a",
+      "label": "kraken",
+      "updatedAt": 1771963164375
+    },
+    {
+      "id": "de5294a3b52d3f32cdd22042ee7bc5737e0c4a9c662b7a28bd0b3c0c3122be78",
+      "label": "traveller",
+      "updatedAt": 1771963164342
+    },
+    {
+      "id": "3e12bf58994072aae1feeb986088a401bdaf79684d6de88ea148c3627f6fc4d0",
+      "label": "ESM",
+      "updatedAt": 1771963164315
+    },
+    {
+      "id": "ac2662cc1216c8d9e3448c063043882a43355c625ad4ac4929655e5d83f6915d",
+      "label": "ANIA",
+      "updatedAt": 1771963164284
+    },
+    {
+      "id": "da2a593afc32585768ae02e5ed8f5d47282ebaff1aed0b55e32fc2159b0375f1",
+      "label": "present",
+      "updatedAt": 1771963164251
+    }
+  ],
+  "defaultSourceId": "ec056b844fb9cd916e9da19a8e6a777bae550a927c3b14b86e9a8d078e0d7e34"
+}

@@ -1,0 +1,87 @@
+{
+  "default": {
+    "projectCount": 15,
+    "totalSessions": 1,
+    "qaTestProject": {
+      "aggregateStatus": "running_tool",
+      "sessionCount": 1,
+      "mainSession": {
+        "agent": "Atlas (Plan Executor)",
+        "currentModel": "github-copilot/gpt-5.4",
+        "currentTool": "task",
+        "lastUpdated": "2026-03-14T01:28:35.598Z",
+        "sessionLabel": "Sisyphus session start: idle-session-persistence plan",
+        "sessionId": "ses_316c3973fffecxzQUyc2tDuNI5",
+        "status": "running_tool"
+      }
+    }
+  },
+  "30000": {
+    "projectCount": 15,
+    "totalSessions": 1,
+    "qaTestProject": {
+      "aggregateStatus": "running_tool",
+      "sessionCount": 1,
+      "mainSession": {
+        "agent": "Atlas (Plan Executor)",
+        "currentModel": "github-copilot/gpt-5.4",
+        "currentTool": "task",
+        "lastUpdated": "2026-03-14T01:28:35.598Z",
+        "sessionLabel": "Sisyphus session start: idle-session-persistence plan",
+        "sessionId": "ses_316c3973fffecxzQUyc2tDuNI5",
+        "status": "running_tool"
+      }
+    }
+  },
+  "60000": {
+    "projectCount": 15,
+    "totalSessions": 1,
+    "qaTestProject": {
+      "aggregateStatus": "running_tool",
+      "sessionCount": 1,
+      "mainSession": {
+        "agent": "Atlas (Plan Executor)",
+        "currentModel": "github-copilot/gpt-5.4",
+        "currentTool": "task",
+        "lastUpdated": "2026-03-14T01:28:35.598Z",
+        "sessionLabel": "Sisyphus session start: idle-session-persistence plan",
+        "sessionId": "ses_316c3973fffecxzQUyc2tDuNI5",
+        "status": "running_tool"
+      }
+    }
+  },
+  "3600000": {
+    "projectCount": 15,
+    "totalSessions": 1,
+    "qaTestProject": {
+      "aggregateStatus": "running_tool",
+      "sessionCount": 1,
+      "mainSession": {
+        "agent": "Atlas (Plan Executor)",
+        "currentModel": "github-copilot/gpt-5.4",
+        "currentTool": "task",
+        "lastUpdated": "2026-03-14T01:28:35.598Z",
+        "sessionLabel": "Sisyphus session start: idle-session-persistence plan",
+        "sessionId": "ses_316c3973fffecxzQUyc2tDuNI5",
+        "status": "running_tool"
+      }
+    }
+  },
+  "invalid": {
+    "projectCount": 15,
+    "totalSessions": 1,
+    "qaTestProject": {
+      "aggregateStatus": "running_tool",
+      "sessionCount": 1,
+      "mainSession": {
+        "agent": "Atlas (Plan Executor)",
+        "currentModel": "github-copilot/gpt-5.4",
+        "currentTool": "task",
+        "lastUpdated": "2026-03-14T01:28:35.598Z",
+        "sessionLabel": "Sisyphus session start: idle-session-persistence plan",
+        "sessionId": "ses_316c3973fffecxzQUyc2tDuNI5",
+        "status": "running_tool"
+      }
+    }
+  }
+}

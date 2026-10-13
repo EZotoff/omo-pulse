@@ -1,0 +1,22 @@
+Task 2: Client-side displayStatus Override Logic
+================================================
+Session: ses_34a7f4d3fffe5PVqtNjua1siNw
+Date verified: 2026-03-04
+Status: PRESENT
+
+Verification:
+  grep -n 'displayStatus\|idleTimeoutMs' src/ui/components/ProjectStrip.tsx
+  → 41:  idleTimeoutMs?: number
+  → 53:function ProjectStripInner({ project, expanded, onToggleExpand, stripConfig, idleTimeoutMs, children }: ProjectStripProps) {
+  → 66:  const displayStatus = (() => {
+  → 69:    const timeout = idleTimeoutMs ?? 300_000
+  → 144:    <div className="project-strip" data-expanded={expanded} data-stale={isStale} data-status={displayStatus}>
+  → 146:    ... aria-label={`${project.label} — ${displayStatus}`}
+  → 148:    ... data-status={displayStatus}
+
+  Logic: idleTimeoutMs defaults to 300_000 (5 minutes). If server says 'idle'
+  but lastUpdated is within timeout, client overrides to 'busy'.
+  Active statuses (busy, running_tool, thinking) pass through unchanged.
+
+Result: displayStatus computation with idleTimeoutMs override is fully present.
+        No restoration needed.

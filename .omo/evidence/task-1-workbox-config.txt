@@ -1,0 +1,2 @@
+=== Task 1: Workbox config excludes API routes ===
+API denylist pattern found in sw.js: 1 matches

@@ -1,0 +1,161 @@
+### Result
+[
+  {
+    "label": "System",
+    "top": 58,
+    "left": 16,
+    "status": "running_tool",
+    "aggregate": "running_tool",
+    "sessionCount": "1",
+    "stale": "false",
+    "dotBg": "rgb(8, 145, 178)",
+    "dots": 1
+  },
+  {
+    "label": "ESM",
+    "top": 98,
+    "left": 16,
+    "status": "running_tool",
+    "aggregate": "running_tool",
+    "sessionCount": "1",
+    "stale": "false",
+    "dotBg": "rgb(8, 145, 178)",
+    "dots": 1
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/emptyish",
+    "top": 138,
+    "left": 16,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false",
+    "dotBg": "rgb(136, 136, 160)",
+    "dots": 0
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/busy",
+    "top": 178,
+    "left": 16,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false",
+    "dotBg": "rgb(136, 136, 160)",
+    "dots": 0
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/attention",
+    "top": 218,
+    "left": 16,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false",
+    "dotBg": "rgb(136, 136, 160)",
+    "dots": 0
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/fresh-question",
+    "top": 258,
+    "left": 16,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false",
+    "dotBg": "rgb(136, 136, 160)",
+    "dots": 0
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/stale-error",
+    "top": 298,
+    "left": 16,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false",
+    "dotBg": "rgb(136, 136, 160)",
+    "dots": 0
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/stale-question",
+    "top": 338,
+    "left": 16,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false",
+    "dotBg": "rgb(136, 136, 160)",
+    "dots": 0
+  },
+  {
+    "label": "qa-test-project",
+    "top": 378,
+    "left": 16,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "true",
+    "dotBg": "rgb(136, 136, 160)",
+    "dots": 0
+  },
+  {
+    "label": "LLM Review",
+    "top": 418,
+    "left": 16,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false",
+    "dotBg": "rgb(136, 136, 160)",
+    "dots": 0
+  },
+  {
+    "label": "kraken",
+    "top": 458,
+    "left": 16,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "true",
+    "dotBg": "rgb(136, 136, 160)",
+    "dots": 0
+  },
+  {
+    "label": "traveller",
+    "top": 498,
+    "left": 16,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "true",
+    "dotBg": "rgb(136, 136, 160)",
+    "dots": 0
+  },
+  {
+    "label": "ANIA",
+    "top": 538,
+    "left": 16,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "false",
+    "dotBg": "rgb(136, 136, 160)",
+    "dots": 0
+  },
+  {
+    "label": "present",
+    "top": 578,
+    "left": 16,
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "stale": "true",
+    "dotBg": "rgb(136, 136, 160)",
+    "dots": 0
+  }
+]
+### Ran Playwright code
+```js
+await page.evaluate('() => Array.from(document.querySelectorAll(\'.project-strip\')).map(el => ({ label: el.querySelector(\'.strip-label\')?.textContent?.trim() ?? null, top: Math.round(el.getBoundingClientRect().top), left: Math.round(el.getBoundingClientRect().left), status: el.getAttribute(\'data-status\'), aggregate: el.getAttribute(\'data-aggregate-status\'), sessionCount: el.getAttribute(\'data-session-count\'), stale: el.getAttribute(\'data-stale\'), dotBg: getComputedStyle(el.querySelector(\'.strip-status-dot\')).backgroundColor, dots: el.querySelectorAll(\'.session-dot\').length })).sort((a,b) => a.top - b.top || a.left - b.left)');
+```

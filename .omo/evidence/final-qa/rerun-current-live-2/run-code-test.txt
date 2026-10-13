@@ -1,0 +1,4 @@
+### Ran Playwright code
+```js
+await (async page => { const rows = await page.evaluate(() => Array.from(document.querySelectorAll('.project-strip')).slice(0,5).map(el => el.querySelector('.project-strip__label')?.textContent?.trim() ?? null)); console.log('ROWS=' + JSON.stringify(rows)); })(page);
+```

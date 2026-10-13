@@ -1,0 +1,100 @@
+[
+  {
+    "label": "/tmp/omo-final-qa-projects/emptyish",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "mainStatus": "unknown",
+    "lastUpdatedMs": 1773333138271
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/busy",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "mainStatus": "unknown",
+    "lastUpdatedMs": 1773333138271
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/attention",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "mainStatus": "unknown",
+    "lastUpdatedMs": 1773333138271
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/fresh-question",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "mainStatus": "unknown",
+    "lastUpdatedMs": 1773333138271
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/stale-error",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "mainStatus": "unknown",
+    "lastUpdatedMs": 1773333138271
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/stale-question",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "mainStatus": "unknown",
+    "lastUpdatedMs": 1773333138271
+  },
+  {
+    "label": "qa-test-project",
+    "aggregateStatus": "error",
+    "sessionCount": 1,
+    "mainStatus": "error",
+    "lastUpdatedMs": 1773332918064
+  },
+  {
+    "label": "LLM Review",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "mainStatus": "unknown",
+    "lastUpdatedMs": 1773333138271
+  },
+  {
+    "label": "System",
+    "aggregateStatus": "running_tool",
+    "sessionCount": 2,
+    "mainStatus": "running_tool",
+    "lastUpdatedMs": 1773333132475
+  },
+  {
+    "label": "kraken",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "mainStatus": "unknown",
+    "lastUpdatedMs": 1773333138271
+  },
+  {
+    "label": "traveller",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "mainStatus": "unknown",
+    "lastUpdatedMs": 1773333138271
+  },
+  {
+    "label": "ESM",
+    "aggregateStatus": "running_tool",
+    "sessionCount": 1,
+    "mainStatus": "running_tool",
+    "lastUpdatedMs": 1773333051301
+  },
+  {
+    "label": "ANIA",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "mainStatus": "unknown",
+    "lastUpdatedMs": 1773333138271
+  },
+  {
+    "label": "present",
+    "aggregateStatus": "running_tool",
+    "sessionCount": 2,
+    "mainStatus": "running_tool",
+    "lastUpdatedMs": 1773332936444
+  }
+]

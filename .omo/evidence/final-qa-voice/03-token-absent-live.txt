@@ -1,0 +1,8 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0HTTP/1.1 503 Service Unavailable
+content-type: text/plain;charset=utf-8
+Date: Mon, 28 Sep 2026 14:58:07 GMT
+Content-Length: 30
+
+voice bridge token unavailable100    30  100    30    0     0  46153      0 --:--:-- --:--:-- --:--:-- 30000

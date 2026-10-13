@@ -1,0 +1,9 @@
+bun run test (full suite)
+status: passed
+test files: 13
+tests: 93 passed
+
+Summary:
+- All unit tests pass
+- Coverage includes boulder history, uninitiated plans, and archive exclusion logic
+- Build and integration tests successful

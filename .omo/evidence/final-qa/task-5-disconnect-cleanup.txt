@@ -1,0 +1,11 @@
+$ vitest run api-events -t "removes the bus listener"
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/api-events.test.ts  (6 tests | 5 skipped) 30ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 5 skipped (6)
+   Start at  10:03:25
+   Duration  1.67s (transform 452ms, setup 142ms, collect 248ms, tests 30ms, environment 0ms, prepare 458ms)
+

@@ -1,0 +1,12 @@
+{
+  "totalProjects": 14,
+  "attentionProjects": [
+    "LLM Review",
+    "present"
+  ],
+  "multiSessionProjects": [
+    "present"
+  ],
+  "questionProjects": [],
+  "staleAttentionCandidates": []
+}

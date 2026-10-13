@@ -1,0 +1,11 @@
+$ vitest run src/__tests__/background-tasks-derive.test.ts
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/background-tasks-derive.test.ts  (7 tests) 8ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  18:24:46
+   Duration  613ms (transform 212ms, setup 17ms, collect 168ms, tests 8ms, environment 0ms, prepare 242ms)
+

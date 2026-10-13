@@ -1,0 +1,27 @@
+### Result
+{
+  "theme": "light",
+  "stripConfig": "{\"showMiniSparkline\":true,\"showPlanProgress\":true,\"showAgentBadge\":true,\"showLastUpdated\":true,\"showStatusDot\":true,\"showTokenUsage\":true,\"showBackgroundTasks\":true,\"showGitWorktrees\":true,\"showAvatar\":true,\"showProjectName\":true,\"stripDisplayMode\":\"session\"}",
+  "dotCounts": [
+    {
+      "label": "ESM",
+      "dotCount": 1
+    },
+    {
+      "label": "qa-test-project",
+      "dotCount": 1
+    },
+    {
+      "label": "present",
+      "dotCount": 2
+    },
+    {
+      "label": "System",
+      "dotCount": 2
+    }
+  ]
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => (({theme: document.documentElement.getAttribute(\'data-theme\'), stripConfig: localStorage.getItem(\'dashboard-strip-config\'), dotCounts: Array.from(document.querySelectorAll(\'.project-strip\')).slice(0,4).map(function(el){ return {label: el.querySelector(\'.strip-label\') && el.querySelector(\'.strip-label\').textContent.trim(), dotCount: el.querySelectorAll(\'.session-dot\').length}; })}))');
+```

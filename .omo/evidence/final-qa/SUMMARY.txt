@@ -1,0 +1,52 @@
+F3 Real Manual QA — OpenCode SSE Realtime
+Date: 2026-09-23  Branch: feat/project-list-mode  HEAD: 8680394
+
+ENVIRONMENT
+- Repo production server (built dist) on allocated ports 18032/18033/18034 (ez-omo-dash range 18030-18039).
+- Real opencode server: http://127.0.0.1:3021 (Basic auth from serve.env; values never printed).
+- Port 4300 (stale install) NOT touched. All QA units stopped, ports released.
+
+UNIT SCENARIOS (vitest) — 31/31 PASS
+  bun run test -- opencode-sse-client opencode-event-map realtime-bus multi-project-realtime api-events
+  T1 opencode-sse-client.test.ts  8 tests PASS (fixture ordered emit, replay resume, clean stop, unreachable->down, auth header)
+  T2 opencode-event-map.test.ts   8 tests PASS (fixture classify, unknown kind -> false no throw)
+  T3 realtime-bus.test.ts         6 tests PASS (fanout order, unsubscribe stops delivery)
+  T4 multi-project-realtime.test.ts 3 tests PASS (10-event burst -> 1 invalidation; irrelevant deltas -> 0)
+  T5 api-events.test.ts           6 tests PASS (refresh frame on publish, disconnect removes listener, heartbeat, 503 no bus)
+  Evidence: unit-tests.txt
+
+BROWSER SCENARIOS (playwright) — 2/2 PASS
+  bunx playwright test tests/e2e/realtime-e2e.spec.ts --reporter=line
+  (a) dashboard updates within 1000ms of refresh event — PASS
+  (b) SSE down (503 intercept) -> "polling" badge + interval refresh — PASS
+  Evidence: playwright-realtime.txt, task-6-live-update.png, task-6-polling-fallback.png
+
+FULL-PATH INTEGRATION (real opencode -> invalidation -> /api/events -> UI)
+  (a) curl /api/health -> {"ok":true,"version":"0.1.0"}  PASS
+  (b) curl -N /api/events -> 1 heartbeat + 12 refresh frames in 13s  PASS
+      Evidence: events-stream-13s.txt, events-heartbeat.txt
+  (c) real opencode events produced refresh frames (debounce ~288ms between frames)  PASS
+  (d) UI on 18032 shows live badge: {"badgeText":"live","dataConnection":"live","projectStrips":6}
+      Evidence: ui-live-badge.png
+
+TTL FALLBACK
+  - OMO_PULSE_OPENCODE_SSE_ENABLED=false (port 18033): data refreshes via TTL (serverNowMs advances, 30 projects)
+    Evidence: ttl-fallback-refresh.txt
+  - BUG: badge shows "live" (not "polling") when SSE disabled — /api/events still returns 200 heartbeat-only
+    because realtimeBus is always passed to createApi regardless of sseEnabled.
+    Evidence: ui-polling-fallback.png -> {"badgeText":"live","dataConnection":"live"}
+  - BUG (same root cause): opencode unreachable (endpoint :9, port 18034) -> server logs
+    "OpenCode SSE unavailable; dashboard remains on TTL refresh" but /api/events still 200 -> badge "live".
+    Evidence: ui-sse-down-badge.png -> {"badgeText":"live","dataConnection":"live"}
+
+EDGE CASES (3 tested)
+  1. unknown event kind -> no invalidation: PASS (unit)
+  2. irrelevant deltas -> no invalidation: PASS (unit)
+  3. SSE down -> polling badge: FAIL in real-world (opencode down / SSE disabled) — badge stays "live";
+     only passes when /api/events HTTP itself fails (e2e 503 intercept).
+  Evidence: edge-cases.txt
+
+VERDICT: REJECT — one blocking defect: connection-health badge does not reflect the
+omo-pulse->opencode SSE link. When SSE is disabled or opencode is unreachable, /api/events
+still returns 200 (heartbeat-only) so the browser badge falsely reports "live" instead of
+"polling", violating the plan Definition of Done ("health indicator shows polling").

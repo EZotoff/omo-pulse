@@ -1,0 +1,21 @@
+== S3a: token-absent degradation (live, real API server) ==
+Server: bun src/server/dev.ts, OMO_PULSE_API_PORT=18033, durable unit
+oc-durable-ez-raider-muldk9y7-0264d94839cc. Token file ABSENT (external
+persist task still in flight).
+Probe time: 2026-09-28T17:01:03+02:00
+
+--- GET /api/health ---
+{"ok":true,"version":"0.1.0"}
+http_code=200
+
+--- WS-upgrade handshake GET /api/voice-ws ---
+HTTP/1.1 503 Service Unavailable
+content-type: text/plain;charset=utf-8
+Date: Mon, 28 Sep 2026 15:01:03 GMT
+Content-Length: 30
+
+voice bridge token unavailable
+curl_exit=0
+
+PASS: clean 503 (plan-compliant degradation path), server did not crash;
+health still 200 after the refused upgrade.

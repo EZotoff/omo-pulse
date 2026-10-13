@@ -1,0 +1,6 @@
+### Result
+"{\n  \"stripDisplayMode\": \"project\",\n  \"visibleIndicators\": 0,\n  \"projectModeDotsVisible\": false\n}"
+### Ran Playwright code
+```js
+await page.evaluate('() => JSON.stringify({stripDisplayMode: JSON.parse(localStorage.getItem(\'dashboard-strip-config\') || \'{}\').stripDisplayMode, visibleIndicators: document.querySelectorAll(\'.session-indicators\').length, projectModeDotsVisible: Array.from(document.querySelectorAll(\'.project-strip\')).some((el) => el.querySelectorAll(\'.session-indicators .session-dot\').length > 0)}, null, 2)');
+```

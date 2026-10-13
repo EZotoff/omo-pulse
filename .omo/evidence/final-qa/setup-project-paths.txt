@@ -1,0 +1,4 @@
+Attention Project	/tmp/omo-final-qa-projects/attention
+Busy Project	/tmp/omo-final-qa-projects/busy
+Stale Error Project	/tmp/omo-final-qa-projects/stale-error
+Empty-ish Project	/tmp/omo-final-qa-projects/emptyish

@@ -1,0 +1,11 @@
+$ vitest run realtime-bus -t "stops delivery after unsubscribe"
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/realtime-bus.test.ts  (6 tests | 5 skipped) 5ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 5 skipped (6)
+   Start at  10:03:25
+   Duration  1.38s (transform 270ms, setup 43ms, collect 44ms, tests 5ms, environment 0ms, prepare 639ms)
+

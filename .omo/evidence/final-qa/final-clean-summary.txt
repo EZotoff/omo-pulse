@@ -1,0 +1,38 @@
+Final manual QA wave on cleaned repo state
+
+Date: 2026-03-14
+Services reused:
+- UI healthy on http://127.0.0.1:4300
+- API healthy on http://127.0.0.1:4301
+
+Fresh evidence created:
+- final-clean-01-smoke.png
+- final-clean-02-settings.png
+- final-clean-03-per-session-enabled.png
+- final-clean-04-default-collapsed.png
+- final-clean-05-reloaded-settings.png
+- final-clean-06-min-30s-settings.png
+- final-clean-07-after-35s-min.png
+- final-clean-08-max-1h-settings.png
+- final-clean-09-back-to-1h.png
+- final-clean-api-checks.json
+- final-clean-health.json
+
+Observed behavior:
+1. Cleaned build loaded successfully with console clean in a fresh browser session.
+2. Settings visibly showed Per-Project / Per-Session controls and the Idle Timeout slider.
+3. Default baseline was Per-Project selected with Idle Timeout value 300000 and visible label "5 min".
+4. Per-Session mode could be enabled and remained selected after reload.
+5. In collapsed per-session mode, one visible `.session-dot[data-family]` existed for qa-test-project.
+6. At default 300000, the visible dot rendered `data-family="active"` while the session was actively running tools.
+7. Moving the slider to minimum produced slider value 30000 and triggered `/api/projects?idleWindowMs=30000` requests.
+8. After waiting 35 seconds at the 30000 setting, the same visible dot rendered `data-family="idle"`.
+9. Moving the slider to maximum produced slider value 3600000 with visible label "1h" and triggered `/api/projects?idleWindowMs=3600000` requests.
+10. After switching to 1h, the same visible dot rendered back to `data-family="active"`.
+11. Sparse live data still contains one visible session dot, so verification is based on one-dot family changes rather than count deltas.
+
+API checks:
+- default / 30000 / 60000 / 3600000 / invalid each returned 15 projects and 1 qa-test-project session in cleaned-state live checks.
+
+Defect observed:
+- At slider value 30000, the visible helper label next to the slider rendered "1 min" instead of an expected 30s label.

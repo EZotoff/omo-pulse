@@ -1,0 +1,2 @@
+public/pwa-192x192.png: PNG image data, 192 x 192, 16-bit/color RGBA, non-interlaced
+public/pwa-512x512.png: PNG image data, 512 x 512, 16-bit/color RGBA, non-interlaced

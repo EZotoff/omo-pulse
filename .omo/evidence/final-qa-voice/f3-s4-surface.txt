@@ -1,0 +1,19 @@
+== S4: widget on the real surface (browser, vite dev 5173 + real API 18035) ==
+Setup: API = durable unit (OMO_PULSE_API_PORT=18035, token ABSENT — real
+current state), UI = vite dev on 127.0.0.1:5173 (its default; it ignores
+OMO_PULSE_PORT — noted, not a defect of this plan). Both torn down after.
+
+Note: an initial S4 attempt browsed port 5175, which turned out to be an
+UNRELATED python service (pid 3069510) serving a blank splash page — that
+"empty page" observation was environmental, not an app defect. Re-ran on the
+real vite surface 5173.
+
+Checks on http://127.0.0.1:5173/?view=remote (agent-browser, networkidle+2.5s):
+- .focus-list count = 1        (remote view renders)
+- .focus-project count = 6     (real project data displayed)
+- header text = "omo-pulse · focus remote"
+- .voice-dock count = 0        (token absent → dock stays hidden, as designed)
+- [role='alert'] count = 0     (NO error banner anywhere)
+- page errors: none; console: clean
+Screenshot: surface.png (verified visually: 6 project cards, NEXT button,
+header, no error banners, no voice dock).

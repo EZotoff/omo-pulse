@@ -1,0 +1,47 @@
+{
+  "wakeID": "ea1ecba1-ad43-48c2-9e8e-04fe4a86c6ec",
+  "sessionID": "ses_f204c953bffeEpLvKKyDEa0l76",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_c2f88751`\n**Description:** T2 voice-ws proxy TDD (redispatch) via session.status\n- Failed session: `ses_f17b49cb7ffe7u6A02ChlGcvkV`\n- Failed model: `openai/gpt-6-sol`\n- Error: The usage limit has been reached\n- Next model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_c2f88751`\n**Description:** T2 voice-ws proxy TDD (redispatch)\n**Retry attempt:** 2\n**Retry session:** `ses_f17b456befferUaQwR8E0QfNjz`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f17b456befferUaQwR8E0QfNjz\n- Failed session: `ses_f17b49cb7ffe7u6A02ChlGcvkV`\n- Failed model: `openai/gpt-6-sol`\n- Error: The usage limit has been reached\n- Model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_c2f88751`\n**Description:** T2 voice-ws proxy TDD (redispatch) via session.status\n- Failed session: `ses_f17b49cb7ffe7u6A02ChlGcvkV`\n- Failed model: `openai/gpt-6-sol`\n- Error: The usage limit has been reached\n- Next model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_c2f88751`\n**Description:** T2 voice-ws proxy TDD (redispatch)\n**Retry attempt:** 2\n**Retry session:** `ses_f17b456befferUaQwR8E0QfNjz`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f17b456befferUaQwR8E0QfNjz\n- Failed session: `ses_f17b49cb7ffe7u6A02ChlGcvkV`\n- Failed model: `openai/gpt-6-sol`\n- Error: The usage limit has been reached\n- Model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>\n<!-- OMO_WAKE:ea1ecba1-ad43-48c2-9e8e-04fe4a86c6ec -->",
+  "payloadHash": "0aaa46dcabf46df3d40b0d3956066aa1c965bb2d16fcfc639d0843948dbba031",
+  "promptContext": {
+    "agent": "Atlas",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash"
+    },
+    "variant": "high"
+  },
+  "shouldReply": false,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 1,
+  "claimedBy": null,
+  "generation": 1,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790603668137,
+  "dispatchedAt": 1790603668137,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790603667757,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790603668084,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790603668137,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

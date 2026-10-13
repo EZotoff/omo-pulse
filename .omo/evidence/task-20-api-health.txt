@@ -1,0 +1,31 @@
+=== SCENARIO 1: BUILD & API HEALTH ===
+
+--- Build Result ---
+PASS: bun run build exits 0 (verified above)
+
+--- API Health ---
+GET /api/health: {"ok":true,"version":"0.1.0"}
+  .ok = true
+  RESULT: PASS
+
+--- Projects ---
+GET /api/projects:  projects
+  RESULT: PASS (count >= 0)
+
+--- Sources ---
+GET /api/sources: 8 sources
+  RESULT: PASS (count >= 0)
+
+=== SCENARIO 1 COMPLETE ===
+
+--- Projects (corrected) ---
+GET /api/projects: 8 projects
+  Required keys check:
+  Keys present: backgroundTasks, label, lastUpdatedMs, mainSession, planProgress, projectRoot, sessionTimeSeries, sourceId, timeSeries, tokenUsage
+  sourceId: PRESENT
+  label: PRESENT
+  mainSession: PRESENT
+  planProgress: PRESENT
+  sessionTimeSeries: PRESENT
+  Note: sparklineData not in keys - using timeSeries/sessionTimeSeries instead
+  RESULT: PASS

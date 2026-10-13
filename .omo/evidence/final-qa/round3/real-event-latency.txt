@@ -1,0 +1,2 @@
+STRIPS 6 [{"label":"accounting","updated":"2h ago"},{"label":"kraken","updated":"1h ago"},{"label":"omo config","updated":"7m ago"},{"label":"omo pulse","updated":"10s ago"},{"label":"System","updated":"12h ago"},{"label":"Veran","updated":"21m ago"}]
+RESULT {"result":{"strip":"omo pulse","from":"10s ago","to":"23s ago","latencyMs":81,"triggerKind":"message.part.updated"},"lastEventKind":"message.part.updated","eventAgeAtEnd":81}

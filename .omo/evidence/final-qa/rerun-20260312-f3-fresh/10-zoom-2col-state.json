@@ -1,0 +1,10 @@
+### Result
+{
+  "zoom": "1.2",
+  "columns": 2,
+  "widthStyles": "510.328px 510.328px"
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => ({zoom: localStorage.getItem(\'dashboard-zoom\'), columns: JSON.parse(localStorage.getItem(\'dashboard-project-order\') || \'{}\').columns, widthStyles: getComputedStyle(document.querySelector(\'.project-stack\')).gridTemplateColumns})');
+```

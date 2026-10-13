@@ -1,0 +1,46 @@
+### Result
+{
+  "theme": "dark",
+  "mode": "project",
+  "top": [
+    {
+      "label": "qa-test-project",
+      "aggregate": "error",
+      "status": "error",
+      "dots": 0,
+      "sessionCount": "1"
+    },
+    {
+      "label": "LLM Review",
+      "aggregate": "unknown",
+      "status": "unknown",
+      "dots": 0,
+      "sessionCount": "0"
+    },
+    {
+      "label": "System",
+      "aggregate": "unknown",
+      "status": "unknown",
+      "dots": 0,
+      "sessionCount": "0"
+    },
+    {
+      "label": "kraken",
+      "aggregate": "unknown",
+      "status": "unknown",
+      "dots": 0,
+      "sessionCount": "0"
+    },
+    {
+      "label": "traveller",
+      "aggregate": "unknown",
+      "status": "unknown",
+      "dots": 0,
+      "sessionCount": "0"
+    }
+  ]
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => ({theme: document.documentElement.getAttribute(\'data-theme\'), mode: JSON.parse(localStorage.getItem(\'dashboard-strip-config\') || \'{}\').stripDisplayMode, top: Array.from(document.querySelectorAll(\'.project-strip\')).slice(0,5).map(el => ({label: el.querySelector(\'.strip-label\')?.textContent?.trim(), aggregate: el.getAttribute(\'data-aggregate-status\'), status: el.getAttribute(\'data-status\'), dots: el.querySelectorAll(\'.session-dot\').length, sessionCount: el.getAttribute(\'data-session-count\')}))})');
+```

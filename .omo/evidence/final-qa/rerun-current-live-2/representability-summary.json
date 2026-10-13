@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-03-12T15:55:47.915Z",
+  "multiSessionProjects": [],
+  "liveAttention": [],
+  "liveNonUnknown": [
+    {
+      "label": "System",
+      "aggregateStatus": "running_tool",
+      "sessionCount": 1,
+      "lastUpdatedMs": 1773330878104
+    },
+    {
+      "label": "ESM",
+      "aggregateStatus": "running_tool",
+      "sessionCount": 1,
+      "lastUpdatedMs": 1773330836365
+    }
+  ]
+}

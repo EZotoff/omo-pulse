@@ -1,0 +1,94 @@
+{
+  "scenario": "Codec round-trips against bridge examples",
+  "parsed": {
+    "state": {
+      "type": "state",
+      "state": "connected"
+    },
+    "transcript": {
+      "type": "transcript",
+      "role": "assistant",
+      "text": "hello there"
+    },
+    "show": {
+      "type": "show",
+      "view": "card",
+      "title": "Deploy",
+      "contextTag": "ctx-3",
+      "payload": {
+        "options": [
+          {
+            "id": "a"
+          },
+          {
+            "id": "b"
+          }
+        ]
+      }
+    },
+    "confirmation": {
+      "type": "confirmation-pending",
+      "pending": true
+    }
+  },
+  "built": {
+    "viewContext": {
+      "type": "view-context",
+      "project": {
+        "id": "p1",
+        "name": "Proj"
+      },
+      "session": {
+        "id": "s1",
+        "title": "Session",
+        "state": "running"
+      },
+      "view": "session",
+      "recent": [
+        {
+          "projectId": "p1",
+          "sessionId": "s1"
+        }
+      ]
+    },
+    "selection": {
+      "type": "selection",
+      "contextTag": "ctx-7",
+      "index": 3
+    }
+  },
+  "clientRoundtrip": {
+    "viewContext": {
+      "type": "view-context",
+      "project": {
+        "id": "p1",
+        "name": "Proj"
+      },
+      "session": {
+        "id": "s1",
+        "title": "Session",
+        "state": "running"
+      },
+      "view": "session",
+      "recent": [
+        {
+          "projectId": "p1",
+          "sessionId": "s1"
+        }
+      ]
+    },
+    "selection": {
+      "type": "selection",
+      "contextTag": "ctx-7",
+      "index": 3
+    }
+  },
+  "assertions": {
+    "stateExact": true,
+    "transcriptExact": true,
+    "showExact": true,
+    "confirmationExact": true,
+    "viewContextRoundtrip": true,
+    "selectionRoundtrip": true
+  }
+}

@@ -1,0 +1,63 @@
+# Task 1: Pre-flight Baseline
+
+**Date**: 2026-03-04T15:41:51+00:00  
+**Branch**: restore/lost-changes-march-3-4  
+**HEAD**: 1906e7089e410d58b0fa26b817a55aa4f003b9b4  
+**Git Status**: CLEAN (no uncommitted changes)  
+**Build**: PASS (vite build — 857ms, 60 modules transformed)  
+**Tests**: PASS (26/26 tests, 4 test files, 965ms total)  
+
+## Verification Details
+
+### Git Status
+```
+git status --porcelain
+[OUTPUT: empty — working directory clean]
+```
+
+### Branch Verification
+```
+git branch --show-current
+restore/lost-changes-march-3-4
+```
+
+### Dependencies
+```
+bun install
+141 packages installed [193.00ms]
+✓ Complete with all expected packages (@dnd-kit, hono, react, typescript, vite, vitest)
+```
+
+### Build Output
+```
+$ vite build
+vite v5.4.21 building for production...
+✓ 60 modules transformed.
+dist/index.html                   1.11 kB │ gzip:  0.65 kB
+dist/assets/index-Bkv-h_JR.css   33.07 kB │ gzip:  5.97 kB
+dist/assets/index-BcrNp5Ax.js   230.57 kB │ gzip: 72.41 kB
+✓ built in 857ms
+```
+
+### Test Results
+```
+$ vitest run
+✓ src/__tests__/hooks.test.ts        (11 tests) 6ms
+✓ src/__tests__/per-session-timeseries.test.ts  (4 tests) 8ms
+✓ src/__tests__/multi-project.test.ts (4 tests) 10ms
+✓ src/__tests__/api.test.ts           (7 tests) 29ms
+
+Test Files: 4 passed (4)
+Tests: 26 passed (26)
+Duration: 965ms
+```
+
+## Conclusion
+Baseline verification complete. The restore/lost-changes-march-3-4 branch is in a healthy state with all checks passing:
+- ✅ Git working directory clean
+- ✅ Dependencies installed
+- ✅ Production build successful
+- ✅ All unit tests passing
+- ✅ No LSP errors detected (ProjectStrip.tsx and App.tsx accessibility warnings are expected per inherited wisdom)
+
+Ready for next task.

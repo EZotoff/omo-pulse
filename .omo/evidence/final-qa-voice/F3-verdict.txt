@@ -1,0 +1,19 @@
+# F3 Real Manual QA — voice-widget-remote-ui
+Executed 2026-09-28 16:56–16:59 from clean state in plan worktree.
+
+Scenarios [8/8 pass] | Integration [2/2] | VERDICT: APPROVE
+
+| # | Scenario | Result | Observable |
+|---|----------|--------|------------|
+| 1 | T1 codec round-trip | PASS | bunx vitest voice-protocol: 27/27, exit 0 |
+| 2 | T2 proxy tests | PASS | acceptance cmd: 18 pass/1 skip; bun-runtime variant: 19/19 (real-network passthrough included) |
+| 3 | T2 live upgrade smoke | PASS | Token file ABSENT → degradation path: upgrade → HTTP 503 "voice bridge token unavailable"; health after → 200 {"ok":true,"version":"0.1.0"}; token file NOT created |
+| 4 | T3 reducer contract | PASS | voice-session-state: 16/16, exit 0 |
+| 5 | T4 ShowView | PASS | show-view.test.tsx: 11/11 (7 views + fallback + onSelect), exit 0 |
+| 6 | T5 stub e2e loop | PASS | playwright voice-widget.spec: 2 passed (connect→view-context ctx-1→show render→selection {ctx-1,1}; offline→hidden, no banner). PNGs + stub log copied |
+| 7 | Full suite + typecheck + build | PASS | bun run test: 431 passed/1 skipped (44 files); tsc --noEmit exit 0; bun run build exit 0 |
+| 8 | Integration | PASS | :4300 health 200 v0.1.0; /api/voice-ws answers 503 (proxy IS in live build, not 404) |
+
+Cleanup: killed all e2e-spawned processes (5173/18031) + leftover 4399 start.ts (prior attempt, this worktree, pid 2197021, SIGKILL). Final: ss on 4399/18031/5173 → empty. Live :4300 untouched.
+
+Evidence: s1-protocol.txt, s2-proxy-{node,bun}.txt, s3-upgrade-smoke.txt, s4-session-state.txt, s5-show-view.txt, s6-e2e.txt, task-5-{e2e-loop,offline}.png, task-5-stub-log.jsonl, s7-full-suite.txt, s7-tsc.txt, s7-build.txt, s8-integration-final.txt

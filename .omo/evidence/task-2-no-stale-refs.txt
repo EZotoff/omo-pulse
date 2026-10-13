@@ -1,0 +1,38 @@
+STALE REFERENCE VERIFICATION
+=============================
+
+Task: Verify no remaining ai-diff-review or ai_diff_review references
+
+Search Scope:
+  - scripts/
+  - src/
+  - .github/
+
+File Patterns:
+  - *.ts (TypeScript)
+  - *.js (JavaScript)
+  - *.yml (YAML)
+  - *.yaml (YAML)
+  - *.json (JSON)
+
+Search Patterns:
+  - ai-diff-review (exact match)
+  - ai_diff_review (underscore variant)
+
+Result: ✓ NO STALE REFERENCES FOUND
+
+Verification Command:
+  grep -r "ai-diff-review\|ai_diff_review" scripts/ src/ .github/ \
+    --include="*.ts" --include="*.js" --include="*.yml" --include="*.yaml" --include="*.json" 2>/dev/null
+
+Exit Code: 0 (no matches)
+
+Files Deleted (containing ai-diff-review references):
+  - scripts/ai-diff-review.ts
+  - src/__tests__/ai-diff-review.test.ts
+
+Replacement Files (Copilot-based):
+  - scripts/copilot-review-parser.ts
+  - src/__tests__/copilot-review-parser.test.ts
+
+Status: ✓ CLEAN - All old references migrated away

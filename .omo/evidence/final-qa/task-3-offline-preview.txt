@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline</title>
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --text-primary: #e8e8ed;
+      --text-muted: #666680;
+      --border-primary: #2a2a3e;
+      --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      --sp-2: 8px;
+      --sp-4: 16px;
+      --font-md: 0.875rem;
+      --font-xl: 1.25rem;
+    }
+
+    body {

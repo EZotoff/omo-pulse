@@ -1,0 +1,11 @@
+$ vitest run opencode-event-map
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/opencode-event-map.test.ts  (8 tests) 12ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  10:03:04
+   Duration  1.02s (transform 161ms, setup 40ms, collect 33ms, tests 12ms, environment 0ms, prepare 370ms)
+

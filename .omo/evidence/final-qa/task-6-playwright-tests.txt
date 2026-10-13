@@ -1,0 +1,11 @@
+
+Running 18 tests using 2 workers
+
+  ✓   1 [chromium] › tests/e2e/dashboard.spec.ts:117:3 › Dashboard E2E › loads and shows project strips (157ms)
+  ✓   2 [chromium] › tests/e2e/pwa.spec.ts:98:3 › PWA Features › manifest.json is correctly configured and accessible (156ms)
+  ✓   4 [chromium] › tests/e2e/pwa.spec.ts:114:3 › PWA Features › PWA meta tags are correctly set (65ms)
+  ✓   3 [chromium] › tests/e2e/dashboard.spec.ts:133:3 › Dashboard E2E › strip expand/collapse toggles (289ms)
+  ✓   6 [chromium] › tests/e2e/dashboard.spec.ts:156:3 › Dashboard E2E › sparkline SVG renders correctly (138ms)
+  ✓   7 [chromium] › tests/e2e/dashboard.spec.ts:174:3 › Dashboard E2E › plan progress shows correct content (132ms)
+  ✘   5 [chromium] › tests/e2e/pwa.spec.ts:124:3 › PWA Features › service worker registers successfully (1.5m)
+  ✘   8 [chromium] › tests/e2e/dashboard.spec.ts:192:3 › Dashboard E2E › theme toggle switches dark/light (1.5m)

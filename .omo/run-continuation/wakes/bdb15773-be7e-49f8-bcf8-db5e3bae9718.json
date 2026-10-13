@@ -1,0 +1,58 @@
+{
+  "wakeID": "bdb15773-be7e-49f8-bcf8-db5e3bae9718",
+  "sessionID": "ses_f204c953bffeEpLvKKyDEa0l76",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n[ALL BACKGROUND TASKS COMPLETE]\n\n**Completed:**\n- `bg_c6f025c5`: T1 voice codec TDD (round 3)\nBackground task attempts:\n  - Attempt 1 — ERROR — openai/gpt-6-sol — ses_f17ae4addffe9YWUKWDAJo5LE3\n    Error: The usage limit has been reached\n  - Attempt 2 — COMPLETED — ollama-cloud/deepseek-v4.1-flash — ses_f17ae45dbffeSpjyeHFxvUfMpc\n- `bg_134416a9`: T2 voice-ws proxy TDD (round 3)\nBackground task attempts:\n  - Attempt 1 — ERROR — openai/gpt-6-sol — ses_f17ae4a96ffepDEjYtwfK0XEpi\n    Error: The usage limit has been reached\n  - Attempt 2 — COMPLETED — ollama-cloud/deepseek-v4.1-flash — ses_f17ae44e4ffeTjQ0rctBK6jAUX\n\nAll sibling background tasks are complete. Your next action should be to call `background_output(task_id=\"<id>\")` for each task ID above.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n[ALL BACKGROUND TASKS COMPLETE]\n\n**Completed:**\n- `bg_c6f025c5`: T1 voice codec TDD (round 3)\nBackground task attempts:\n  - Attempt 1 — ERROR — openai/gpt-6-sol — ses_f17ae4addffe9YWUKWDAJo5LE3\n    Error: The usage limit has been reached\n  - Attempt 2 — COMPLETED — ollama-cloud/deepseek-v4.1-flash — ses_f17ae45dbffeSpjyeHFxvUfMpc\n- `bg_134416a9`: T2 voice-ws proxy TDD (round 3)\nBackground task attempts:\n  - Attempt 1 — ERROR — openai/gpt-6-sol — ses_f17ae4a96ffepDEjYtwfK0XEpi\n    Error: The usage limit has been reached\n  - Attempt 2 — COMPLETED — ollama-cloud/deepseek-v4.1-flash — ses_f17ae44e4ffeTjQ0rctBK6jAUX\n\nAll sibling background tasks are complete. Your next action should be to call `background_output(task_id=\"<id>\")` for each task ID above.\n</system-reminder>\n<!-- OMO_WAKE:bdb15773-be7e-49f8-bcf8-db5e3bae9718 -->",
+  "payloadHash": "6a120e5e2500be361cadae63a39add86b9b65d8f82c38ebde2c8f67fc9521a80",
+  "promptContext": {
+    "agent": "Sisyphus",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash"
+    }
+  },
+  "shouldReply": true,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 2,
+  "claimedBy": null,
+  "generation": 2,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790604572471,
+  "dispatchedAt": 1790604587546,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790604572154,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790604572460,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790604572471,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    },
+    {
+      "at": 1790604587513,
+      "from": "dispatched-awaiting-output",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790604587546,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

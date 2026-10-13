@@ -1,0 +1,9 @@
+### Result
+{
+  "columns": 3,
+  "widthStyles": "338.875px 338.891px 338.875px"
+}
+### Ran Playwright code
+```js
+await page.evaluate('() => ({columns: JSON.parse(localStorage.getItem(\'dashboard-project-order\') || \'{}\').columns, widthStyles: getComputedStyle(document.querySelector(\'.project-stack\')).gridTemplateColumns})');
+```

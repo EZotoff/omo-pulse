@@ -1,0 +1,11 @@
+bun x vitest run src/__tests__/boulder-history.test.ts
+status: passed
+tests: 6 passed
+
+coverage focus:
+- missing boulder-history.jsonl returns []
+- valid JSONL parsing
+- completed_at descending sort
+- malformed line skip
+- empty line handling
+- optional agent preservation

@@ -1,0 +1,10 @@
+### S3 degradation path — token file ABSENT (verified 2026-09-28T16:57:20+02:00)
+-- upgrade attempt:
+HTTP/1.1 503 Service Unavailable
+content-type: text/plain;charset=utf-8
+Date: Mon, 28 Sep 2026 14:57:19 GMT
+Content-Length: 30
+
+voice bridge token unavailable
+-- health after:
+{"ok":true,"version":"0.1.0"}

@@ -1,0 +1,6 @@
+### Result
+"{\n  \"emptyProjects\": [\n    {\n      \"label\": \"/tmp/omo-final-qa-projects/emptyish\",\n      \"status\": \"unknown\",\n      \"noActiveSessionsText\": true\n    },\n    {\n      \"label\": \"/tmp/omo-final-qa-projects/busy\",\n      \"status\": \"unknown\",\n      \"noActiveSessionsText\": true\n    },\n    {\n      \"label\": \"/tmp/omo-final-qa-projects/attention\",\n      \"status\": \"unknown\",\n      \"noActiveSessionsText\": true\n    },\n    {\n      \"label\": \"/tmp/omo-final-qa-projects/fresh-question\",\n      \"status\": \"unknown\",\n      \"noActiveSessionsText\": true\n    },\n    {\n      \"label\": \"/tmp/omo-final-qa-projects/stale-error\",\n      \"status\": \"unknown\",\n      \"noActiveSessionsText\": true\n    }\n  ]\n}"
+### Ran Playwright code
+```js
+await page.evaluate('() => JSON.stringify({emptyProjects: Array.from(document.querySelectorAll(\'.project-strip\')).filter((el) => Number(el.getAttribute(\'data-session-count\') || \'0\') === 0).slice(0,5).map((el) => ({label: el.querySelector(\'.strip-label\')?.textContent?.trim(), status: el.getAttribute(\'data-status\'), noActiveSessionsText: el.textContent?.includes(\'No active sessions\')}))}, null, 2)');
+```

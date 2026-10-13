@@ -1,0 +1,11 @@
+=== CASE 1: unreachable opencode upstream (expect status down) ===
+health=200
+event: status
+data: {"state":"down"}
+
+
+=== CASE 2: real authenticated opencode upstream (expect status connected) ===
+event: status
+data: {"state":"connected"}
+
+

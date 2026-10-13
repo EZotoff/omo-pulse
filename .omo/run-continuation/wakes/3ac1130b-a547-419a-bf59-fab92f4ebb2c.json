@@ -1,0 +1,58 @@
+{
+  "wakeID": "3ac1130b-a547-419a-bf59-fab92f4ebb2c",
+  "sessionID": "ses_f204c953bffeEpLvKKyDEa0l76",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n[ALL BACKGROUND TASKS COMPLETE]\n\n**Completed:**\n- `bg_99b07af4`: Explore voice-bridge Vox + supervisor observation\n- `bg_a0aa53eb`: Explore oc-beacon answer-capture + Vox points\n\nAll sibling background tasks are complete. Your next action should be to call `background_output(task_id=\"<id>\")` for each task ID above.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK COMPLETED]\n[ALL BACKGROUND TASKS COMPLETE]\n\n**Completed:**\n- `bg_99b07af4`: Explore voice-bridge Vox + supervisor observation\n- `bg_a0aa53eb`: Explore oc-beacon answer-capture + Vox points\n\nAll sibling background tasks are complete. Your next action should be to call `background_output(task_id=\"<id>\")` for each task ID above.\n</system-reminder>\n<!-- OMO_WAKE:3ac1130b-a547-419a-bf59-fab92f4ebb2c -->",
+  "payloadHash": "ba2a62bc3803d6b8da7ab525ca17285745f6b86e6c45b3a3fa835561c1a32ea9",
+  "promptContext": {
+    "agent": "Sisyphus",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash"
+    }
+  },
+  "shouldReply": true,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 2,
+  "claimedBy": null,
+  "generation": 2,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790959442609,
+  "dispatchedAt": 1790959455048,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790959382182,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790959442595,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790959442609,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    },
+    {
+      "at": 1790959455023,
+      "from": "dispatched-awaiting-output",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790959455048,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+$ vitest run
+
+[1m[46m RUN [49m[22m [36mv4.1.0 [39m[90m/home/ezotoff/.local/share/opencode/worktree/d8d11124fc0ff6a2a6d3b5dce5f236030f5e460d/plan/voice-widget-remote-ui[39m
+
+
+[2m Test Files [22m [1m[32m44 passed[39m[22m[90m (44)[39m
+[2m      Tests [22m [1m[32m431 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (432)[39m
+[2m   Start at [22m 16:57:58
+[2m   Duration [22m 1.05s[2m (transform 12.53s, setup 1.32s, import 15.48s, tests 2.06s, environment 5ms)[22m
+

@@ -1,0 +1,7 @@
+== 2026-09-28T16:53:12+02:00 F3 gates (worktree b2d1a9a)
+bun run test: 44 files, 431 passed / 1 skipped
+bunx tsc --noEmit: exit 0
+token file: PRESENT
+live upgrade curl /api/voice-ws via :4300: HTTP 101
+deploy health :4300/api/health: {"ok":true}
+installed VoiceWidget.tsx present in ~/.local/share/omo-pulse

@@ -1,0 +1,5 @@
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  09:26:42
+   Duration  772ms (transform 211ms, setup 19ms, collect 226ms, tests 33ms, environment 0ms, prepare 196ms)
+

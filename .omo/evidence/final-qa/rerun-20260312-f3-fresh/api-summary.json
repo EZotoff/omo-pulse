@@ -1,0 +1,83 @@
+[
+  {
+    "index": 1,
+    "label": "qa-test-project",
+    "aggregateStatus": "error",
+    "mainStatus": "error",
+    "sessionCount": 2,
+    "sessionStatuses": [
+      "error",
+      "error"
+    ],
+    "planStatus": "in progress"
+  },
+  {
+    "index": 2,
+    "label": "LLM Review",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "planStatus": "complete"
+  },
+  {
+    "index": 3,
+    "label": "System",
+    "aggregateStatus": "error",
+    "mainStatus": "error",
+    "sessionCount": 2,
+    "sessionStatuses": [
+      "error",
+      "error"
+    ],
+    "planStatus": "in progress"
+  },
+  {
+    "index": 4,
+    "label": "kraken",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "planStatus": "in progress"
+  },
+  {
+    "index": 5,
+    "label": "traveller",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "planStatus": "in progress"
+  },
+  {
+    "index": 6,
+    "label": "ESM",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "planStatus": "in progress"
+  },
+  {
+    "index": 7,
+    "label": "ANIA",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "planStatus": "not started"
+  },
+  {
+    "index": 8,
+    "label": "present",
+    "aggregateStatus": "running_tool",
+    "mainStatus": "running_tool",
+    "sessionCount": 2,
+    "sessionStatuses": [
+      "running_tool",
+      "running_tool"
+    ],
+    "planStatus": "in progress"
+  }
+]

@@ -1,0 +1,39 @@
+=== SCENARIO 2: BUG FIX VERIFICATION ===
+
+--- Bug 1 (T5): Agent-Specific Colors ---
+DOM Analysis:
+  - Mini sparkline bars: 63 total (51 muted, 12 active/green)
+  - Full sparkline bars: 239 total (185 muted, 54 active/green)
+  - sparkline-bar--teal count: 0 (old bug color GONE)
+  - CSS class modifiers found: sparkline-bar--green, sparkline-bar--muted
+SVG Analysis (definitive):
+  - SVG rect fill values: url(#sparkline-grad-sand), url(#sparkline-grad-teal), url(#sparkline-grad-green), url(#sparkline-grad-muted)
+  - Multiple agent-specific gradient fills ARE being applied
+  - NOT all the same color - sand, teal, green gradients differentiate agents
+VERDICT: PASS — Agent-specific gradient colors are applied via SVG fills.
+  Note: Mini sparklines appear mostly gray because most time buckets have no activity (muted).
+  Active bars DO use different colors per agent.
+
+--- Bug 2 (T6): Background/Muted Bars ---
+  - Mini sparkline muted bars: 51 (81% of bars)
+  - Full sparkline muted bars: 185 (77% of bars)
+  - sparkline-bar--muted class present and actively used
+  - url(#sparkline-grad-muted) gradient fill used on SVG rects
+VERDICT: PASS — Background muted bars are present in both mini and full sparklines.
+
+--- Bug 3 (T7): Strip Section Overlap ---
+  - Total strip sections: 48
+  - Checked all sections within each strip for vertical overlap
+  - Overlap issues found: 0
+  - Sections have positive gaps (12px spacing between sections)
+  - Example gaps: 107-206, 218-290, 302-345, 357-393 (no overlap)
+VERDICT: PASS — No vertical overlap between strip sections.
+
+--- Bug 4 (T8): Gradient Styling & Rounded Bars ---
+  - Total SVG rects: 534
+  - SVG rects with rx attribute: 534 (100%)
+  - Gradient definitions (linearGradient): 170
+  - Gradient fills used: sparkline-grad-sand, sparkline-grad-teal, sparkline-grad-green, sparkline-grad-muted
+VERDICT: PASS — All bars have rounded corners (rx) and gradient fills are defined.
+
+=== ALL 4 BUG FIXES VERIFIED: PASS ===

@@ -1,0 +1,53 @@
+TASK 2: Copilot-Parser Follow-Up Branch and Stacked PR
+========================================================
+
+Commit Hash: 268a6367a89489fb3ff069fea6c613475d85b7de
+Branch: feature/copilot-review-parser
+Base Branch: ai-review-v2-impl
+Parent Commit: a691e646a352c1add0603b2f4eeabd72086b34d1 (a691e64)
+
+Commit Message: feat(ci): migrate AI review from custom LLM to Copilot review parser
+
+Files Changed (exactly 9):
+  Modified (3):
+    - .github/workflows/ai-review-pr-gate.yml
+    - src/review/merge-scorecards.ts
+    - src/__tests__/merge-scorecards.test.ts
+
+  Deleted (2):
+    - scripts/ai-diff-review.ts (584 lines)
+    - src/__tests__/ai-diff-review.test.ts (392 lines)
+
+  Created (4):
+    - .github/copilot-instructions.md (76 lines)
+    - docs/review-gate.md (165 lines)
+    - scripts/copilot-review-parser.ts (567 lines)
+    - src/__tests__/copilot-review-parser.test.ts (466 lines)
+
+Diff Summary:
+  +1389 insertions(+), -1092 deletions(-)
+  9 files total changed
+
+Branch Stats:
+  Commits above origin/ai-review-v2-impl: 1
+  Commits above a691e64: 1
+
+Test Suite Status: PASS
+  Test Files: 11 passed
+  Total Tests: 115 passed
+  Duration: 1.20s
+
+PR Created: https://github.com/EZotoff/omo-pulse/pull/26
+PR Status: OPEN
+PR Base: ai-review-v2-impl (not master)
+PR Title: feat(ci): migrate AI review to Copilot-based review parser
+PR Body: Stacked on #22. Retarget to master after #22 merges.
+
+Verification Status: ✓ COMPLETE
+  ✓ Single commit with exact message
+  ✓ Exactly 9 allowlisted files
+  ✓ No modifications outside allowlist
+  ✓ All tests passing (115/115)
+  ✓ PR targeting ai-review-v2-impl
+  ✓ No stale ai-diff-review references
+  ✓ PR state OPEN as required

@@ -1,0 +1,15 @@
+$ vitest run opencode-sse-client opencode-event-map realtime-bus multi-project-realtime api-events
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/realtime-bus.test.ts  (6 tests) 3ms
+ ✓ src/__tests__/opencode-event-map.test.ts  (8 tests) 16ms
+ ✓ src/__tests__/multi-project-realtime.test.ts  (3 tests) 7ms
+ ✓ src/__tests__/api-events.test.ts  (6 tests) 33ms
+ ✓ src/__tests__/opencode-sse-client.test.ts  (8 tests) 368ms
+
+ Test Files  5 passed (5)
+      Tests  31 passed (31)
+   Start at  10:27:27
+   Duration  990ms (transform 715ms, setup 120ms, collect 1.04s, tests 427ms, environment 1ms, prepare 1.28s)
+

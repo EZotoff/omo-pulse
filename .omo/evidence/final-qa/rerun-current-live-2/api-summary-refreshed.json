@@ -1,0 +1,86 @@
+[
+  {
+    "label": "/tmp/omo-final-qa-projects/emptyish",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "lastUpdatedMs": 1773330470627
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/busy",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "lastUpdatedMs": 1773330470627
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/attention",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "lastUpdatedMs": 1773330470627
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/fresh-question",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "lastUpdatedMs": 1773330470627
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/stale-error",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "lastUpdatedMs": 1773330470627
+  },
+  {
+    "label": "/tmp/omo-final-qa-projects/stale-question",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "lastUpdatedMs": 1773330470627
+  },
+  {
+    "label": "qa-test-project",
+    "aggregateStatus": "error",
+    "sessionCount": 1,
+    "lastUpdatedMs": 1773330198088
+  },
+  {
+    "label": "LLM Review",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "lastUpdatedMs": 1773330470627
+  },
+  {
+    "label": "System",
+    "aggregateStatus": "running_tool",
+    "sessionCount": 1,
+    "lastUpdatedMs": 1773330197124
+  },
+  {
+    "label": "kraken",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "lastUpdatedMs": 1773330470627
+  },
+  {
+    "label": "traveller",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "lastUpdatedMs": 1773330470627
+  },
+  {
+    "label": "ESM",
+    "aggregateStatus": "running_tool",
+    "sessionCount": 1,
+    "lastUpdatedMs": 1773330194764
+  },
+  {
+    "label": "ANIA",
+    "aggregateStatus": "unknown",
+    "sessionCount": 0,
+    "lastUpdatedMs": 1773330470627
+  },
+  {
+    "label": "present",
+    "aggregateStatus": "running_tool",
+    "sessionCount": 1,
+    "lastUpdatedMs": 1773330461363
+  }
+]

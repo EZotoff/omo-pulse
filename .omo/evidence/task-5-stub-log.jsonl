@@ -1,0 +1,8 @@
+{"dir":"stub-start","port":40295}
+{"dir":"bridge-open","path":"/voice"}
+{"dir":"bridge-close"}
+{"dir":"bridge-open","path":"/voice"}
+{"dir":"in","frame":{"type":"view-context","project":{"id":"proj_beta","name":"Beta"},"session":{"id":"ses_beta_1","title":"Beta main","state":"running"},"view":"attention","selection":{"kind":"card","id":"ses_beta_1","label":"Beta main"},"recent":[{"projectId":"proj_alpha","sessionId":"ses_alpha_1"},{"projectId":"proj_beta","sessionId":"ses_beta_1"}]}}
+{"dir":"assert-view-context","ok":true,"problems":[]}
+{"dir":"in","frame":{"type":"selection","contextTag":"ctx-1","index":1}}
+{"dir":"bridge-close"}

@@ -1,0 +1,2 @@
+Command: bun run test -- multi-project-realtime
+Result: PASS; message.part.delta does not invalidate or publish. Existing TTL fallback recomputes when aggregate cache expires.

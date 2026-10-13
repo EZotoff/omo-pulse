@@ -1,0 +1,64 @@
+{
+  "wakeID": "2c68347c-0767-4737-99df-7a4a21223954",
+  "sessionID": "ses_f1796318fffe2QaPsQzlGHCF1D",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_f9e2e2b2`\n**Description:** F2 code quality review via session.status\n- Failed session: `ses_f1779bee6ffeVFXjLWKMkvgh6k`\n- Failed model: `zai-coding-plan/glm-5.3`\n- Error: Rate limit reached for requests\n- Next model: `ollama-cloud/minimax-m3`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_f9e2e2b2`\n**Description:** F2 code quality review\n**Retry attempt:** 3\n**Retry session:** `ses_f17796f24ffefv2cl8UdtA36QS`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f17796f24ffefv2cl8UdtA36QS\n- Failed session: `ses_f1779bee6ffeVFXjLWKMkvgh6k`\n- Failed model: `zai-coding-plan/glm-5.3`\n- Error: Rate limit reached for requests\n- Model: `ollama-cloud/minimax-m3`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_f9e2e2b2`\n**Description:** F2 code quality review via session.status\n- Failed session: `ses_f1779bee6ffeVFXjLWKMkvgh6k`\n- Failed model: `zai-coding-plan/glm-5.3`\n- Error: Rate limit reached for requests\n- Next model: `ollama-cloud/minimax-m3`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_f9e2e2b2`\n**Description:** F2 code quality review\n**Retry attempt:** 3\n**Retry session:** `ses_f17796f24ffefv2cl8UdtA36QS`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f17796f24ffefv2cl8UdtA36QS\n- Failed session: `ses_f1779bee6ffeVFXjLWKMkvgh6k`\n- Failed model: `zai-coding-plan/glm-5.3`\n- Error: Rate limit reached for requests\n- Model: `ollama-cloud/minimax-m3`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>\n<!-- OMO_WAKE:2c68347c-0767-4737-99df-7a4a21223954 -->",
+  "payloadHash": "8e0f6dbc92d87fd0ccdf119704a391c22f4d6ca3899e8244d58f3afe3015cab4",
+  "promptContext": {
+    "agent": "Atlas",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash"
+    },
+    "variant": "high",
+    "tools": {
+      "task": false,
+      "call_omo_agent": true,
+      "question": false,
+      "team_create": false,
+      "team_delete": false,
+      "team_shutdown_request": false,
+      "team_approve_shutdown": false,
+      "team_reject_shutdown": false,
+      "team_send_message": false,
+      "team_task_create": false,
+      "team_task_list": false,
+      "team_task_update": false,
+      "team_task_get": false,
+      "team_status": false,
+      "team_list": false
+    }
+  },
+  "shouldReply": false,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 1,
+  "claimedBy": null,
+  "generation": 1,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790607528696,
+  "dispatchedAt": 1790607528696,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790607528153,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790607528567,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790607528696,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+Task 2: Full Session Audit — ses_34a7f4d3fffe5PVqtNjua1siNw
+=============================================================
+Session type: Sisyphus ULW (95 messages)
+Date audited: 2026-03-04
+
+All 95 messages were read. Three file edits were identified:
+
+Change Inventory:
+  1. src/ui/App.css — DnD selector [style*="transform"] → [style*="translate"]
+     Status: PRESENT
+
+  2. src/ui/components/ProjectStrip.css — Active strip opacity: 0.78
+     Status: PRESENT
+
+  3. src/ui/components/ProjectStrip.tsx — Client-side displayStatus with idleTimeoutMs
+     Status: PRESENT
+
+Additional changes found beyond known list: NONE
+Files requiring restoration: NONE
+
+Summary: All 3 changes from this session are already present in the codebase.
+         No commit required for this session.

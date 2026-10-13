@@ -1,0 +1,46 @@
+{
+  "wakeID": "24c7c964-84f2-4d3a-9a51-0fd48182c6d5",
+  "sessionID": "ses_f36a8b8bbffez7QDfJM10ETB3l",
+  "directory": "/home/ezotoff/AI_projects/ez-omo-dash/.omo/run-continuation/wakes",
+  "notificationText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_b26e2c54`\n**Description:** Create team member sse-wave1/sse-fixtures via session.status\n- Failed session: `ses_f32fad763ffeYUFtfTq1bXyBCK`\n- Failed model: `zai-coding-plan/glm-5.3-flash`\n- Error: Rate limit reached for requests\n- Next model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_b26e2c54`\n**Description:** Create team member sse-wave1/sse-fixtures\n**Retry attempt:** 2\n**Retry session:** `ses_f32f973a8ffeEm3xuyCMh8idkg`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f32f973a8ffeEm3xuyCMh8idkg\n- Failed session: `ses_f32fad763ffeYUFtfTq1bXyBCK`\n- Failed model: `zai-coding-plan/glm-5.3-flash`\n- Error: Rate limit reached for requests\n- Model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_50fc9f84`\n**Description:** Create team member sse-wave1/sse-bus via session.status\n- Failed session: `ses_f32face84ffenD92k7tBj9iieP`\n- Failed model: `zai-coding-plan/glm-5.3-flash`\n- Error: Rate limit reached for requests\n- Next model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_50fc9f84`\n**Description:** Create team member sse-wave1/sse-bus\n**Retry attempt:** 2\n**Retry session:** `ses_f32f8b7dbffezfzFA3hh8f5HKJ`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f32f8b7dbffezfzFA3hh8f5HKJ\n- Failed session: `ses_f32face84ffenD92k7tBj9iieP`\n- Failed model: `zai-coding-plan/glm-5.3-flash`\n- Error: Rate limit reached for requests\n- Model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>",
+  "injectedText": "<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_b26e2c54`\n**Description:** Create team member sse-wave1/sse-fixtures via session.status\n- Failed session: `ses_f32fad763ffeYUFtfTq1bXyBCK`\n- Failed model: `zai-coding-plan/glm-5.3-flash`\n- Error: Rate limit reached for requests\n- Next model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_b26e2c54`\n**Description:** Create team member sse-wave1/sse-fixtures\n**Retry attempt:** 2\n**Retry session:** `ses_f32f973a8ffeEm3xuyCMh8idkg`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f32f973a8ffeEm3xuyCMh8idkg\n- Failed session: `ses_f32fad763ffeYUFtfTq1bXyBCK`\n- Failed model: `zai-coding-plan/glm-5.3-flash`\n- Error: Rate limit reached for requests\n- Model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRYING]\n**ID:** `bg_50fc9f84`\n**Description:** Create team member sse-wave1/sse-bus via session.status\n- Failed session: `ses_f32face84ffenD92k7tBj9iieP`\n- Failed model: `zai-coding-plan/glm-5.3-flash`\n- Error: Rate limit reached for requests\n- Next model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe task was re-queued on a fallback model after a retryable failure.\n</system-reminder>\n\n<system-reminder>\n[BACKGROUND TASK RETRY SESSION READY]\n**ID:** `bg_50fc9f84`\n**Description:** Create team member sse-wave1/sse-bus\n**Retry attempt:** 2\n**Retry session:** `ses_f32f8b7dbffezfzFA3hh8f5HKJ`\n**Retry link:** http://127.0.0.1:4096/L2hvbWUvZXpvdG9mZi9BSV9wcm9qZWN0cy9lei1vbW8tZGFzaA/session/ses_f32f8b7dbffezfzFA3hh8f5HKJ\n- Failed session: `ses_f32face84ffenD92k7tBj9iieP`\n- Failed model: `zai-coding-plan/glm-5.3-flash`\n- Error: Rate limit reached for requests\n- Model: `ollama-cloud/deepseek-v4.1-flash`\n\nThe fallback retry session is now created and can be inspected directly.\n</system-reminder>\n<!-- OMO_WAKE:24c7c964-84f2-4d3a-9a51-0fd48182c6d5 -->",
+  "payloadHash": "a8e50cfa5dd3b65a72fb734d9f8a9d29c28f8d93075ecf043a2ccb45794a9c09",
+  "promptContext": {
+    "agent": "Sisyphus",
+    "model": {
+      "providerID": "zai-coding-plan",
+      "modelID": "glm-5.3-flash"
+    }
+  },
+  "shouldReply": false,
+  "userMessageID": null,
+  "state": "dispatched-awaiting-output",
+  "attemptCount": 1,
+  "claimedBy": null,
+  "generation": 1,
+  "claimedAt": null,
+  "firstDispatchedAt": 1790146252503,
+  "dispatchedAt": 1790146252503,
+  "terminalAt": null,
+  "lastError": null,
+  "history": [
+    {
+      "at": 1790146153391,
+      "from": null,
+      "to": "queued",
+      "reason": "queued"
+    },
+    {
+      "at": 1790146252265,
+      "from": "queued",
+      "to": "dispatching",
+      "reason": "claimed"
+    },
+    {
+      "at": 1790146252503,
+      "from": "dispatching",
+      "to": "dispatched-awaiting-output",
+      "reason": "prompt accepted"
+    }
+  ]
+}

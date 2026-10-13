@@ -1,0 +1,38 @@
+event: refresh
+data: {"ts":1790152099563}
+
+event: refresh
+data: {"ts":1790152103060}
+
+event: refresh
+data: {"ts":1790152103134}
+
+event: refresh
+data: {"ts":1790152103433}
+
+event: refresh
+data: {"ts":1790152104154}
+
+event: refresh
+data: {"ts":1790152104456}
+
+event: refresh
+data: {"ts":1790152104826}
+
+event: refresh
+data: {"ts":1790152106765}
+
+event: refresh
+data: {"ts":1790152107886}
+
+event: refresh
+data: {"ts":1790152108198}
+
+event: refresh
+data: {"ts":1790152108313}
+
+: heartbeat
+
+event: refresh
+data: {"ts":1790152110691}
+

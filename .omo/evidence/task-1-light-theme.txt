@@ -1,0 +1,39 @@
+LIGHT THEME TOKEN VERIFICATION
+===============================
+
+✓ Cyan-700 (#0891b2):
+105:  --status-busy-new: #0891b2;
+
+✓ Slate-500 (#64748b):
+106:  --status-idle-glow: #64748b;
+113:  --status-stone-base: #64748b;
+
+✓ Red-600 (#dc2626):
+104:  --status-danger: #dc2626;
+
+✓ Amber-600 (#d97706):
+108:  --status-question: #d97706;
+
+✓ Emerald-600 (#059669):
+110:  --status-plan-complete: #059669;
+
+NEW TOKENS - LIGHT THEME (all present)
+======================================
+
+✓ status-active-inset:
+112:  --status-active-inset: rgba(0, 0, 0, 0.25);
+
+✓ status-stone-base:
+113:  --status-stone-base: #64748b;
+
+✓ status-stone-highlight:
+114:  --status-stone-highlight: rgba(100, 116, 139, 0.25);
+
+✓ status-sheen:
+115:  --status-sheen: rgba(255, 255, 255, 0.12);
+
+✓ status-border-glow:
+116:  --status-border-glow: rgba(8, 145, 178, 0.12);
+
+✓ sparkline-glow-intensity:
+117:  --sparkline-glow-intensity: 0.8;

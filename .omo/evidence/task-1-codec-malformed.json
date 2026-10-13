@@ -1,0 +1,12 @@
+{
+  "scenario": "Malformed input rejected",
+  "cases": {
+    "badJson": null,
+    "badContextTag": null,
+    "badView": null,
+    "recentSix": null,
+    "badSessionState": null,
+    "badSelectionKind": null
+  },
+  "allNull": true
+}

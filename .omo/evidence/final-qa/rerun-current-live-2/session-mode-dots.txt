@@ -1,0 +1,28 @@
+### Result
+[
+  {
+    "label": "System",
+    "status": "running_tool",
+    "aggregate": "running_tool",
+    "sessionCount": "1",
+    "dots": 1
+  },
+  {
+    "label": "present",
+    "status": "running_tool",
+    "aggregate": "running_tool",
+    "sessionCount": "1",
+    "dots": 1
+  },
+  {
+    "label": "qa-test-project",
+    "status": "unknown",
+    "aggregate": "unknown",
+    "sessionCount": "0",
+    "dots": 0
+  }
+]
+### Ran Playwright code
+```js
+await page.evaluate('() => Array.from(document.querySelectorAll(\'.project-strip\')).filter(el => [\'System\',\'present\',\'qa-test-project\'].includes(el.querySelector(\'.strip-label\')?.textContent?.trim() ?? \'\')).map(el => ({label: el.querySelector(\'.strip-label\')?.textContent?.trim() ?? null, status: el.getAttribute(\'data-status\'), aggregate: el.getAttribute(\'data-aggregate-status\'), sessionCount: el.getAttribute(\'data-session-count\'), dots: el.querySelectorAll(\'.session-dot\').length}))');
+```

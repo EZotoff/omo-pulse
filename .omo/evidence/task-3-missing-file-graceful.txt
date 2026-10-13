@@ -1,0 +1,12 @@
+Missing boulder-history.jsonl Graceful Handling
+===============================================
+
+Test: src/__tests__/boulder-history.test.ts
+Status: verified
+
+Behavior:
+- When boulder-history.jsonl file does not exist: returns []
+- No errors thrown
+- Graceful degradation confirmed
+
+Result: ✓ Missing file handling is robust and does not crash the application

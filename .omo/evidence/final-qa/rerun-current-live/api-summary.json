@@ -1,0 +1,136 @@
+[
+  {
+    "index": 1,
+    "label": "/tmp/omo-final-qa-projects/emptyish",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "lastUpdatedMs": 1773328182199
+  },
+  {
+    "index": 2,
+    "label": "/tmp/omo-final-qa-projects/busy",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "lastUpdatedMs": 1773328182199
+  },
+  {
+    "index": 3,
+    "label": "/tmp/omo-final-qa-projects/attention",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "lastUpdatedMs": 1773328182199
+  },
+  {
+    "index": 4,
+    "label": "/tmp/omo-final-qa-projects/fresh-question",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "lastUpdatedMs": 1773328182199
+  },
+  {
+    "index": 5,
+    "label": "/tmp/omo-final-qa-projects/stale-error",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "lastUpdatedMs": 1773328182199
+  },
+  {
+    "index": 6,
+    "label": "/tmp/omo-final-qa-projects/stale-question",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "lastUpdatedMs": 1773328182199
+  },
+  {
+    "index": 7,
+    "label": "qa-test-project",
+    "aggregateStatus": "error",
+    "mainStatus": "error",
+    "sessionCount": 1,
+    "sessionStatuses": [
+      "error"
+    ],
+    "lastUpdatedMs": 1773328063314
+  },
+  {
+    "index": 8,
+    "label": "LLM Review",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "lastUpdatedMs": 1773328182199
+  },
+  {
+    "index": 9,
+    "label": "System",
+    "aggregateStatus": "error",
+    "mainStatus": "error",
+    "sessionCount": 1,
+    "sessionStatuses": [
+      "error"
+    ],
+    "lastUpdatedMs": 1773328145093
+  },
+  {
+    "index": 10,
+    "label": "kraken",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "lastUpdatedMs": 1773328182199
+  },
+  {
+    "index": 11,
+    "label": "traveller",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "lastUpdatedMs": 1773328182199
+  },
+  {
+    "index": 12,
+    "label": "ESM",
+    "aggregateStatus": "error",
+    "mainStatus": "error",
+    "sessionCount": 1,
+    "sessionStatuses": [
+      "error"
+    ],
+    "lastUpdatedMs": 1773328156694
+  },
+  {
+    "index": 13,
+    "label": "ANIA",
+    "aggregateStatus": "unknown",
+    "mainStatus": "unknown",
+    "sessionCount": 0,
+    "sessionStatuses": [],
+    "lastUpdatedMs": 1773328182199
+  },
+  {
+    "index": 14,
+    "label": "present",
+    "aggregateStatus": "error",
+    "mainStatus": "error",
+    "sessionCount": 1,
+    "sessionStatuses": [
+      "error"
+    ],
+    "lastUpdatedMs": 1773328169894
+  }
+]

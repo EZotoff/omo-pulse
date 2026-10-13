@@ -1,0 +1,11 @@
+$ vitest run api-events
+
+ RUN  v1.6.1 /home/ezotoff/AI_projects/ez-omo-dash
+
+ ✓ src/__tests__/api-events.test.ts  (6 tests) 39ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  10:03:11
+   Duration  1.19s (transform 325ms, setup 54ms, collect 277ms, tests 39ms, environment 0ms, prepare 341ms)
+

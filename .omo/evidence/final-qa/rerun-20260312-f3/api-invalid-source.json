@@ -1,0 +1,4 @@
+{
+  "status": 400,
+  "body": "{\"ok\":false,\"error\":\"projectRoot is required and must be a non-empty string\"}"
+}

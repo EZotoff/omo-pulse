@@ -1,0 +1,69 @@
+{
+  "projectCount": 8,
+  "projects": [
+    {
+      "label": "qa-test-project",
+      "aggregateStatus": "running_tool",
+      "sessionCount": 1,
+      "mainSessionStatus": "running_tool",
+      "hasSessionsField": true,
+      "hasAggregateStatusField": true
+    },
+    {
+      "label": "LLM Review",
+      "aggregateStatus": "error",
+      "sessionCount": 1,
+      "mainSessionStatus": "error",
+      "hasSessionsField": true,
+      "hasAggregateStatusField": true
+    },
+    {
+      "label": "System",
+      "aggregateStatus": "running_tool",
+      "sessionCount": 1,
+      "mainSessionStatus": "running_tool",
+      "hasSessionsField": true,
+      "hasAggregateStatusField": true
+    },
+    {
+      "label": "kraken",
+      "aggregateStatus": "unknown",
+      "sessionCount": 0,
+      "mainSessionStatus": "unknown",
+      "hasSessionsField": true,
+      "hasAggregateStatusField": true
+    },
+    {
+      "label": "traveller",
+      "aggregateStatus": "unknown",
+      "sessionCount": 0,
+      "mainSessionStatus": "unknown",
+      "hasSessionsField": true,
+      "hasAggregateStatusField": true
+    },
+    {
+      "label": "ESM",
+      "aggregateStatus": "running_tool",
+      "sessionCount": 1,
+      "mainSessionStatus": "running_tool",
+      "hasSessionsField": true,
+      "hasAggregateStatusField": true
+    },
+    {
+      "label": "ANIA",
+      "aggregateStatus": "unknown",
+      "sessionCount": 0,
+      "mainSessionStatus": "unknown",
+      "hasSessionsField": true,
+      "hasAggregateStatusField": true
+    },
+    {
+      "label": "present",
+      "aggregateStatus": "error",
+      "sessionCount": 3,
+      "mainSessionStatus": "error",
+      "hasSessionsField": true,
+      "hasAggregateStatusField": true
+    }
+  ]
+}

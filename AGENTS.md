@@ -230,7 +230,7 @@ AGENTS.md                    ← this file (root)
 
 ## Linked Projects — Portable Supervisor (read before supervisor/voice/remote-UI work)
 
-This repo (omo-pulse) is the visual supervisor surface of a FOUR-repo product. Authoritative docs live in ez-omo-config: the **proposal** (vision + UX spec, `~/ez-omo-config/docs/portable-supervisor-proposal.md`) and the **binding contract** (`~/ez-omo-config/docs/portable-supervisor-contract.md`). Siblings: voice-bridge (`~/AI_projects/voice-bridge`, Vox voice brain, loopback :18220), oc-beacon (`~/src/oc-beacon`, Android client — NOT under ~/AI_projects), ez-omo-config (contract/proposal home; changes land there FIRST). Cross-repo order: contract → bridge → dash/beacon. Before any design decision — and before declaring any spec nonexistent — grep all four repos' docs/plans (2026-10-08 lesson: the Portable Mode spec existed in the proposal all along while being reconstructed wrongly from memory).
+This repo (omo-pulse) is the visual supervisor surface of a FOUR-repo product. Authoritative docs live in ez-omo-config: the **proposal** (vision + UX spec, `~/ez-omo-config/docs/portable-supervisor-proposal.md`) and the **binding contract** (`~/ez-omo-config/docs/portable-supervisor-contract.md`). Siblings: voice-bridge (`~/AI_projects/voice-bridge`, Vox voice brain, loopback :18220), oc-beacon (`~/AI_projects/oc-beacon`, Android client), ez-omo-config (contract/proposal home; changes land there FIRST). Cross-repo order: contract → bridge → dash/beacon. Before any design decision — and before declaring any spec nonexistent — grep all four repos' docs/plans (2026-10-08 lesson: the Portable Mode spec existed in the proposal all along while being reconstructed wrongly from memory).
 
 ## Notes
 

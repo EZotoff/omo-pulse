@@ -3,7 +3,7 @@
   "target": "branch",
   "source_type": "Repository",
   "source": "ezotoff/omo-pulse",
-  "enforcement": "active",
+  "enforcement": "disabled",
   "conditions": {
     "ref_name": {
       "include": ["refs/heads/main", "refs/heads/master"],
